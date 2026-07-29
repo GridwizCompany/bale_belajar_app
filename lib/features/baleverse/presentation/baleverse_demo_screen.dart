@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../theme/bale_theme.dart';
+import '../../auth/application/auth_controller.dart';
+import '../../auth/presentation/profile_screen.dart';
 import '../application/baleverse_progress_service.dart';
 import '../application/mission_engine.dart';
 import '../data/baleverse_dummy_data.dart';
@@ -14,10 +16,17 @@ import 'screens/mission_screen.dart';
 import 'screens/reward_screen.dart';
 import 'screens/worlds_screen.dart';
 
-enum BaleTab { home, worlds, mission, circle }
+enum BaleTab { home, worlds, mission, circle, profile }
 
 class BaleVerseDemoScreen extends StatefulWidget {
-  const BaleVerseDemoScreen({super.key});
+  const BaleVerseDemoScreen({
+    this.skipDemoLogin = false,
+    this.authController,
+    super.key,
+  });
+
+  final bool skipDemoLogin;
+  final AuthController? authController;
 
   @override
   State<BaleVerseDemoScreen> createState() => _BaleVerseDemoScreenState();
@@ -26,7 +35,7 @@ class BaleVerseDemoScreen extends StatefulWidget {
 class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   final BaleVerseProgressService _progressService = BaleVerseProgressService();
   final MissionEngine _missionEngine = const MissionEngine();
-  machine.BaleVerseState _state = const machine.BaleVerseState();
+  late machine.BaleVerseState _state;
   BaleTab _tab = BaleTab.home;
   String? _selectedOptionId;
   String? _feedback;
@@ -41,6 +50,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   @override
   void initState() {
     super.initState();
+    _state = widget.skipDemoLogin
+        ? const machine.BaleVerseState(step: MissionStep.dashboard)
+        : const machine.BaleVerseState();
     _progressService.addListener(_onProgressChanged);
   }
 
@@ -128,6 +140,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
             icon: Icon(Icons.groups_rounded),
             label: 'Lingkar',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profil',
+          ),
         ],
       ),
     );
@@ -166,6 +182,13 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
             _state = machine.receiveMentorFeedback(_state);
           });
         },
+      );
+    }
+
+    if (_tab == BaleTab.profile && widget.authController != null) {
+      return ProfileScreen(
+        key: const ValueKey('profile'),
+        controller: widget.authController!,
       );
     }
 

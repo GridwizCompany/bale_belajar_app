@@ -4,6 +4,7 @@ import 'package:bale_belajar_app/features/baleverse/application/mission_engine.d
 import 'package:bale_belajar_app/features/baleverse/application/progress_store.dart';
 import 'package:bale_belajar_app/features/baleverse/data/baleverse_dummy_data.dart';
 import 'package:bale_belajar_app/features/baleverse/domain/baleverse_models.dart';
+import 'package:bale_belajar_app/features/baleverse/presentation/baleverse_demo_screen.dart';
 import 'package:bale_belajar_app/features/baleverse/state/mission_state_machine.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,7 +98,7 @@ void main() {
   });
 
   testWidgets('BaleVerse dashboard renders after demo login', (tester) async {
-    await tester.pumpWidget(const BaleBelajarApp());
+    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
 
     expect(find.text('Masuk ke BaleVerse'), findsOneWidget);
 
@@ -119,7 +120,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const BaleBelajarApp());
+    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
     await tester.tap(find.text('Masuk sebagai Nara'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lanjutkan Misi'));
@@ -147,7 +148,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const BaleBelajarApp());
+    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
     await tester.tap(find.text('Masuk sebagai Nara'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lanjutkan Misi'));

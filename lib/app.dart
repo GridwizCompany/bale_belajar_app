@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'features/baleverse/presentation/baleverse_demo_screen.dart';
+import 'features/auth/presentation/auth_gate.dart';
 import 'theme/bale_theme.dart';
 
 class BaleBelajarApp extends StatelessWidget {
-  const BaleBelajarApp({super.key});
+  const BaleBelajarApp({super.key, this.home});
+
+  final Widget? home;
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +14,7 @@ class BaleBelajarApp extends StatelessWidget {
       title: 'BaleBelajar',
       debugShowCheckedModeBanner: false,
       theme: buildBaleTheme(),
-      home: const BaleVerseDemoScreen(),
+      home: home ?? const AuthGate(),
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import 'app.dart';
+import 'core/firebase/firebase_bootstrap.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await FirebaseBootstrap.initializeIfConfigured();
   runApp(const BaleBelajarApp());
 }

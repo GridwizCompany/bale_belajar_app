@@ -16,6 +16,11 @@ class AuthController extends ChangeNotifier {
   String? errorMessage;
   bool isBusy = false;
 
+  void setError(String message) {
+    errorMessage = message;
+    notifyListeners();
+  }
+
   Future<void> initialize() async {
     status = AuthStatus.checking;
     notifyListeners();
@@ -61,6 +66,15 @@ class AuthController extends ChangeNotifier {
   Future<void> loginWithCode(String code) {
     return _run(() async {
       final session = await authService.loginWithParticipantCode(code);
+      user = session.user;
+      user = await authService.me();
+      status = _statusFor(user);
+    });
+  }
+
+  Future<void> loginWithGoogleToken(String idToken) {
+    return _run(() async {
+      final session = await authService.loginWithGoogle(idToken);
       user = session.user;
       user = await authService.me();
       status = _statusFor(user);

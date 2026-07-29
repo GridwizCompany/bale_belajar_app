@@ -41,6 +41,13 @@ class AuthService {
     return _persist(AuthSession.fromJson(data as Map<String, dynamic>));
   }
 
+  Future<AuthSession> loginWithGoogle(String idToken) async {
+    final data = await apiClient.post('/auth/google', body: {
+      'idToken': idToken,
+    });
+    return _persist(AuthSession.fromJson(data as Map<String, dynamic>));
+  }
+
   Future<AuthUser> me() async {
     final data = await apiClient.get('/auth/me');
     return AuthUser.fromJson(data as Map<String, dynamic>);

@@ -1,0 +1,261 @@
+import 'package:flutter/material.dart';
+
+import '../../../../shared/widgets/bale_card.dart';
+import '../../../../theme/bale_theme.dart';
+import '../../data/baleverse_dummy_data.dart';
+import '../../domain/baleverse_models.dart';
+
+class PageShell extends StatelessWidget {
+  const PageShell({required this.children, super.key});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+      children: [
+        const AppHeader(),
+        const SizedBox(height: 16),
+        ...children,
+      ],
+    );
+  }
+}
+
+class AppHeader extends StatelessWidget {
+  const AppHeader({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: BaleColors.success,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.menu_book_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'BaleBelajar',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              ),
+              Text(
+                'BaleVerse mobile',
+                style:
+                    TextStyle(fontWeight: FontWeight.w700, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+        const MetricPill(icon: Icons.local_fire_department, label: '2/3'),
+      ],
+    );
+  }
+}
+
+class BaleHeroCard extends StatelessWidget {
+  const BaleHeroCard({required this.stateLabel, super.key});
+
+  final String stateLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'BaleHero sedang $stateLabel',
+      child: BaleCard(
+        child: Row(
+          children: [
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFF6FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.psychology_alt_rounded,
+                size: 44,
+                color: BaleColors.info,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SmallCaps('BaleHero'),
+                  Text(
+                    stateLabel,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Text('Kita fokus ke satu langkah kecil dulu.'),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class StatCard extends StatelessWidget {
+  const StatCard({required this.label, required this.value, super.key});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return BaleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(value, style: Theme.of(context).textTheme.titleLarge),
+          Text(label),
+        ],
+      ),
+    );
+  }
+}
+
+class MetricPill extends StatelessWidget {
+  const MetricPill({required this.icon, required this.label, super.key});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: BaleColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: BaleColors.warning),
+          const SizedBox(width: 4),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+class SmallCaps extends StatelessWidget {
+  const SmallCaps(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        color: BaleColors.dayaBale,
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 0.6,
+      ),
+    );
+  }
+}
+
+class WorldSelector extends StatelessWidget {
+  const WorldSelector({
+    required this.selectedWorld,
+    required this.onSelectWorld,
+    super.key,
+  });
+
+  final BaleWorld selectedWorld;
+  final ValueChanged<BaleWorldKey> onSelectWorld;
+
+  @override
+  Widget build(BuildContext context) {
+    return BaleCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Pilih Dunia', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          for (final world in baleWorlds) ...[
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => onSelectWorld(world.key),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: selectedWorld.key == world.key
+                      ? world.color.withValues(alpha: 0.10)
+                      : BaleColors.soft,
+                  border: Border.all(
+                    color: selectedWorld.key == world.key
+                        ? world.color
+                        : BaleColors.line,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      world.name,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    Text('${world.subject} - ${world.characterClass}'),
+                    const SizedBox(height: 8),
+                    BaleProgressBar(
+                      value: world.mastery / 100,
+                      color: world.color,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class RewardPill extends StatelessWidget {
+  const RewardPill({required this.label, super.key});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}

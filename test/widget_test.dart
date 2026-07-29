@@ -1,8 +1,7 @@
-import 'dart:ui';
-
 import 'package:bale_belajar_app/app.dart';
 import 'package:bale_belajar_app/features/baleverse/domain/baleverse_models.dart';
 import 'package:bale_belajar_app/features/baleverse/state/mission_state_machine.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -40,6 +39,8 @@ void main() {
 
     expect(find.textContaining('BaleVerse'), findsOneWidget);
     expect(find.text('Lanjutkan Misi'), findsOneWidget);
+    await tester.drag(find.byType(Scrollable), const Offset(0, -520));
+    await tester.pumpAndSettle();
     expect(find.text('Numeria'), findsOneWidget);
     expect(find.text('XP Matematika'), findsOneWidget);
     expect(find.text('Mastery'), findsOneWidget);

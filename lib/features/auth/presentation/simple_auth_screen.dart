@@ -9,6 +9,10 @@ import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
 
+const _authBlue = Color(0xFF38BDF8);
+const _authBlueDark = Color(0xFF0284C7);
+const _authBlueSoft = Color(0xFFE0F7FF);
+
 enum AuthMode { welcome, register, login, code }
 
 class SimpleAuthScreen extends StatefulWidget {
@@ -43,7 +47,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4FFF0),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -316,7 +320,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 }
 
-class _OnboardingView extends StatefulWidget {
+class _OnboardingView extends StatelessWidget {
   const _OnboardingView({
     required this.onRegister,
     required this.onLogin,
@@ -329,224 +333,46 @@ class _OnboardingView extends StatefulWidget {
   final VoidCallback onCode;
 
   @override
-  State<_OnboardingView> createState() => _OnboardingViewState();
-}
-
-class _OnboardingViewState extends State<_OnboardingView> {
-  final PageController _pageController = PageController();
-  int _page = 0;
-
-  static const _slides = [
-    _OnboardingSlide(
-      title: 'Belajar jadi terasa ringan.',
-      body: 'Mulai dari misi kecil yang jelas, satu langkah setiap hari.',
-      icon: Icons.flag_rounded,
-      color: Color(0xFFE2FFD7),
-    ),
-    _OnboardingSlide(
-      title: 'Tidak bingung saat buntu.',
-      body:
-          'BaleBelajar memberi petunjuk, lalu bantu minta mentor kalau perlu.',
-      icon: Icons.lightbulb_rounded,
-      color: Color(0xFFEFF6FF),
-    ),
-    _OnboardingSlide(
-      title: 'Progresmu tersimpan.',
-      body: 'Lanjutkan misi, lihat perkembangan, dan atur profil belajarmu.',
-      icon: Icons.insights_rounded,
-      color: Color(0xFFFFF7D6),
-    ),
-  ];
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isLast = _page == _slides.length - 1;
-    return ListView(
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'BaleBelajar',
-                style: TextStyle(
-                  color: BaleColors.success,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            TextButton(
-              onPressed: widget.onLogin,
-              child: const Text('Masuk'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 420,
-          child: PageView.builder(
-            controller: _pageController,
-            onPageChanged: (value) => setState(() => _page = value),
-            itemCount: _slides.length,
-            itemBuilder: (context, index) {
-              final slide = _slides[index];
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: _OnboardingPage(slide: slide),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 16),
-        _OnboardingDots(count: _slides.length, activeIndex: _page),
-        const SizedBox(height: 24),
-        _PrimaryAction(
-          icon: isLast ? Icons.play_arrow_rounded : Icons.arrow_forward_rounded,
-          label: isLast ? 'Mulai Belajar' : 'Lanjut',
-          onPressed: () {
-            if (isLast) {
-              widget.onRegister();
-              return;
-            }
-            _pageController.nextPage(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: isLast
-              ? Column(
-                  key: const ValueKey('final-actions'),
-                  children: [
-                    _OutlineAction(
-                      icon: Icons.login_rounded,
-                      label: 'Saya Sudah Punya Akun',
-                      onPressed: widget.onLogin,
-                    ),
-                    const SizedBox(height: 12),
-                    _SecondaryAction(
-                      label: 'Masuk dengan kode siswa',
-                      onPressed: widget.onCode,
-                    ),
-                  ],
-                )
-              : _SecondaryAction(
-                  key: const ValueKey('skip-action'),
-                  label: 'Lewati',
-                  onPressed: widget.onRegister,
-                ),
-        ),
-      ],
-    );
-  }
-}
-
-class _OnboardingSlide {
-  const _OnboardingSlide({
-    required this.title,
-    required this.body,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String body;
-  final IconData icon;
-  final Color color;
-}
-
-class _OnboardingPage extends StatelessWidget {
-  const _OnboardingPage({required this.slide});
-
-  final _OnboardingSlide slide;
-
-  @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Expanded(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
-            decoration: BoxDecoration(
-              color: slide.color,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x12000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  child: Icon(
-                    slide.icon,
-                    color: BaleColors.success.withValues(alpha: 0.18),
-                    size: 72,
-                  ),
-                ),
-                const Center(child: _BaleBookMascot(size: 210)),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
+        const Spacer(flex: 2),
+        const _BaleBookMascot(size: 148),
+        const SizedBox(height: 18),
         Text(
-          slide.title,
+          'BaleBelajar',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontSize: 30,
+                color: _authBlueDark,
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
               ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          slide.body,
+        const SizedBox(height: 10),
+        const Text(
+          'Belajar lebih ringan, seru, dan terarah.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-        ),
-      ],
-    );
-  }
-}
-
-class _OnboardingDots extends StatelessWidget {
-  const _OnboardingDots({required this.count, required this.activeIndex});
-
-  final int count;
-  final int activeIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var index = 0; index < count; index++) ...[
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            width: activeIndex == index ? 28 : 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color:
-                  activeIndex == index ? BaleColors.success : BaleColors.line,
-              borderRadius: BorderRadius.circular(99),
-            ),
+          style: TextStyle(
+            color: Color(0xFF7A8796),
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
           ),
-          if (index != count - 1) const SizedBox(width: 8),
-        ],
+        ),
+        const Spacer(flex: 3),
+        _PrimaryAction(
+          icon: Icons.play_arrow_rounded,
+          label: 'GET STARTED',
+          onPressed: onRegister,
+        ),
+        const SizedBox(height: 12),
+        _OutlineAction(
+          icon: Icons.login_rounded,
+          label: 'I ALREADY HAVE AN ACCOUNT',
+          onPressed: onLogin,
+        ),
+        const SizedBox(height: 10),
+        _SecondaryAction(label: 'Masuk dengan kode siswa', onPressed: onCode),
+        const SizedBox(height: 12),
       ],
     );
   }
@@ -585,7 +411,7 @@ class _AuthStep extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        const _BaleBookMascot(size: 118),
+        const _BaleBookMascot(size: 104),
         const SizedBox(height: 18),
         Text(
           title,
@@ -680,7 +506,7 @@ class _BaleBookMascotPainter extends CustomPainter {
 
     final armPaint = Paint()
       ..isAntiAlias = true
-      ..color = const Color(0xFF1BAA4A)
+      ..color = _authBlueDark
       ..strokeWidth = w * 0.07
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(
@@ -697,12 +523,12 @@ class _BaleBookMascotPainter extends CustomPainter {
       Radius.circular(w * 0.08),
     );
 
-    paint.color = BaleColors.success;
+    paint.color = _authBlueDark;
     canvas.drawRRect(leftPage, paint);
-    paint.color = const Color(0xFF58CC02);
+    paint.color = _authBlue;
     canvas.drawRRect(rightPage, paint);
 
-    paint.color = const Color(0xFF0F8F3B);
+    paint.color = const Color(0xFF0369A1);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(w * 0.475, h * 0.18, w * 0.05, h * 0.52),
@@ -711,7 +537,7 @@ class _BaleBookMascotPainter extends CustomPainter {
       paint,
     );
 
-    paint.color = const Color(0xFFE9FFE2);
+    paint.color = _authBlueSoft;
     canvas.drawCircle(Offset(w * 0.38, h * 0.39), w * 0.095, paint);
     canvas.drawCircle(Offset(w * 0.62, h * 0.39), w * 0.095, paint);
 
@@ -790,7 +616,7 @@ class _ProgressTrack extends StatelessWidget {
         value: value.clamp(0, 1),
         minHeight: 12,
         backgroundColor: BaleColors.line,
-        color: BaleColors.success,
+        color: _authBlue,
       ),
     );
   }
@@ -904,10 +730,10 @@ class _PrimaryAction extends StatelessWidget {
       onPressed: loading || disabled ? null : onPressed,
       style: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(58),
-        backgroundColor: const Color(0xFF58CC02),
+        backgroundColor: _authBlue,
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
         elevation: 4,
-        shadowColor: const Color(0x5522C55E),
+        shadowColor: const Color(0x5538BDF8),
       ),
       icon: loading
           ? const SizedBox.square(
@@ -938,8 +764,8 @@ class _OutlineAction extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         minimumSize: const Size.fromHeight(58),
         backgroundColor: Colors.white,
-        foregroundColor: BaleColors.success,
-        side: const BorderSide(color: BaleColors.success, width: 2),
+        foregroundColor: _authBlueDark,
+        side: const BorderSide(color: BaleColors.line, width: 2),
       ),
       icon: Icon(icon),
       label: Text(label),
@@ -951,7 +777,6 @@ class _SecondaryAction extends StatelessWidget {
   const _SecondaryAction({
     required this.label,
     required this.onPressed,
-    super.key,
   });
 
   final String label;
@@ -1011,7 +836,7 @@ class _Field extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: BaleColors.success, width: 2),
+          borderSide: const BorderSide(color: _authBlue, width: 2),
         ),
       ),
     );

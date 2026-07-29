@@ -7,7 +7,7 @@ import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
 
-enum AuthMode { login, register, code }
+enum AuthMode { welcome, register, login, code }
 
 class SimpleAuthScreen extends StatefulWidget {
   const SimpleAuthScreen({required this.controller, super.key});
@@ -24,7 +24,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
-  AuthMode _mode = AuthMode.login;
+  AuthMode _mode = AuthMode.welcome;
   int _grade = 10;
   bool _showPassword = false;
   bool _googleBusy = false;
@@ -40,35 +40,35 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 760;
     return Scaffold(
+      backgroundColor: const Color(0xFFF4FFF0),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 980),
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: compact
-                  ? ListView(
-                      children: [
-                        const _BrandPanel(compact: true),
-                        const SizedBox(height: 14),
-                        _AuthCard(
-                            controller: widget.controller, child: _form()),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        const Expanded(child: _BrandPanel()),
-                        const SizedBox(width: 18),
-                        Expanded(
-                          child: _AuthCard(
-                            controller: widget.controller,
-                            child: _form(),
-                          ),
-                        ),
-                      ],
-                    ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child: _mode == AuthMode.welcome
+                    ? _WelcomeView(
+                        key: const ValueKey('welcome'),
+                        onRegister: () => _goTo(AuthMode.register),
+                        onLogin: () => _goTo(AuthMode.login),
+                        onCode: () => _goTo(AuthMode.code),
+                      )
+                    : _AuthStep(
+                        key: ValueKey(_mode),
+                        controller: widget.controller,
+                        progress: _progress,
+                        title: _title,
+                        helper: _helper,
+                        onBack: () => _goTo(AuthMode.welcome),
+                        child: _form(),
+                      ),
+              ),
             ),
           ),
         ),
@@ -77,167 +77,166 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   Widget _form() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(_title, style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 6),
-          Text(_helper),
-          const SizedBox(height: 18),
-          if (_mode != AuthMode.code) ...[
-            _GoogleButton(
-              loading: _googleBusy,
-              disabled: widget.controller.isBusy,
-              onPressed: _continueWithGoogle,
-            ),
-            const SizedBox(height: 16),
-            const _DividerLabel(label: 'atau pakai email'),
-            const SizedBox(height: 16),
-          ],
-          SegmentedButton<AuthMode>(
-            segments: const [
-              ButtonSegment(value: AuthMode.login, label: Text('Masuk')),
-              ButtonSegment(value: AuthMode.register, label: Text('Daftar')),
-              ButtonSegment(value: AuthMode.code, label: Text('Kode')),
-            ],
-            selected: {_mode},
-            onSelectionChanged: widget.controller.isBusy || _googleBusy
-                ? null
-                : (value) => setState(() => _mode = value.first),
-          ),
-          const SizedBox(height: 16),
-          if (_mode == AuthMode.register) ...[
-            _Field(
-              controller: _name,
-              label: 'Nama lengkap',
-              icon: Icons.person_rounded,
-              validator: _required,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (_mode != AuthMode.code) ...[
-            _Field(
-              controller: _email,
-              label: 'Email',
-              icon: Icons.mail_rounded,
-              keyboardType: TextInputType.emailAddress,
-              validator: _emailValidator,
-            ),
-            const SizedBox(height: 12),
-            _Field(
-              controller: _password,
-              label: 'Password',
-              icon: Icons.lock_rounded,
-              obscureText: !_showPassword,
-              validator: _passwordValidator,
-              suffixIcon: IconButton(
-                tooltip:
-                    _showPassword ? 'Sembunyikan password' : 'Lihat password',
-                onPressed: () => setState(() => _showPassword = !_showPassword),
-                icon: Icon(
-                  _showPassword
-                      ? Icons.visibility_off_rounded
-                      : Icons.visibility_rounded,
+    return AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        return Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_mode != AuthMode.code) ...[
+                _GoogleButton(
+                  loading: _googleBusy,
+                  disabled: widget.controller.isBusy,
+                  onPressed: _continueWithGoogle,
                 ),
-              ),
-            ),
-          ],
-          if (_mode == AuthMode.code)
-            _Field(
-              controller: _code,
-              label: 'Kode peserta',
-              icon: Icons.badge_rounded,
-              textCapitalization: TextCapitalization.characters,
-              validator: _required,
-            ),
-          if (_mode == AuthMode.register) ...[
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              initialValue: _grade,
-              decoration: const InputDecoration(
-                labelText: 'Kelas',
-                prefixIcon: Icon(Icons.school_rounded),
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 10, child: Text('Kelas 10')),
-                DropdownMenuItem(value: 11, child: Text('Kelas 11')),
-                DropdownMenuItem(value: 12, child: Text('Kelas 12')),
+                const SizedBox(height: 16),
+                const _DividerLabel(label: 'atau'),
+                const SizedBox(height: 16),
               ],
-              onChanged: (value) {
-                if (value != null) setState(() => _grade = value);
-              },
-            ),
-          ],
-          if (widget.controller.errorMessage != null) ...[
-            const SizedBox(height: 12),
-            _ErrorBanner(message: widget.controller.errorMessage!),
-          ],
-          const SizedBox(height: 18),
-          FilledButton.icon(
-            onPressed: widget.controller.isBusy || _googleBusy ? null : _submit,
-            icon: widget.controller.isBusy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(_buttonIcon),
-            label: Text(_buttonLabel),
+              if (_mode == AuthMode.register) ...[
+                _Field(
+                  controller: _name,
+                  label: 'Nama lengkap',
+                  icon: Icons.person_rounded,
+                  validator: _required,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (_mode != AuthMode.code) ...[
+                _Field(
+                  controller: _email,
+                  label: 'Email',
+                  icon: Icons.mail_rounded,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: _emailValidator,
+                ),
+                const SizedBox(height: 12),
+                _Field(
+                  controller: _password,
+                  label: 'Password',
+                  icon: Icons.lock_rounded,
+                  obscureText: !_showPassword,
+                  validator: _passwordValidator,
+                  suffixIcon: IconButton(
+                    tooltip: _showPassword
+                        ? 'Sembunyikan password'
+                        : 'Lihat password',
+                    onPressed: () =>
+                        setState(() => _showPassword = !_showPassword),
+                    icon: Icon(
+                      _showPassword
+                          ? Icons.visibility_off_rounded
+                          : Icons.visibility_rounded,
+                    ),
+                  ),
+                ),
+              ],
+              if (_mode == AuthMode.code)
+                _Field(
+                  controller: _code,
+                  label: 'Kode peserta',
+                  icon: Icons.badge_rounded,
+                  textCapitalization: TextCapitalization.characters,
+                  validator: _required,
+                ),
+              if (_mode == AuthMode.register) ...[
+                const SizedBox(height: 12),
+                DropdownButtonFormField<int>(
+                  initialValue: _grade,
+                  decoration: const InputDecoration(
+                    labelText: 'Kelas',
+                    prefixIcon: Icon(Icons.school_rounded),
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 10, child: Text('Kelas 10')),
+                    DropdownMenuItem(value: 11, child: Text('Kelas 11')),
+                    DropdownMenuItem(value: 12, child: Text('Kelas 12')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setState(() => _grade = value);
+                  },
+                ),
+              ],
+              if (widget.controller.errorMessage != null) ...[
+                const SizedBox(height: 12),
+                _ErrorBanner(message: widget.controller.errorMessage!),
+              ],
+              const SizedBox(height: 18),
+              _PrimaryAction(
+                loading: widget.controller.isBusy,
+                disabled: _googleBusy,
+                icon: _buttonIcon,
+                label: _buttonLabel,
+                onPressed: _submit,
+              ),
+              const SizedBox(height: 10),
+              _SecondaryAction(
+                label: _switchLabel,
+                onPressed: widget.controller.isBusy || _googleBusy
+                    ? null
+                    : () => _goTo(_switchTarget),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          TextButton(
-            onPressed:
-                widget.controller.isBusy || _googleBusy ? null : _switchMode,
-            child: Text(_switchLabel),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
+  double get _progress => switch (_mode) {
+        AuthMode.welcome => 0.18,
+        AuthMode.register => 0.58,
+        AuthMode.login => 0.58,
+        AuthMode.code => 0.58,
+      };
+
   String get _title => switch (_mode) {
-        AuthMode.login => 'Selamat datang kembali',
-        AuthMode.register => 'Buat akun belajar',
-        AuthMode.code => 'Masuk dengan kode siswa',
+        AuthMode.welcome => 'BaleBelajar',
+        AuthMode.register => 'Buat akunmu',
+        AuthMode.login => 'Masuk lagi',
+        AuthMode.code => 'Pakai kode siswa',
       };
 
   String get _helper => switch (_mode) {
-        AuthMode.login => 'Masuk untuk lanjut ke misi, progres, dan profilmu.',
-        AuthMode.register =>
-          'Daftar cepat. Setelah itu kamu bisa mengatur minat belajar.',
-        AuthMode.code =>
-          'Gunakan kode dari sekolah atau mentor untuk masuk sebagai siswa.',
+        AuthMode.welcome => '',
+        AuthMode.register => 'Satu langkah lagi sebelum misi pertamamu.',
+        AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
+        AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
       };
 
   String get _switchLabel => switch (_mode) {
-        AuthMode.login => 'Belum punya akun? Daftar',
         AuthMode.register => 'Sudah punya akun? Masuk',
+        AuthMode.login => 'Belum punya akun? Mulai belajar',
         AuthMode.code => 'Masuk pakai email',
+        AuthMode.welcome => '',
+      };
+
+  AuthMode get _switchTarget => switch (_mode) {
+        AuthMode.register => AuthMode.login,
+        AuthMode.login => AuthMode.register,
+        AuthMode.code => AuthMode.login,
+        AuthMode.welcome => AuthMode.register,
       };
 
   IconData get _buttonIcon => switch (_mode) {
+        AuthMode.register => Icons.arrow_forward_rounded,
         AuthMode.login => Icons.login_rounded,
-        AuthMode.register => Icons.person_add_alt_1_rounded,
         AuthMode.code => Icons.qr_code_2_rounded,
+        AuthMode.welcome => Icons.play_arrow_rounded,
       };
 
   String get _buttonLabel => switch (_mode) {
-        AuthMode.login => 'Masuk',
         AuthMode.register => 'Buat Akun',
+        AuthMode.login => 'Masuk',
         AuthMode.code => 'Masuk dengan Kode',
+        AuthMode.welcome => 'Mulai',
       };
 
-  void _switchMode() {
-    setState(() {
-      _mode = switch (_mode) {
-        AuthMode.login => AuthMode.register,
-        AuthMode.register => AuthMode.login,
-        AuthMode.code => AuthMode.login,
-      };
-    });
+  void _goTo(AuthMode mode) {
+    setState(() => _mode = mode);
   }
 
   Future<void> _continueWithGoogle() async {
@@ -281,7 +280,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         password: _password.text,
         gradeLevel: _grade,
       );
-    } else {
+    } else if (_mode == AuthMode.code) {
       await widget.controller.loginWithCode(_code.text);
     }
   }
@@ -315,109 +314,341 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 }
 
-class _BrandPanel extends StatelessWidget {
-  const _BrandPanel({this.compact = false});
+class _WelcomeView extends StatelessWidget {
+  const _WelcomeView({
+    required this.onRegister,
+    required this.onLogin,
+    required this.onCode,
+    super.key,
+  });
 
-  final bool compact;
+  final VoidCallback onRegister;
+  final VoidCallback onLogin;
+  final VoidCallback onCode;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(compact ? 18 : 28),
-      decoration: BoxDecoration(
-        color: BaleColors.ink,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: BaleColors.success,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.menu_book_rounded, color: Colors.white),
+    return ListView(
+      children: [
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.fromLTRB(18, 26, 18, 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE2FFD7),
+            borderRadius: BorderRadius.circular(8),
           ),
-          SizedBox(height: compact ? 16 : 28),
-          Text(
-            'BaleBelajar',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
-                  fontSize: compact ? 28 : 34,
-                ),
+          child: Column(
+            children: [
+              const _BaleBookMascot(size: 170),
+              const SizedBox(height: 14),
+              Text(
+                'BaleBelajar',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: BaleColors.success,
+                      fontSize: 34,
+                    ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          const Text(
-            'Belajar lebih terarah dengan misi, mentor, dan progres yang mudah dipahami.',
-            style: TextStyle(
-              color: Color(0xFFDDE5F0),
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              height: 1.45,
-            ),
-          ),
-          if (!compact) ...[
-            const SizedBox(height: 28),
-            const _Benefit(
-                icon: Icons.flag_rounded, label: 'Misi belajar bertahap'),
-            const SizedBox(height: 12),
-            const _Benefit(
-                icon: Icons.groups_rounded, label: 'Bantuan mentor saat buntu'),
-            const SizedBox(height: 12),
-            const _Benefit(
-                icon: Icons.insights_rounded, label: 'Progres siswa tersimpan'),
-          ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 22),
+        Text(
+          'Belajar jadi terasa ringan.',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: 30,
+              ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Mulai dari misi kecil, lihat progresmu, dan minta bantuan saat perlu.',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 26),
+        _PrimaryAction(
+          icon: Icons.play_arrow_rounded,
+          label: 'Mulai Belajar',
+          onPressed: onRegister,
+        ),
+        const SizedBox(height: 12),
+        _OutlineAction(
+          icon: Icons.login_rounded,
+          label: 'Saya Sudah Punya Akun',
+          onPressed: onLogin,
+        ),
+        const SizedBox(height: 12),
+        _SecondaryAction(label: 'Masuk dengan kode siswa', onPressed: onCode),
+        const SizedBox(height: 22),
+        const _FeatureStrip(),
+      ],
     );
   }
 }
 
-class _Benefit extends StatelessWidget {
-  const _Benefit({required this.icon, required this.label});
+class _AuthStep extends StatelessWidget {
+  const _AuthStep({
+    required this.controller,
+    required this.progress,
+    required this.title,
+    required this.helper,
+    required this.onBack,
+    required this.child,
+    super.key,
+  });
 
-  final IconData icon;
-  final String label;
+  final AuthController controller;
+  final double progress;
+  final String title;
+  final String helper;
+  final VoidCallback onBack;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return ListView(
       children: [
-        Icon(icon, color: BaleColors.dayaBale),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Kembali',
+              onPressed: controller.isBusy ? null : onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
             ),
-          ),
+            Expanded(child: _ProgressTrack(value: progress)),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const _BaleBookMascot(size: 118),
+        const SizedBox(height: 18),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          helper,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 20),
+        BaleCard(
+          padding: const EdgeInsets.all(20),
+          child: child,
         ),
       ],
     );
   }
 }
 
-class _AuthCard extends StatelessWidget {
-  const _AuthCard({required this.controller, required this.child});
+class _BaleBookMascot extends StatelessWidget {
+  const _BaleBookMascot({required this.size});
 
-  final AuthController controller;
-  final Widget child;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        return BaleCard(
-          padding: const EdgeInsets.all(22),
-          child: child,
-        );
-      },
+    return Semantics(
+      label: 'Mascot buku BaleBelajar',
+      child: SizedBox.square(
+        dimension: size,
+        child: CustomPaint(painter: _BaleBookMascotPainter()),
+      ),
+    );
+  }
+}
+
+class _BaleBookMascotPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = true;
+    final w = size.width;
+    final h = size.height;
+
+    paint.color = const Color(0x22000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, h * 0.86),
+        width: w * 0.56,
+        height: h * 0.08,
+      ),
+      paint,
+    );
+
+    final armPaint = Paint()
+      ..isAntiAlias = true
+      ..color = const Color(0xFF1BAA4A)
+      ..strokeWidth = w * 0.07
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+        Offset(w * 0.2, h * 0.47), Offset(w * 0.08, h * 0.38), armPaint);
+    canvas.drawLine(
+        Offset(w * 0.8, h * 0.47), Offset(w * 0.92, h * 0.38), armPaint);
+
+    final leftPage = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.18, h * 0.18, w * 0.34, h * 0.5),
+      Radius.circular(w * 0.08),
+    );
+    final rightPage = RRect.fromRectAndRadius(
+      Rect.fromLTWH(w * 0.48, h * 0.18, w * 0.34, h * 0.5),
+      Radius.circular(w * 0.08),
+    );
+
+    paint.color = BaleColors.success;
+    canvas.drawRRect(leftPage, paint);
+    paint.color = const Color(0xFF58CC02);
+    canvas.drawRRect(rightPage, paint);
+
+    paint.color = const Color(0xFF0F8F3B);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.475, h * 0.18, w * 0.05, h * 0.52),
+        Radius.circular(w * 0.04),
+      ),
+      paint,
+    );
+
+    paint.color = const Color(0xFFE9FFE2);
+    canvas.drawCircle(Offset(w * 0.38, h * 0.39), w * 0.095, paint);
+    canvas.drawCircle(Offset(w * 0.62, h * 0.39), w * 0.095, paint);
+
+    paint.color = BaleColors.ink;
+    canvas.drawCircle(Offset(w * 0.39, h * 0.39), w * 0.032, paint);
+    canvas.drawCircle(Offset(w * 0.61, h * 0.39), w * 0.032, paint);
+
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(w * 0.402, h * 0.376), w * 0.012, paint);
+    canvas.drawCircle(Offset(w * 0.622, h * 0.376), w * 0.012, paint);
+
+    final smile = Path()
+      ..moveTo(w * 0.42, h * 0.52)
+      ..quadraticBezierTo(w * 0.5, h * 0.59, w * 0.58, h * 0.52);
+    canvas.drawPath(
+      smile,
+      Paint()
+        ..isAntiAlias = true
+        ..color = BaleColors.ink
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * 0.025
+        ..strokeCap = StrokeCap.round,
+    );
+
+    paint.color = BaleColors.dayaBale;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(w * 0.5, h * 0.48),
+        width: w * 0.09,
+        height: h * 0.055,
+      ),
+      paint,
+    );
+
+    final footPaint = Paint()
+      ..isAntiAlias = true
+      ..color = BaleColors.warning
+      ..strokeWidth = w * 0.06
+      ..strokeCap = StrokeCap.round;
+    canvas.drawLine(
+        Offset(w * 0.38, h * 0.7), Offset(w * 0.3, h * 0.76), footPaint);
+    canvas.drawLine(
+        Offset(w * 0.62, h * 0.7), Offset(w * 0.7, h * 0.76), footPaint);
+
+    paint.color = Colors.white.withValues(alpha: 0.55);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.25, h * 0.25, w * 0.16, h * 0.035),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w * 0.59, h * 0.25, w * 0.14, h * 0.035),
+        Radius.circular(w * 0.02),
+      ),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _FeatureStrip extends StatelessWidget {
+  const _FeatureStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        Expanded(child: _MiniFeature(icon: Icons.flag_rounded, label: 'Misi')),
+        SizedBox(width: 8),
+        Expanded(
+          child: _MiniFeature(icon: Icons.insights_rounded, label: 'Progres'),
+        ),
+        SizedBox(width: 8),
+        Expanded(
+          child: _MiniFeature(icon: Icons.groups_rounded, label: 'Mentor'),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniFeature extends StatelessWidget {
+  const _MiniFeature({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: BaleColors.line),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: BaleColors.info),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressTrack extends StatelessWidget {
+  const _ProgressTrack({required this.value});
+
+  final double value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(99),
+      child: LinearProgressIndicator(
+        value: value.clamp(0, 1),
+        minHeight: 12,
+        backgroundColor: BaleColors.line,
+        color: BaleColors.success,
+      ),
     );
   }
 }
@@ -438,9 +669,10 @@ class _GoogleButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: loading || disabled ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(54),
+        minimumSize: const Size.fromHeight(56),
         side: const BorderSide(color: BaleColors.line, width: 2),
         backgroundColor: Colors.white,
+        foregroundColor: BaleColors.ink,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -508,6 +740,88 @@ class _DividerLabel extends StatelessWidget {
   }
 }
 
+class _PrimaryAction extends StatelessWidget {
+  const _PrimaryAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.loading = false,
+    this.disabled = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+  final bool loading;
+  final bool disabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: loading || disabled ? null : onPressed,
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(58),
+        backgroundColor: const Color(0xFF58CC02),
+        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        elevation: 4,
+        shadowColor: const Color(0x5522C55E),
+      ),
+      icon: loading
+          ? const SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Icon(icon),
+      label: Text(label),
+    );
+  }
+}
+
+class _OutlineAction extends StatelessWidget {
+  const _OutlineAction({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(58),
+        backgroundColor: Colors.white,
+        foregroundColor: BaleColors.success,
+        side: const BorderSide(color: BaleColors.success, width: 2),
+      ),
+      icon: Icon(icon),
+      label: Text(label),
+    );
+  }
+}
+
+class _SecondaryAction extends StatelessWidget {
+  const _SecondaryAction({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.w900),
+      ),
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   const _Field({
     required this.controller,
@@ -541,7 +855,17 @@ class _Field extends StatelessWidget {
         labelText: label,
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
-        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: BaleColors.line),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: BaleColors.success, width: 2),
+        ),
       ),
     );
   }

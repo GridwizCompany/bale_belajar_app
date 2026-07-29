@@ -1,17 +1,15 @@
-import 'dart:math' as math;
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/firebase/firebase_bootstrap.dart';
 import '../../../shared/widgets/bale_card.dart';
+import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
 
 const _authBlue = Color(0xFF38BDF8);
 const _authBlueDark = Color(0xFF0284C7);
-const _authBlueSoft = Color(0xFFE0F7FF);
 
 enum AuthMode { welcome, register, login, code }
 
@@ -34,6 +32,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   int _grade = 10;
   bool _showPassword = false;
   bool _googleBusy = false;
+  int _flowStep = 1;
 
   @override
   void dispose() {
@@ -53,27 +52,51 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                child: _mode == AuthMode.welcome
-                    ? _OnboardingView(
-                        key: const ValueKey('onboarding'),
-                        onRegister: () => _goTo(AuthMode.register),
-                        onLogin: () => _goTo(AuthMode.login),
-                        onCode: () => _goTo(AuthMode.code),
-                      )
-                    : _AuthStep(
-                        key: ValueKey(_mode),
-                        controller: widget.controller,
-                        progress: _progress,
-                        title: _title,
-                        helper: _helper,
-                        onBack: () => _goTo(AuthMode.welcome),
-                        child: _form(),
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+              child: SizedBox.expand(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 420),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final curved = CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                      reverseCurve: Curves.easeInCubic,
+                    );
+                    return FadeTransition(
+                      opacity: curved,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.08, 0),
+                          end: Offset.zero,
+                        ).animate(curved),
+                        child: ScaleTransition(
+                          scale: Tween<double>(begin: 0.98, end: 1)
+                              .animate(curved),
+                          child: child,
+                        ),
                       ),
+                    );
+                  },
+                  child: _mode == AuthMode.welcome
+                      ? _OnboardingView(
+                          key: const ValueKey('onboarding'),
+                          flowStep: _flowStep,
+                          onRegister: () => _goTo(AuthMode.register),
+                          onLogin: () => _goTo(AuthMode.login),
+                        )
+                      : _AuthStep(
+                          key: ValueKey(_mode),
+                          controller: widget.controller,
+                          flowStep: _flowStep,
+                          title: _title,
+                          helper: _helper,
+                          mascotPose: _mascotPose,
+                          onBack: () => _goTo(AuthMode.welcome),
+                          child: _form(),
+                        ),
+                ),
               ),
             ),
           ),
@@ -185,6 +208,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                     ? null
                     : () => _goTo(_switchTarget),
               ),
+              if (_mode == AuthMode.login) ...[
+                const SizedBox(height: 2),
+                _SecondaryAction(
+                  label: 'Masuk dengan kode siswa',
+                  onPressed: widget.controller.isBusy || _googleBusy
+                      ? null
+                      : () => _goTo(AuthMode.code),
+                ),
+              ],
             ],
           ),
         );
@@ -192,11 +224,11 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     );
   }
 
-  double get _progress => switch (_mode) {
-        AuthMode.welcome => 0.18,
-        AuthMode.register => 0.58,
-        AuthMode.login => 0.58,
-        AuthMode.code => 0.58,
+  BeloPose get _mascotPose => switch (_mode) {
+        AuthMode.register => BeloPose.lompatKegirangan,
+        AuthMode.login => BeloPose.kedip,
+        AuthMode.code => BeloPose.jempolOke,
+        AuthMode.welcome => BeloPose.jatuhCinta,
       };
 
   String get _title => switch (_mode) {
@@ -242,7 +274,13 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       };
 
   void _goTo(AuthMode mode) {
-    setState(() => _mode = mode);
+    setState(() {
+      _mode = mode;
+      _flowStep = switch (mode) {
+        AuthMode.welcome => 1,
+        AuthMode.register || AuthMode.login || AuthMode.code => 2,
+      };
+    });
   }
 
   Future<void> _continueWithGoogle() async {
@@ -320,60 +358,148 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 }
 
-class _OnboardingView extends StatelessWidget {
+class _OnboardingView extends StatefulWidget {
   const _OnboardingView({
+    required this.flowStep,
     required this.onRegister,
     required this.onLogin,
-    required this.onCode,
     super.key,
   });
 
+  final int flowStep;
   final VoidCallback onRegister;
   final VoidCallback onLogin;
-  final VoidCallback onCode;
+
+  @override
+  State<_OnboardingView> createState() => _OnboardingViewState();
+}
+
+class _OnboardingViewState extends State<_OnboardingView>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _brandOffset;
+  late final Animation<Offset> _buttonsOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..forward();
+    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    _brandOffset = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _buttonsOffset = Tween<Offset>(
+      begin: const Offset(0, 0.18),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.25, 1, curve: Curves.easeOutBack),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
       children: [
-        const Spacer(flex: 2),
-        const _BaleBookMascot(size: 148),
-        const SizedBox(height: 18),
-        Text(
-          'BaleBelajar',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: _authBlueDark,
-                fontSize: 34,
-                fontWeight: FontWeight.w900,
+        Column(
+          children: [
+            const Spacer(flex: 3),
+            FadeTransition(
+              opacity: _fade,
+              child: const _MascotStage(
+                pose: BeloPose.jatuhCinta,
+                size: 188,
               ),
+            ),
+            const SizedBox(height: 16),
+            FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _brandOffset,
+                child: Column(
+                  children: [
+                    Text(
+                      'BaleBelajar',
+                      textAlign: TextAlign.center,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: _authBlueDark,
+                                fontSize: 36,
+                                fontWeight: FontWeight.w900,
+                              ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Belajar lebih ringan, seru, dan terarah.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF7A8796),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Spacer(flex: 4),
+            FadeTransition(
+              opacity: _fade,
+              child: SlideTransition(
+                position: _buttonsOffset,
+                child: Column(
+                  children: [
+                    _PrimaryAction(
+                      label: 'GET STARTED',
+                      onPressed: widget.onRegister,
+                    ),
+                    const SizedBox(height: 12),
+                    _OutlineAction(
+                      label: 'I ALREADY HAVE AN ACCOUNT',
+                      onPressed: widget.onLogin,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
-        const SizedBox(height: 10),
-        const Text(
-          'Belajar lebih ringan, seru, dan terarah.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Color(0xFF7A8796),
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const Spacer(flex: 3),
-        _PrimaryAction(
-          icon: Icons.play_arrow_rounded,
-          label: 'GET STARTED',
-          onPressed: onRegister,
-        ),
-        const SizedBox(height: 12),
-        _OutlineAction(
-          icon: Icons.login_rounded,
-          label: 'I ALREADY HAVE AN ACCOUNT',
-          onPressed: onLogin,
-        ),
-        const SizedBox(height: 10),
-        _SecondaryAction(label: 'Masuk dengan kode siswa', onPressed: onCode),
-        const SizedBox(height: 12),
       ],
+    );
+  }
+}
+
+class _MascotStage extends StatelessWidget {
+  const _MascotStage({
+    required this.pose,
+    required this.size,
+    this.compact = false,
+  });
+
+  final BeloPose pose;
+  final double size;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size + (compact ? 28 : 62),
+      height: size * 1.36,
+      child: Center(child: BeloMascot(pose: pose, size: size, animate: true)),
     );
   }
 }
@@ -381,18 +507,20 @@ class _OnboardingView extends StatelessWidget {
 class _AuthStep extends StatelessWidget {
   const _AuthStep({
     required this.controller,
-    required this.progress,
+    required this.flowStep,
     required this.title,
     required this.helper,
+    required this.mascotPose,
     required this.onBack,
     required this.child,
     super.key,
   });
 
   final AuthController controller;
-  final double progress;
+  final int flowStep;
   final String title;
   final String helper;
+  final BeloPose mascotPose;
   final VoidCallback onBack;
   final Widget child;
 
@@ -407,11 +535,11 @@ class _AuthStep extends StatelessWidget {
               onPressed: controller.isBusy ? null : onBack,
               icon: const Icon(Icons.arrow_back_rounded),
             ),
-            Expanded(child: _ProgressTrack(value: progress)),
+            Expanded(child: _FiveStepProgress(currentStep: flowStep)),
           ],
         ),
         const SizedBox(height: 14),
-        const _BaleBookMascot(size: 104),
+        _MascotStage(pose: mascotPose, size: 116, compact: true),
         const SizedBox(height: 18),
         Text(
           title,
@@ -434,189 +562,63 @@ class _AuthStep extends StatelessWidget {
   }
 }
 
-class _BaleBookMascot extends StatefulWidget {
-  const _BaleBookMascot({required this.size});
+class _FiveStepProgress extends StatelessWidget {
+  const _FiveStepProgress({required this.currentStep});
 
-  final double size;
+  final int currentStep;
 
-  @override
-  State<_BaleBookMascot> createState() => _BaleBookMascotState();
-}
-
-class _BaleBookMascotState extends State<_BaleBookMascot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1600),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  static const int _totalSteps = 5;
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Mascot buku BaleBelajar',
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final wave = math.sin(_controller.value * math.pi * 2);
-          return Transform.translate(
-            offset: Offset(0, wave * 5),
-            child: Transform.rotate(
-              angle: wave * 0.035,
-              child: child,
-            ),
+    final step = currentStep.clamp(1, _totalSteps);
+    final progress = _totalSteps == 1 ? 0.0 : (step - 1) / (_totalSteps - 1);
+
+    return SizedBox(
+      height: 42,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mascotX = (constraints.maxWidth - 30) * progress - 15;
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerLeft,
+            children: [
+              Row(
+                children: [
+                  for (var index = 1; index <= _totalSteps; index++) ...[
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 360),
+                        curve: Curves.easeOutCubic,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: index <= step ? _authBlue : Colors.white,
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: index <= step ? _authBlue : BaleColors.line,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (index != _totalSteps) const SizedBox(width: 10),
+                  ],
+                ],
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 520),
+                curve: Curves.easeOutBack,
+                left: mascotX.clamp(0, constraints.maxWidth - 30),
+                top: -4,
+                child: const BeloMascot(
+                  pose: BeloPose.lariSemangat,
+                  size: 24,
+                  animate: true,
+                ),
+              ),
+            ],
           );
         },
-        child: SizedBox.square(
-          dimension: widget.size,
-          child: CustomPaint(painter: _BaleBookMascotPainter()),
-        ),
-      ),
-    );
-  }
-}
-
-class _BaleBookMascotPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..isAntiAlias = true;
-    final w = size.width;
-    final h = size.height;
-
-    paint.color = const Color(0x22000000);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(w * 0.5, h * 0.86),
-        width: w * 0.56,
-        height: h * 0.08,
-      ),
-      paint,
-    );
-
-    final armPaint = Paint()
-      ..isAntiAlias = true
-      ..color = _authBlueDark
-      ..strokeWidth = w * 0.07
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-        Offset(w * 0.2, h * 0.47), Offset(w * 0.08, h * 0.38), armPaint);
-    canvas.drawLine(
-        Offset(w * 0.8, h * 0.47), Offset(w * 0.92, h * 0.38), armPaint);
-
-    final leftPage = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.18, h * 0.18, w * 0.34, h * 0.5),
-      Radius.circular(w * 0.08),
-    );
-    final rightPage = RRect.fromRectAndRadius(
-      Rect.fromLTWH(w * 0.48, h * 0.18, w * 0.34, h * 0.5),
-      Radius.circular(w * 0.08),
-    );
-
-    paint.color = _authBlueDark;
-    canvas.drawRRect(leftPage, paint);
-    paint.color = _authBlue;
-    canvas.drawRRect(rightPage, paint);
-
-    paint.color = const Color(0xFF0369A1);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.475, h * 0.18, w * 0.05, h * 0.52),
-        Radius.circular(w * 0.04),
-      ),
-      paint,
-    );
-
-    paint.color = _authBlueSoft;
-    canvas.drawCircle(Offset(w * 0.38, h * 0.39), w * 0.095, paint);
-    canvas.drawCircle(Offset(w * 0.62, h * 0.39), w * 0.095, paint);
-
-    paint.color = BaleColors.ink;
-    canvas.drawCircle(Offset(w * 0.39, h * 0.39), w * 0.032, paint);
-    canvas.drawCircle(Offset(w * 0.61, h * 0.39), w * 0.032, paint);
-
-    paint.color = Colors.white;
-    canvas.drawCircle(Offset(w * 0.402, h * 0.376), w * 0.012, paint);
-    canvas.drawCircle(Offset(w * 0.622, h * 0.376), w * 0.012, paint);
-
-    final smile = Path()
-      ..moveTo(w * 0.42, h * 0.52)
-      ..quadraticBezierTo(w * 0.5, h * 0.59, w * 0.58, h * 0.52);
-    canvas.drawPath(
-      smile,
-      Paint()
-        ..isAntiAlias = true
-        ..color = BaleColors.ink
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = w * 0.025
-        ..strokeCap = StrokeCap.round,
-    );
-
-    paint.color = BaleColors.dayaBale;
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(w * 0.5, h * 0.48),
-        width: w * 0.09,
-        height: h * 0.055,
-      ),
-      paint,
-    );
-
-    final footPaint = Paint()
-      ..isAntiAlias = true
-      ..color = BaleColors.warning
-      ..strokeWidth = w * 0.06
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(
-        Offset(w * 0.38, h * 0.7), Offset(w * 0.3, h * 0.76), footPaint);
-    canvas.drawLine(
-        Offset(w * 0.62, h * 0.7), Offset(w * 0.7, h * 0.76), footPaint);
-
-    paint.color = Colors.white.withValues(alpha: 0.55);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.25, h * 0.25, w * 0.16, h * 0.035),
-        Radius.circular(w * 0.02),
-      ),
-      paint,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(w * 0.59, h * 0.25, w * 0.14, h * 0.035),
-        Radius.circular(w * 0.02),
-      ),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _ProgressTrack extends StatelessWidget {
-  const _ProgressTrack({required this.value});
-
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(99),
-      child: LinearProgressIndicator(
-        value: value.clamp(0, 1),
-        minHeight: 12,
-        backgroundColor: BaleColors.line,
-        color: _authBlue,
       ),
     );
   }
@@ -711,14 +713,14 @@ class _DividerLabel extends StatelessWidget {
 
 class _PrimaryAction extends StatelessWidget {
   const _PrimaryAction({
-    required this.icon,
     required this.label,
     required this.onPressed,
+    this.icon,
     this.loading = false,
     this.disabled = false,
   });
 
-  final IconData icon;
+  final IconData? icon;
   final String label;
   final VoidCallback onPressed;
   final bool loading;
@@ -726,49 +728,55 @@ class _PrimaryAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: loading || disabled ? null : onPressed,
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(58),
-        backgroundColor: _authBlue,
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-        elevation: 4,
-        shadowColor: const Color(0x5538BDF8),
-      ),
-      icon: loading
-          ? const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : Icon(icon),
-      label: Text(label),
+    final style = FilledButton.styleFrom(
+      minimumSize: const Size.fromHeight(58),
+      backgroundColor: _authBlue,
+      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+      elevation: 4,
+      shadowColor: const Color(0x5538BDF8),
+    );
+    if (loading || icon != null) {
+      return FilledButton.icon(
+        onPressed: loading || disabled ? null : onPressed,
+        style: style,
+        icon: loading
+            ? const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon),
+        label: Text(label),
+      );
+    }
+    return FilledButton(
+      onPressed: disabled ? null : onPressed,
+      style: style,
+      child: Text(label),
     );
   }
 }
 
 class _OutlineAction extends StatelessWidget {
   const _OutlineAction({
-    required this.icon,
     required this.label,
     required this.onPressed,
   });
 
-  final IconData icon;
   final String label;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    final style = OutlinedButton.styleFrom(
+      minimumSize: const Size.fromHeight(58),
+      backgroundColor: Colors.white,
+      foregroundColor: _authBlueDark,
+      side: const BorderSide(color: BaleColors.line, width: 2),
+    );
+    return OutlinedButton(
       onPressed: onPressed,
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(58),
-        backgroundColor: Colors.white,
-        foregroundColor: _authBlueDark,
-        side: const BorderSide(color: BaleColors.line, width: 2),
-      ),
-      icon: Icon(icon),
-      label: Text(label),
+      style: style,
+      child: Text(label),
     );
   }
 }

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" width="160" height="192" viewBox="0 0 160 192" class="mascot-svg" role="img" aria-label="Maskot Belo — Sedih">
+    <defs>
+    <linearGradient id="body-ex7" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CDEFFC"/><stop offset="1" stop-color="#6FC3EF"/>
+    </linearGradient>
+    <linearGradient id="page-ex7" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF8E9"/><stop offset="1" stop-color="#FFEACB"/>
+    </linearGradient>
+    <linearGradient id="ribbon-ex7" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD873"/><stop offset="1" stop-color="#F3A83C"/>
+    </linearGradient>
+    <radialGradient id="blush-ex7">
+      <stop offset="0" stop-color="#FF9FB8" stop-opacity=".78"/><stop offset="1" stop-color="#FF9FB8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+    <ellipse cx="80" cy="184" rx="34" ry="7" fill="#25455D" opacity=".14"/>
+    <g transform="translate(0 0) rotate(0 80 96)">
+      <g transform="rotate(8 60 140)">
+    <rect x="52.5" y="140" width="15" height="36" rx="7.5" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="60" cy="176" r="9" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><g transform="rotate(-8 100 140)">
+    <rect x="92.5" y="140" width="15" height="36" rx="7.5" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="100" cy="176" r="9" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g>
+    <rect x="30" y="34" width="100" height="108" rx="30" fill="url(#body-ex7)" stroke="#25455D" stroke-width="3.5" stroke-linejoin="round"/>
+    <rect x="34" y="39" width="18" height="98" rx="9" fill="#4AA8DE"/>
+    <rect x="112" y="44" width="12" height="88" rx="5" fill="url(#page-ex7)" opacity=".95"/>
+    <line x1="114" y1="58" x2="122" y2="58" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <line x1="114" y1="80" x2="122" y2="80" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <line x1="114" y1="102" x2="122" y2="102" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <polygon points="70,4 88,4 88,36 79,27 70,36" fill="url(#ribbon-ex7)" stroke="#25455D" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="55" cy="54" rx="17" ry="11" fill="#FFFFFF" opacity=".38"/>
+    <ellipse cx="102" cy="118" rx="9" ry="16" fill="#FFFFFF" opacity=".1"/>
+  <g transform="rotate(34 26 86)">
+    <rect x="18" y="86" width="16" height="52" rx="8" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="26" cy="138" r="11" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><g transform="rotate(-34 134 86)">
+    <rect x="126" y="86" width="16" height="52" rx="8" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="134" cy="138" r="11" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><g class="pupil" data-cx="58" data-cy="86">
+    <circle cx="58" cy="86" r="9" fill="#25455D"/>
+    <circle cx="54.4" cy="82.4" r="2.88" fill="#fff"/>
+    <circle cx="61.6" cy="89.15" r="1.2600000000000002" fill="#fff" opacity=".85"/>
+  </g><g class="pupil" data-cx="102" data-cy="86">
+    <circle cx="102" cy="86" r="9" fill="#25455D"/>
+    <circle cx="98.4" cy="82.4" r="2.88" fill="#fff"/>
+    <circle cx="105.6" cy="89.15" r="1.2600000000000002" fill="#fff" opacity=".85"/>
+  </g><path d="M 50 74 Q 58 68 66 74" stroke="#25455D" stroke-width="3.2" stroke-linecap="round" fill="none" transform="rotate(14 58 74)"/><path d="M 94 74 Q 102 68 110 74" stroke="#25455D" stroke-width="3.2" stroke-linecap="round" fill="none" transform="rotate(-14 102 74)"/><path d="M 69 114 Q 80 102 91 114" stroke="#25455D" stroke-width="4" stroke-linecap="round" fill="none"/><path d="M 64 92 C 58 101 70 107 64 109 C 58 107 70 101 64 92 Z" fill="#4AA8DE" opacity=".85"/>
+    </g>
+  </svg>

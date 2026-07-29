@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" x="0" y="0" width="160" height="192" viewBox="0 0 160 192" class="mascot-svg" role="img" aria-label="Maskot Belo — Bingung">
+    <defs>
+    <linearGradient id="body-ex3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#CDEFFC"/><stop offset="1" stop-color="#6FC3EF"/>
+    </linearGradient>
+    <linearGradient id="page-ex3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF8E9"/><stop offset="1" stop-color="#FFEACB"/>
+    </linearGradient>
+    <linearGradient id="ribbon-ex3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFD873"/><stop offset="1" stop-color="#F3A83C"/>
+    </linearGradient>
+    <radialGradient id="blush-ex3">
+      <stop offset="0" stop-color="#FF9FB8" stop-opacity=".78"/><stop offset="1" stop-color="#FF9FB8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+    <ellipse cx="80" cy="184" rx="34" ry="7" fill="#25455D" opacity=".14"/>
+    <g transform="translate(0 0) rotate(0 80 96)">
+      <g transform="rotate(8 60 140)">
+    <rect x="52.5" y="140" width="15" height="36" rx="7.5" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="60" cy="176" r="9" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><g transform="rotate(-8 100 140)">
+    <rect x="92.5" y="140" width="15" height="36" rx="7.5" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="100" cy="176" r="9" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g>
+    <rect x="30" y="34" width="100" height="108" rx="30" fill="url(#body-ex3)" stroke="#25455D" stroke-width="3.5" stroke-linejoin="round"/>
+    <rect x="34" y="39" width="18" height="98" rx="9" fill="#4AA8DE"/>
+    <rect x="112" y="44" width="12" height="88" rx="5" fill="url(#page-ex3)" opacity=".95"/>
+    <line x1="114" y1="58" x2="122" y2="58" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <line x1="114" y1="80" x2="122" y2="80" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <line x1="114" y1="102" x2="122" y2="102" stroke="#4AA8DE" stroke-width="2" stroke-linecap="round" opacity=".5"/>
+    <polygon points="70,4 88,4 88,36 79,27 70,36" fill="url(#ribbon-ex3)" stroke="#25455D" stroke-width="3" stroke-linejoin="round"/>
+    <ellipse cx="55" cy="54" rx="17" ry="11" fill="#FFFFFF" opacity=".38"/>
+    <ellipse cx="102" cy="118" rx="9" ry="16" fill="#FFFFFF" opacity=".1"/>
+  <g transform="rotate(15 26 86)">
+    <rect x="18" y="86" width="16" height="34" rx="8" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="26" cy="120" r="11" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><g transform="rotate(-140 134 86)">
+    <rect x="126" y="86" width="16" height="34" rx="8" fill="#8FD6F7" stroke="#25455D" stroke-width="3.2" stroke-linejoin="round"/>
+    <circle cx="134" cy="120" r="11" fill="#FFF8E9" stroke="#25455D" stroke-width="3.2"/>
+  </g><ellipse cx="44" cy="97" rx="10" ry="7" fill="url(#blush-ex3)"/><ellipse cx="116" cy="97" rx="10" ry="7" fill="url(#blush-ex3)"/><g class="pupil" data-cx="61" data-cy="84">
+    <circle cx="61" cy="84" r="9" fill="#25455D"/>
+    <circle cx="57.4" cy="80.4" r="2.88" fill="#fff"/>
+    <circle cx="64.6" cy="87.15" r="1.2600000000000002" fill="#fff" opacity=".85"/>
+  </g><g class="pupil" data-cx="105" data-cy="84">
+    <circle cx="105" cy="84" r="9" fill="#25455D"/>
+    <circle cx="101.4" cy="80.4" r="2.88" fill="#fff"/>
+    <circle cx="108.6" cy="87.15" r="1.2600000000000002" fill="#fff" opacity=".85"/>
+  </g><path d="M 93 70 Q 102 64 111 70" stroke="#25455D" stroke-width="3.2" stroke-linecap="round" fill="none" transform="rotate(10 102 70)"/><path d="M 67 104 l 8 -6 l 8 6 l 8 -6" stroke="#25455D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/><text x="118" y="40" fill="#25455D" font-family="'Segoe UI Rounded','Segoe UI',sans-serif" font-weight="800" font-size="20">?</text>
+    </g>
+  </svg>

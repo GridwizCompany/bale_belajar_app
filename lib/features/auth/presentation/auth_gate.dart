@@ -44,7 +44,10 @@ class _AuthGateState extends State<AuthGate> {
         builder: (context, _) {
           return switch (_controller.status) {
             AuthStatus.checking => const _LoadingScreen(),
-            AuthStatus.signedOut => SimpleAuthScreen(controller: _controller),
+            AuthStatus.signedOut => SimpleAuthScreen(
+                key: const ValueKey('signed-out-onboarding'),
+                controller: _controller,
+              ),
             AuthStatus.onboarding => OnboardingScreen(controller: _controller),
             AuthStatus.signedIn => BaleVerseDemoScreen(
                 skipDemoLogin: true,

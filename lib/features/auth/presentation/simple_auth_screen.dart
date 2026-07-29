@@ -23,6 +23,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   final _code = TextEditingController();
   AuthMode _mode = AuthMode.login;
   int _grade = 10;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -37,111 +38,171 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-          children: [
-            const _AuthHeader(),
-            const SizedBox(height: 18),
-            SegmentedButton<AuthMode>(
-              segments: const [
-                ButtonSegment(value: AuthMode.login, label: Text('Masuk')),
-                ButtonSegment(value: AuthMode.register, label: Text('Daftar')),
-                ButtonSegment(value: AuthMode.code, label: Text('Kode')),
-              ],
-              selected: {_mode},
-              onSelectionChanged: widget.controller.isBusy
-                  ? null
-                  : (value) => setState(() => _mode = value.first),
-            ),
-            const SizedBox(height: 14),
-            BaleCard(
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_mode == AuthMode.register) ...[
-                      _Field(
-                        controller: _name,
-                        label: 'Nama lengkap',
-                        icon: Icons.person_rounded,
-                        validator: _required,
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    if (_mode != AuthMode.code) ...[
-                      _Field(
-                        controller: _email,
-                        label: 'Email',
-                        icon: Icons.mail_rounded,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: _emailValidator,
-                      ),
-                      const SizedBox(height: 12),
-                      _Field(
-                        controller: _password,
-                        label: 'Password',
-                        icon: Icons.lock_rounded,
-                        obscureText: true,
-                        validator: _passwordValidator,
-                      ),
-                    ],
-                    if (_mode == AuthMode.code)
-                      _Field(
-                        controller: _code,
-                        label: 'Kode peserta',
-                        icon: Icons.badge_rounded,
-                        textCapitalization: TextCapitalization.characters,
-                        validator: _required,
-                      ),
-                    if (_mode == AuthMode.register) ...[
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        initialValue: _grade,
-                        decoration: const InputDecoration(
-                          labelText: 'Kelas',
-                          prefixIcon: Icon(Icons.school_rounded),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 10, child: Text('Kelas 10')),
-                          DropdownMenuItem(value: 11, child: Text('Kelas 11')),
-                          DropdownMenuItem(value: 12, child: Text('Kelas 12')),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) setState(() => _grade = value);
-                        },
-                      ),
-                    ],
-                    if (widget.controller.errorMessage != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        widget.controller.errorMessage!,
-                        style: const TextStyle(
-                          color: BaleColors.danger,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    FilledButton.icon(
-                      onPressed: widget.controller.isBusy ? null : _submit,
-                      icon: widget.controller.isBusy
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(_buttonIcon),
-                      label: Text(_buttonLabel),
-                    ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
+              children: [
+                const _AuthHeader(),
+                const SizedBox(height: 18),
+                SegmentedButton<AuthMode>(
+                  segments: const [
+                    ButtonSegment(value: AuthMode.login, label: Text('Masuk')),
+                    ButtonSegment(
+                        value: AuthMode.register, label: Text('Daftar')),
+                    ButtonSegment(value: AuthMode.code, label: Text('Kode')),
                   ],
+                  selected: {_mode},
+                  onSelectionChanged: widget.controller.isBusy
+                      ? null
+                      : (value) => setState(() => _mode = value.first),
                 ),
-              ),
+                const SizedBox(height: 14),
+                BaleCard(
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          _title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(_helper),
+                        const SizedBox(height: 16),
+                        if (_mode == AuthMode.register) ...[
+                          _Field(
+                            controller: _name,
+                            label: 'Nama lengkap',
+                            icon: Icons.person_rounded,
+                            validator: _required,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_mode != AuthMode.code) ...[
+                          _Field(
+                            controller: _email,
+                            label: 'Email',
+                            icon: Icons.mail_rounded,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: _emailValidator,
+                          ),
+                          const SizedBox(height: 12),
+                          _Field(
+                            controller: _password,
+                            label: 'Password',
+                            icon: Icons.lock_rounded,
+                            obscureText: !_showPassword,
+                            validator: _passwordValidator,
+                            suffixIcon: IconButton(
+                              tooltip: _showPassword
+                                  ? 'Sembunyikan password'
+                                  : 'Lihat password',
+                              onPressed: () {
+                                setState(() => _showPassword = !_showPassword);
+                              },
+                              icon: Icon(
+                                _showPassword
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                              ),
+                            ),
+                          ),
+                        ],
+                        if (_mode == AuthMode.code)
+                          _Field(
+                            controller: _code,
+                            label: 'Kode peserta',
+                            icon: Icons.badge_rounded,
+                            textCapitalization: TextCapitalization.characters,
+                            validator: _required,
+                          ),
+                        if (_mode == AuthMode.register) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _grade,
+                            decoration: const InputDecoration(
+                              labelText: 'Kelas',
+                              prefixIcon: Icon(Icons.school_rounded),
+                              border: OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                  value: 10, child: Text('Kelas 10')),
+                              DropdownMenuItem(
+                                  value: 11, child: Text('Kelas 11')),
+                              DropdownMenuItem(
+                                  value: 12, child: Text('Kelas 12')),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) setState(() => _grade = value);
+                            },
+                          ),
+                        ],
+                        if (widget.controller.errorMessage != null) ...[
+                          const SizedBox(height: 12),
+                          _ErrorBanner(
+                              message: widget.controller.errorMessage!),
+                        ],
+                        const SizedBox(height: 18),
+                        FilledButton.icon(
+                          onPressed: widget.controller.isBusy ? null : _submit,
+                          icon: widget.controller.isBusy
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Icon(_buttonIcon),
+                          label: Text(_buttonLabel),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed:
+                              widget.controller.isBusy ? null : _switchMode,
+                          child: Text(_switchLabel),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
+  }
+
+  String get _title => switch (_mode) {
+        AuthMode.login => 'Masuk ke akun',
+        AuthMode.register => 'Buat akun siswa',
+        AuthMode.code => 'Masuk pakai kode',
+      };
+
+  String get _helper => switch (_mode) {
+        AuthMode.login => 'Pakai email dan password yang sudah terdaftar.',
+        AuthMode.register =>
+          'Isi data dasar dulu. Profil belajar bisa dilengkapi setelah ini.',
+        AuthMode.code => 'Masukkan kode peserta dari sekolah atau mentor.',
+      };
+
+  String get _switchLabel => switch (_mode) {
+        AuthMode.login => 'Belum punya akun? Daftar',
+        AuthMode.register => 'Sudah punya akun? Masuk',
+        AuthMode.code => 'Masuk pakai email',
+      };
+
+  void _switchMode() {
+    setState(() {
+      _mode = switch (_mode) {
+        AuthMode.login => AuthMode.register,
+        AuthMode.register => AuthMode.login,
+        AuthMode.code => AuthMode.login,
+      };
+    });
   }
 
   IconData get _buttonIcon => switch (_mode) {
@@ -237,6 +298,7 @@ class _Field extends StatelessWidget {
     this.keyboardType,
     this.obscureText = false,
     this.textCapitalization = TextCapitalization.none,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
@@ -246,6 +308,7 @@ class _Field extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
   final TextCapitalization textCapitalization;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -258,7 +321,42 @@ class _Field extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
         border: const OutlineInputBorder(),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: BaleColors.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: BaleColors.danger.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: BaleColors.danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: BaleColors.danger,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

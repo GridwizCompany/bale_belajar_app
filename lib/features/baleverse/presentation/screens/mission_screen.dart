@@ -56,19 +56,29 @@ class MissionIntroScreen extends StatelessWidget {
 class MissionQuestionScreen extends StatelessWidget {
   const MissionQuestionScreen({
     required this.step,
+    required this.activityType,
     required this.wrongAttempts,
     required this.selectedOptionId,
+    required this.mistakeMarked,
+    required this.teachBackText,
     required this.feedback,
     required this.onSelectOption,
+    required this.onMarkMistake,
+    required this.onTeachBackChanged,
     required this.onCheck,
     super.key,
   });
 
   final MissionStep step;
+  final MissionActivityType activityType;
   final int wrongAttempts;
   final String? selectedOptionId;
+  final bool mistakeMarked;
+  final String teachBackText;
   final String? feedback;
   final ValueChanged<String> onSelectOption;
+  final VoidCallback onMarkMistake;
+  final ValueChanged<String> onTeachBackChanged;
   final VoidCallback? onCheck;
 
   @override
@@ -81,39 +91,28 @@ class MissionQuestionScreen extends StatelessWidget {
       children: [
         _MissionTopBar(progress: (wrongAttempts + 1) / 4),
         const SizedBox(height: 14),
-        BaleCard(
-          color: BaleColors.ink,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SmallCaps('Satu soal'),
-              const SizedBox(height: 8),
-              Text(
-                numeriaMission.prompt,
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineMedium
-                    ?.copyWith(color: Colors.white),
-              ),
-            ],
-          ),
-        ),
+        BaleHeroCard(stateLabel: _heroStateLabel),
         const SizedBox(height: 14),
-        for (final option in numeriaMission.options) ...[
-          _OptionButton(
-            option: option,
-            selected: selectedOptionId == option.id,
-            onTap: () => onSelectOption(option.id),
-          ),
-          const SizedBox(height: 10),
-        ],
+        _ActivityContent(
+          activityType: activityType,
+          selectedOptionId: selectedOptionId,
+          mistakeMarked: mistakeMarked,
+          teachBackText: teachBackText,
+          onSelectOption: onSelectOption,
+          onMarkMistake: onMarkMistake,
+          onTeachBackChanged: onTeachBackChanged,
+        ),
         if (feedback != null) ...[
           _FeedbackBox(message: feedback!),
           const SizedBox(height: 14),
         ],
         FilledButton(
           onPressed: onCheck,
-          child: const Text('Cek Jawaban'),
+          child: Text(
+            activityType == MissionActivityType.teachBack
+                ? 'Kirim Penjelasan'
+                : 'Cek Jawaban',
+          ),
         ),
         if (showHelp) ...[
           const SizedBox(height: 14),
@@ -121,6 +120,152 @@ class MissionQuestionScreen extends StatelessWidget {
         ],
       ],
     );
+  }
+
+  String get _heroStateLabel {
+    if (step == MissionStep.humanHelp) return 'Minta mentor membantu';
+    if (step == MissionStep.hintTwo) return 'Masih berpikir';
+    if (step == MissionStep.hintOne) return 'Memberi petunjuk';
+    return switch (activityType) {
+      MissionActivityType.multipleChoice => 'Fokus ke pilihan',
+      MissionActivityType.findMistake => 'Cari kesalahannya',
+      MissionActivityType.teachBack => 'Jelaskan balik',
+    };
+  }
+}
+
+class _ActivityContent extends StatelessWidget {
+  const _ActivityContent({
+    required this.activityType,
+    required this.selectedOptionId,
+    required this.mistakeMarked,
+    required this.teachBackText,
+    required this.onSelectOption,
+    required this.onMarkMistake,
+    required this.onTeachBackChanged,
+  });
+
+  final MissionActivityType activityType;
+  final String? selectedOptionId;
+  final bool mistakeMarked;
+  final String teachBackText;
+  final ValueChanged<String> onSelectOption;
+  final VoidCallback onMarkMistake;
+  final ValueChanged<String> onTeachBackChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (activityType) {
+      MissionActivityType.multipleChoice => Column(
+          children: [
+            BaleCard(
+              color: BaleColors.ink,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SmallCaps('Pilihan ganda'),
+                  const SizedBox(height: 8),
+                  Text(
+                    numeriaMission.prompt,
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (final option in numeriaMission.options) ...[
+              _OptionButton(
+                option: option,
+                selected: selectedOptionId == option.id,
+                onTap: () => onSelectOption(option.id),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ],
+        ),
+      MissionActivityType.findMistake => Column(
+          children: [
+            BaleCard(
+              color: BaleColors.ink,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SmallCaps('Cari kesalahannya'),
+                  const SizedBox(height: 8),
+                  Text(
+                    findMistakeActivity.prompt,
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    findMistakeActivity.wrongStatement,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
+              onPressed: onMarkMistake,
+              icon: Icon(
+                mistakeMarked
+                    ? Icons.check_circle_rounded
+                    : Icons.search_rounded,
+              ),
+              label: Text(
+                mistakeMarked
+                    ? 'Kesalahan ditandai'
+                    : 'Tandai: 3 hanya dikali ke x',
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      MissionActivityType.teachBack => Column(
+          children: [
+            BaleCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Jelaskan Balik',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(teachBackActivity.prompt),
+                  const SizedBox(height: 12),
+                  TextField(
+                    minLines: 3,
+                    maxLines: 4,
+                    onChanged: onTeachBackChanged,
+                    decoration: InputDecoration(
+                      hintText: teachBackActivity.sampleAnswer,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${teachBackText.trim().length}/12 karakter minimum',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+        ),
+    };
   }
 }
 

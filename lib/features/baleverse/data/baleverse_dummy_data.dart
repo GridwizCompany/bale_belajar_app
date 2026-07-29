@@ -102,6 +102,21 @@ const humanHelpRecommendation = HumanHelpRecommendation(
       'Aku masih bingung kenapa angka di luar kurung harus dikalikan ke semua bagian.',
 );
 
+const findMistakeActivity = FindMistakeActivity(
+  prompt: 'Cari kesalahan pada langkah berikut.',
+  wrongStatement: '3(x + 4) = 3x + 4 karena angka 3 hanya menempel ke x.',
+  correctedStatement: '3(x + 4) = 3x + 12',
+  feedback:
+      'Tepat. Angka di luar kurung harus dikalikan ke semua bagian di dalam kurung.',
+);
+
+const teachBackActivity = TeachBackActivity(
+  prompt: 'Jelaskan balik dengan bahasamu: kenapa 4 juga harus dikali 3?',
+  sampleAnswer: 'Karena 3 mengalikan seluruh isi kurung, bukan hanya x.',
+  feedback:
+      'Penjelasanmu sudah menunjukkan alasan, bukan sekadar memilih jawaban.',
+);
+
 const mentorFeedback = MentorFeedback(
   mentorName: 'Kak Arya',
   message:

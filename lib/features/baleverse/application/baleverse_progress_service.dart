@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../data/baleverse_dummy_data.dart';
 import '../domain/baleverse_models.dart';
 
@@ -26,7 +28,7 @@ class BaleVerseProgress {
   }
 }
 
-class BaleVerseProgressService {
+class BaleVerseProgressService extends ChangeNotifier {
   BaleVerseProgress _progress = const BaleVerseProgress(
     user: baleUser,
     parentSupportSent: false,
@@ -56,13 +58,16 @@ class BaleVerseProgressService {
         mastery: updatedMastery,
       ),
     );
+    notifyListeners();
   }
 
   void markParentSupportSent() {
     _progress = _progress.copyWith(parentSupportSent: true);
+    notifyListeners();
   }
 
   void markMentorFeedbackReceived() {
     _progress = _progress.copyWith(mentorFeedbackReceived: true);
+    notifyListeners();
   }
 }

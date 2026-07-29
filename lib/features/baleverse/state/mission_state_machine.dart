@@ -4,21 +4,25 @@ class BaleVerseState {
   const BaleVerseState({
     this.step = MissionStep.login,
     this.selectedWorld = BaleWorldKey.numeria,
+    this.activityType = MissionActivityType.multipleChoice,
     this.wrongAttempts = 0,
   });
 
   final MissionStep step;
   final BaleWorldKey selectedWorld;
+  final MissionActivityType activityType;
   final int wrongAttempts;
 
   BaleVerseState copyWith({
     MissionStep? step,
     BaleWorldKey? selectedWorld,
+    MissionActivityType? activityType,
     int? wrongAttempts,
   }) {
     return BaleVerseState(
       step: step ?? this.step,
       selectedWorld: selectedWorld ?? this.selectedWorld,
+      activityType: activityType ?? this.activityType,
       wrongAttempts: wrongAttempts ?? this.wrongAttempts,
     );
   }
@@ -33,7 +37,11 @@ BaleVerseState selectWorld(BaleVerseState state, BaleWorldKey world) {
 }
 
 BaleVerseState startMission(BaleVerseState state) {
-  return state.copyWith(step: MissionStep.missionIntro, wrongAttempts: 0);
+  return state.copyWith(
+    step: MissionStep.missionIntro,
+    activityType: MissionActivityType.multipleChoice,
+    wrongAttempts: 0,
+  );
 }
 
 BaleVerseState beginQuestion(BaleVerseState state) {
@@ -52,6 +60,19 @@ BaleVerseState answerWrong(BaleVerseState state) {
 
 BaleVerseState answerCorrect(BaleVerseState state) {
   return state.copyWith(step: MissionStep.reward);
+}
+
+BaleVerseState advanceActivity(BaleVerseState state) {
+  final nextActivity = switch (state.activityType) {
+    MissionActivityType.multipleChoice => MissionActivityType.findMistake,
+    MissionActivityType.findMistake => MissionActivityType.teachBack,
+    MissionActivityType.teachBack => MissionActivityType.teachBack,
+  };
+  return state.copyWith(
+    step: MissionStep.question,
+    activityType: nextActivity,
+    wrongAttempts: 0,
+  );
 }
 
 BaleVerseState requestMentor(BaleVerseState state) {

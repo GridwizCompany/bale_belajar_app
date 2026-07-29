@@ -74,19 +74,7 @@ class BaleHeroCard extends StatelessWidget {
       child: BaleCard(
         child: Row(
           children: [
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.psychology_alt_rounded,
-                size: 44,
-                color: BaleColors.info,
-              ),
-            ),
+            BaleHeroAvatar(stateLabel: stateLabel),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -105,6 +93,112 @@ class BaleHeroCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class BaleHeroAvatar extends StatelessWidget {
+  const BaleHeroAvatar({required this.stateLabel, super.key});
+
+  final String stateLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final askingMentor = stateLabel.toLowerCase().contains('mentor');
+    final celebrating = stateLabel.toLowerCase().contains('selesai');
+    final confused = stateLabel.toLowerCase().contains('berpikir') ||
+        stateLabel.toLowerCase().contains('kesalahan');
+    final accent = askingMentor
+        ? BaleColors.warning
+        : celebrating
+            ? BaleColors.success
+            : confused
+                ? BaleColors.detectivia
+                : BaleColors.info;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      width: 88,
+      height: 88,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.35), width: 2),
+      ),
+      child: CustomPaint(
+        painter: _BaleHeroPainter(
+          accent: accent,
+          confused: confused,
+          celebrating: celebrating,
+        ),
+      ),
+    );
+  }
+}
+
+class _BaleHeroPainter extends CustomPainter {
+  const _BaleHeroPainter({
+    required this.accent,
+    required this.confused,
+    required this.celebrating,
+  });
+
+  final Color accent;
+  final bool confused;
+  final bool celebrating;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..isAntiAlias = true;
+    final center = Offset(size.width / 2, size.height / 2);
+
+    paint.color = accent;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(center: center, width: 48, height: 54),
+        const Radius.circular(18),
+      ),
+      paint,
+    );
+
+    paint.color = const Color(0xFFFFE0BD);
+    canvas.drawCircle(Offset(center.dx, center.dy - 8), 20, paint);
+
+    paint.color = BaleColors.ink;
+    canvas.drawCircle(Offset(center.dx - 7, center.dy - 12), 2.8, paint);
+    canvas.drawCircle(Offset(center.dx + 7, center.dy - 12), 2.8, paint);
+
+    final mouth = Path();
+    if (confused) {
+      mouth.moveTo(center.dx - 8, center.dy + 3);
+      mouth.quadraticBezierTo(
+          center.dx, center.dy - 2, center.dx + 8, center.dy + 3);
+    } else {
+      mouth.moveTo(center.dx - 8, center.dy + 1);
+      mouth.quadraticBezierTo(
+          center.dx, center.dy + 9, center.dx + 8, center.dy + 1);
+    }
+    canvas.drawPath(
+      mouth,
+      Paint()
+        ..color = BaleColors.ink
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4
+        ..strokeCap = StrokeCap.round,
+    );
+
+    if (celebrating) {
+      paint.color = BaleColors.dayaBale;
+      canvas.drawCircle(const Offset(18, 18), 4, paint);
+      canvas.drawCircle(Offset(size.width - 18, 16), 3, paint);
+      canvas.drawCircle(Offset(size.width - 20, size.height - 18), 3.5, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BaleHeroPainter oldDelegate) {
+    return oldDelegate.accent != accent ||
+        oldDelegate.confused != confused ||
+        oldDelegate.celebrating != celebrating;
   }
 }
 

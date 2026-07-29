@@ -28,11 +28,29 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   BaleTab _tab = BaleTab.home;
   String? _selectedOptionId;
   String? _feedback;
+  bool _mistakeMarked = false;
+  String _teachBackText = '';
   final Set<String> _mentorShare = {
     ...humanHelpRecommendation.shareableContext,
   };
 
   BaleVerseProgress get _progress => _progressService.snapshot;
+
+  @override
+  void initState() {
+    super.initState();
+    _progressService.addListener(_onProgressChanged);
+  }
+
+  @override
+  void dispose() {
+    _progressService.removeListener(_onProgressChanged);
+    super.dispose();
+  }
+
+  void _onProgressChanged() {
+    if (mounted) setState(() {});
+  }
 
   BaleWorld get _selectedWorld {
     return baleWorlds.firstWhere((world) => world.key == _state.selectedWorld);
@@ -54,14 +72,31 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   void _checkAnswer() {
+    if (_state.activityType == MissionActivityType.findMistake) {
+      setState(() {
+        _feedback = findMistakeActivity.feedback;
+        _state = machine.advanceActivity(_state);
+      });
+      return;
+    }
+
+    if (_state.activityType == MissionActivityType.teachBack) {
+      setState(() {
+        _feedback = teachBackActivity.feedback;
+        _progressService.applyMissionReward(numeriaMission);
+        _state = machine.answerCorrect(_state);
+      });
+      return;
+    }
+
     final option = numeriaMission.options.firstWhere(
       (item) => item.id == _selectedOptionId,
     );
     setState(() {
       _feedback = option.feedback;
       if (option.isCorrect) {
-        _progressService.applyMissionReward(numeriaMission);
-        _state = machine.answerCorrect(_state);
+        _state = machine.advanceActivity(_state);
+        _selectedOptionId = null;
       } else {
         _state = machine.answerWrong(_state);
       }
@@ -188,6 +223,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
                   setState(() {
                     _feedback = null;
                     _selectedOptionId = null;
+                    _mistakeMarked = false;
+                    _teachBackText = '';
                     _state = _state.copyWith(
                       step: MissionStep.question,
                       wrongAttempts: 1,
@@ -203,6 +240,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
             setState(() {
               _feedback = null;
               _selectedOptionId = null;
+              _mistakeMarked = false;
+              _teachBackText = '';
               _tab = BaleTab.home;
               _state = _state.copyWith(
                 step: MissionStep.dashboard,
@@ -214,12 +253,25 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       _ => MissionQuestionScreen(
           key: const ValueKey('question'),
           step: _state.step,
+          activityType: _state.activityType,
           wrongAttempts: _state.wrongAttempts,
           selectedOptionId: _selectedOptionId,
+          mistakeMarked: _mistakeMarked,
+          teachBackText: _teachBackText,
           feedback: _feedback,
           onSelectOption: (id) => setState(() => _selectedOptionId = id),
-          onCheck: _selectedOptionId == null ? null : _checkAnswer,
+          onMarkMistake: () => setState(() => _mistakeMarked = true),
+          onTeachBackChanged: (value) => setState(() => _teachBackText = value),
+          onCheck: _canCheckMission ? _checkAnswer : null,
         ),
+    };
+  }
+
+  bool get _canCheckMission {
+    return switch (_state.activityType) {
+      MissionActivityType.multipleChoice => _selectedOptionId != null,
+      MissionActivityType.findMistake => _mistakeMarked,
+      MissionActivityType.teachBack => _teachBackText.trim().length >= 12,
     };
   }
 }

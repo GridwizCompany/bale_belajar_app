@@ -17,6 +17,8 @@ enum MissionStep {
 
 enum AiConfidence { high, medium, low }
 
+enum MissionActivityType { multipleChoice, findMistake, teachBack }
+
 class BaleUser {
   const BaleUser({
     required this.name,
@@ -95,6 +97,32 @@ class BaleMission {
   final int rewardDayaBale;
   final List<MissionOption> options;
   final List<String> hints;
+}
+
+class FindMistakeActivity {
+  const FindMistakeActivity({
+    required this.prompt,
+    required this.wrongStatement,
+    required this.correctedStatement,
+    required this.feedback,
+  });
+
+  final String prompt;
+  final String wrongStatement;
+  final String correctedStatement;
+  final String feedback;
+}
+
+class TeachBackActivity {
+  const TeachBackActivity({
+    required this.prompt,
+    required this.sampleAnswer,
+    required this.feedback,
+  });
+
+  final String prompt;
+  final String sampleAnswer;
+  final String feedback;
 }
 
 class HumanHelpRecommendation {

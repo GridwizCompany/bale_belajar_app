@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../theme/bale_theme.dart';
 import '../application/baleverse_progress_service.dart';
+import '../application/mission_engine.dart';
 import '../data/baleverse_dummy_data.dart';
 import '../domain/baleverse_models.dart';
 import '../state/mission_state_machine.dart' as machine;
@@ -24,6 +25,7 @@ class BaleVerseDemoScreen extends StatefulWidget {
 
 class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   final BaleVerseProgressService _progressService = BaleVerseProgressService();
+  final MissionEngine _missionEngine = const MissionEngine();
   machine.BaleVerseState _state = const machine.BaleVerseState();
   BaleTab _tab = BaleTab.home;
   String? _selectedOptionId;
@@ -72,33 +74,20 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   void _checkAnswer() {
-    if (_state.activityType == MissionActivityType.findMistake) {
-      setState(() {
-        _feedback = findMistakeActivity.feedback;
-        _state = machine.advanceActivity(_state);
-      });
-      return;
-    }
-
-    if (_state.activityType == MissionActivityType.teachBack) {
-      setState(() {
-        _feedback = teachBackActivity.feedback;
-        _progressService.applyMissionReward(numeriaMission);
-        _state = machine.answerCorrect(_state);
-      });
-      return;
-    }
-
-    final option = numeriaMission.options.firstWhere(
-      (item) => item.id == _selectedOptionId,
+    final evaluation = _missionEngine.evaluate(
+      state: _state,
+      selectedOptionId: _selectedOptionId,
+      mistakeMarked: _mistakeMarked,
+      teachBackText: _teachBackText,
     );
     setState(() {
-      _feedback = option.feedback;
-      if (option.isCorrect) {
-        _state = machine.advanceActivity(_state);
+      _feedback = evaluation.feedback;
+      _state = evaluation.state;
+      if (evaluation.shouldApplyReward) {
+        _progressService.applyMissionReward(numeriaMission);
+      }
+      if (_state.activityType != MissionActivityType.multipleChoice) {
         _selectedOptionId = null;
-      } else {
-        _state = machine.answerWrong(_state);
       }
     });
   }
@@ -268,10 +257,11 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   bool get _canCheckMission {
-    return switch (_state.activityType) {
-      MissionActivityType.multipleChoice => _selectedOptionId != null,
-      MissionActivityType.findMistake => _mistakeMarked,
-      MissionActivityType.teachBack => _teachBackText.trim().length >= 12,
-    };
+    return _missionEngine.canEvaluate(
+      state: _state,
+      selectedOptionId: _selectedOptionId,
+      mistakeMarked: _mistakeMarked,
+      teachBackText: _teachBackText,
+    );
   }
 }

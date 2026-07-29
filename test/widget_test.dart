@@ -1,4 +1,8 @@
 import 'package:bale_belajar_app/app.dart';
+import 'package:bale_belajar_app/features/baleverse/application/baleverse_progress_service.dart';
+import 'package:bale_belajar_app/features/baleverse/application/mission_engine.dart';
+import 'package:bale_belajar_app/features/baleverse/application/progress_store.dart';
+import 'package:bale_belajar_app/features/baleverse/data/baleverse_dummy_data.dart';
 import 'package:bale_belajar_app/features/baleverse/domain/baleverse_models.dart';
 import 'package:bale_belajar_app/features/baleverse/state/mission_state_machine.dart';
 import 'package:flutter/widgets.dart';
@@ -38,6 +42,58 @@ void main() {
 
     state = advanceActivity(state);
     expect(state.activityType, MissionActivityType.teachBack);
+  });
+
+  test(
+      'mission engine validates activities and applies reward only at teach back',
+      () {
+    const engine = MissionEngine();
+    var state = beginQuestion(startMission(const BaleVerseState()));
+
+    final multipleChoice = engine.evaluate(
+      state: state,
+      selectedOptionId: 'b',
+      mistakeMarked: false,
+      teachBackText: '',
+    );
+    expect(multipleChoice.state.activityType, MissionActivityType.findMistake);
+    expect(multipleChoice.shouldApplyReward, isFalse);
+
+    state = multipleChoice.state;
+    final findMistake = engine.evaluate(
+      state: state,
+      selectedOptionId: null,
+      mistakeMarked: true,
+      teachBackText: '',
+    );
+    expect(findMistake.state.activityType, MissionActivityType.teachBack);
+    expect(findMistake.shouldApplyReward, isFalse);
+
+    final teachBack = engine.evaluate(
+      state: findMistake.state,
+      selectedOptionId: null,
+      mistakeMarked: false,
+      teachBackText: 'Karena dikali semua bagian.',
+    );
+    expect(teachBack.state.step, MissionStep.reward);
+    expect(teachBack.shouldApplyReward, isTrue);
+  });
+
+  test('progress store serializes updated reward state', () {
+    final store = InMemoryProgressStore();
+    final service = BaleVerseProgressService(store: store);
+
+    service.applyMissionReward(numeriaMission);
+    service.markParentSupportSent();
+
+    final loaded = store.load();
+    expect(loaded.user.xp[BaleWorldKey.numeria], 4590);
+    expect(loaded.user.mastery[BaleWorldKey.numeria], 64);
+    expect(loaded.user.dayaBale, 338);
+    expect(loaded.parentSupportSent, isTrue);
+
+    final encoded = progressToJson(loaded);
+    expect(progressFromJson(encoded).user.xp[BaleWorldKey.numeria], 4590);
   });
 
   testWidgets('BaleVerse dashboard renders after demo login', (tester) async {

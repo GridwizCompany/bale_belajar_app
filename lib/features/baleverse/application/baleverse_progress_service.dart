@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import '../data/baleverse_dummy_data.dart';
 import '../domain/baleverse_models.dart';
+import 'progress_store.dart';
 
 class BaleVerseProgress {
   const BaleVerseProgress({
@@ -29,11 +29,13 @@ class BaleVerseProgress {
 }
 
 class BaleVerseProgressService extends ChangeNotifier {
-  BaleVerseProgress _progress = const BaleVerseProgress(
-    user: baleUser,
-    parentSupportSent: false,
-    mentorFeedbackReceived: false,
-  );
+  BaleVerseProgressService({ProgressStore? store})
+      : _store = store ?? InMemoryProgressStore() {
+    _progress = _store.load();
+  }
+
+  final ProgressStore _store;
+  late BaleVerseProgress _progress;
 
   BaleVerseProgress get snapshot => _progress;
 
@@ -58,16 +60,19 @@ class BaleVerseProgressService extends ChangeNotifier {
         mastery: updatedMastery,
       ),
     );
+    _store.save(_progress);
     notifyListeners();
   }
 
   void markParentSupportSent() {
     _progress = _progress.copyWith(parentSupportSent: true);
+    _store.save(_progress);
     notifyListeners();
   }
 
   void markMentorFeedbackReceived() {
     _progress = _progress.copyWith(mentorFeedbackReceived: true);
+    _store.save(_progress);
     notifyListeners();
   }
 }

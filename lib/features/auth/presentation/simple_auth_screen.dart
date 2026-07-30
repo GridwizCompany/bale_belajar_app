@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +9,13 @@ import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
+import 'onboarding_questions/learning_goal_question.dart';
+import 'onboarding_questions/onboarding_question_models.dart';
 
 const _authPrimary = Color(0xFFF4B400);
 const _authDark = Color(0xFF0E3A5F);
 
-enum AuthMode { welcome, register, login, code }
+enum AuthMode { welcome, register, account, login, code }
 
 class SimpleAuthScreen extends StatefulWidget {
   const SimpleAuthScreen({
@@ -42,6 +46,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   bool _showPassword = false;
   bool _googleBusy = false;
   int _flowStep = 1;
+  LearningGoal? _learningGoal;
 
   @override
   void initState() {
@@ -145,17 +150,31 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                               onSubmit: _submit,
                               onRegister: () => _goTo(AuthMode.register),
                             )
-                          : _AuthStep(
-                              key: ValueKey(_mode),
-                              controller: widget.controller,
-                              flowStep: _flowStep,
-                              title: _title,
-                              helper: _helper,
-                              mascotPose: _mascotPose,
-                              onBack: widget.onBackToLanding ??
-                                  () => _goTo(AuthMode.welcome),
-                              child: _form(),
-                            ),
+                          : _mode == AuthMode.register
+                              ? _LearningGoalStep(
+                                  key: const ValueKey('learning-goal-step'),
+                                  selectedGoal: _learningGoal,
+                                  onBack: widget.onBackToLanding ??
+                                      () => _goTo(AuthMode.welcome),
+                                  onSelected: (goal) {
+                                    setState(() => _learningGoal = goal);
+                                  },
+                                  onContinue: _learningGoal == null
+                                      ? null
+                                      : () => _goTo(AuthMode.account),
+                                  onSkip: () => _goTo(AuthMode.account),
+                                )
+                              : _AuthStep(
+                                  key: ValueKey(_mode),
+                                  controller: widget.controller,
+                                  flowStep: _flowStep,
+                                  title: _title,
+                                  helper: _helper,
+                                  mascotPose: _mascotPose,
+                                  onBack: widget.onBackToLanding ??
+                                      () => _goTo(AuthMode.welcome),
+                                  child: _form(),
+                                ),
                 ),
               ),
             ),
@@ -184,7 +203,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                 const _DividerLabel(label: 'atau'),
                 const SizedBox(height: 16),
               ],
-              if (_mode == AuthMode.register) ...[
+              if (_mode == AuthMode.account) ...[
                 _Field(
                   controller: _name,
                   label: 'Nama lengkap',
@@ -230,7 +249,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                   textCapitalization: TextCapitalization.characters,
                   validator: _required,
                 ),
-              if (_mode == AuthMode.register) ...[
+              if (_mode == AuthMode.account) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
                   initialValue: _grade,
@@ -286,6 +305,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   BeloPose get _mascotPose => switch (_mode) {
         AuthMode.register => BeloPose.lompatKegirangan,
+        AuthMode.account => BeloPose.lompatKegirangan,
         AuthMode.login => BeloPose.kedip,
         AuthMode.code => BeloPose.jempolOke,
         AuthMode.welcome => BeloPose.jatuhCinta,
@@ -293,20 +313,23 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   String get _title => switch (_mode) {
         AuthMode.welcome => 'BaleBelajar',
-        AuthMode.register => 'Buat akunmu',
+        AuthMode.register => learningGoalQuestion.title,
+        AuthMode.account => 'Buat akunmu',
         AuthMode.login => 'Masuk lagi',
         AuthMode.code => 'Pakai kode siswa',
       };
 
   String get _helper => switch (_mode) {
         AuthMode.welcome => '',
-        AuthMode.register => 'Satu langkah lagi sebelum misi pertamamu.',
+        AuthMode.register => 'Pilih tujuan yang paling cocok.',
+        AuthMode.account => 'Satu langkah lagi sebelum misi pertamamu.',
         AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
         AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
       };
 
   String get _switchLabel => switch (_mode) {
         AuthMode.register => 'Sudah punya akun? Masuk',
+        AuthMode.account => 'Sudah punya akun? Masuk',
         AuthMode.login => 'Belum punya akun? Mulai belajar',
         AuthMode.code => 'Masuk pakai email',
         AuthMode.welcome => '',
@@ -314,6 +337,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   AuthMode get _switchTarget => switch (_mode) {
         AuthMode.register => AuthMode.login,
+        AuthMode.account => AuthMode.login,
         AuthMode.login => AuthMode.register,
         AuthMode.code => AuthMode.login,
         AuthMode.welcome => AuthMode.register,
@@ -321,13 +345,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   IconData get _buttonIcon => switch (_mode) {
         AuthMode.register => Icons.arrow_forward_rounded,
+        AuthMode.account => Icons.arrow_forward_rounded,
         AuthMode.login => Icons.login_rounded,
         AuthMode.code => Icons.qr_code_2_rounded,
         AuthMode.welcome => Icons.play_arrow_rounded,
       };
 
   String get _buttonLabel => switch (_mode) {
-        AuthMode.register => 'Buat Akun',
+        AuthMode.register => 'Lanjutkan',
+        AuthMode.account => 'Buat Akun',
         AuthMode.login => 'Masuk',
         AuthMode.code => 'Masuk dengan Kode',
         AuthMode.welcome => 'Mulai',
@@ -342,7 +368,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       _mode = mode;
       _flowStep = switch (mode) {
         AuthMode.welcome => 1,
-        AuthMode.register || AuthMode.login || AuthMode.code => 2,
+        AuthMode.register => 1,
+        AuthMode.account || AuthMode.login || AuthMode.code => 2,
       };
     });
   }
@@ -389,7 +416,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     FocusScope.of(context).unfocus();
     if (_mode == AuthMode.login) {
       await widget.controller.loginWithEmail(_email.text, _password.text);
-    } else if (_mode == AuthMode.register) {
+    } else if (_mode == AuthMode.account) {
       await widget.controller.register(
         name: _name.text,
         email: _email.text,
@@ -571,6 +598,426 @@ class _MascotStage extends StatelessWidget {
       child: Center(child: BeloMascot(pose: pose, size: size, animate: false)),
     );
   }
+}
+
+class _LearningGoalStep extends StatelessWidget {
+  const _LearningGoalStep({
+    required this.selectedGoal,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final LearningGoal? selectedGoal;
+  final VoidCallback onBack;
+  final ValueChanged<LearningGoal> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = learningGoalQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 1 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        const _SevenStepProgress(currentStep: 1),
+        const SizedBox(height: 24),
+        const _IntroMascotBubble(),
+        const SizedBox(height: 28),
+        Text(
+          learningGoalQuestion.title,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Pilih tujuan yang paling cocok.\nKamu bisa mengubahnya nanti.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xFF747985),
+            fontSize: 16,
+            height: 1.35,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 22),
+        for (final option in options) ...[
+          _LearningGoalCard(
+            option: option,
+            selected: selectedGoal == option.value,
+            onTap: () => onSelected(option.value),
+          ),
+          const SizedBox(height: 10),
+        ],
+        const SizedBox(height: 10),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(58),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Lanjutkan'),
+              SizedBox(width: 12),
+              Icon(Icons.arrow_forward_rounded, size: 28),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CircleBackButton extends StatelessWidget {
+  const _CircleBackButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      shape: const CircleBorder(),
+      elevation: 2,
+      shadowColor: const Color(0x22000000),
+      child: IconButton(
+        tooltip: 'Kembali',
+        onPressed: onPressed,
+        icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF3B2318)),
+      ),
+    );
+  }
+}
+
+class _SevenStepProgress extends StatelessWidget {
+  const _SevenStepProgress({required this.currentStep});
+
+  final int currentStep;
+  static const int _totalSteps = 7;
+
+  @override
+  Widget build(BuildContext context) {
+    final step = currentStep.clamp(1, _totalSteps);
+    return SizedBox(
+      height: 34,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dotGap = constraints.maxWidth / (_totalSteps - 1);
+          return Stack(
+            alignment: Alignment.centerLeft,
+            children: [
+              Container(
+                height: 13,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: BaleColors.line, width: 2),
+                ),
+              ),
+              FractionallySizedBox(
+                widthFactor: step / _totalSteps,
+                child: Container(
+                  height: 13,
+                  decoration: BoxDecoration(
+                    color: _authPrimary,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              for (var index = 1; index <= _totalSteps; index++)
+                Positioned(
+                  left: (dotGap * (index - 1) - 6)
+                      .clamp(0, constraints.maxWidth - 12),
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: index == step ? _authPrimary : BaleColors.line,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+              Positioned(
+                left: 76,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _authPrimary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x33F4B400),
+                        blurRadius: 12,
+                        offset: Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.star_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _IntroMascotBubble extends StatelessWidget {
+  const _IntroMascotBubble();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          flex: 9,
+          child: Image.asset(
+            'assets/mascot/kenalan.png',
+            height: 190,
+            fit: BoxFit.contain,
+            semanticLabel: 'Maskot Bale memperkenalkan diri',
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
+          flex: 11,
+          child: _SpeechBubble(
+            text:
+                'Hai, saya Bale!\nSebelum kita mulai belajar, aku mau kenalan dulu biar bisa menyiapkan petualangan yang cocok buatmu.',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SpeechBubble extends StatelessWidget {
+  const _SpeechBubble({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          constraints: const BoxConstraints(minHeight: 136),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: const Color(0xFFEEDFBF), width: 2),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x15000000),
+                blurRadius: 18,
+                offset: Offset(0, 9),
+              ),
+            ],
+          ),
+          child: _TypingText(text: text),
+        ),
+        Positioned(
+          left: -10,
+          bottom: 20,
+          child: Transform.rotate(
+            angle: -0.45,
+            child: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: const Color(0xFFEEDFBF), width: 2),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TypingText extends StatefulWidget {
+  const _TypingText({required this.text});
+
+  final String text;
+
+  @override
+  State<_TypingText> createState() => _TypingTextState();
+}
+
+class _TypingTextState extends State<_TypingText> {
+  Timer? _timer;
+  int _visibleCharacters = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(milliseconds: 24), (timer) {
+      if (_visibleCharacters >= widget.text.length) {
+        timer.cancel();
+        return;
+      }
+      if (mounted) {
+        setState(() => _visibleCharacters += 1);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleText = widget.text.substring(0, _visibleCharacters);
+    return Text(
+      visibleText,
+      style: const TextStyle(
+        color: Color(0xFF3B2318),
+        fontSize: 15,
+        height: 1.42,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+  }
+}
+
+class _LearningGoalCard extends StatelessWidget {
+  const _LearningGoalCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final OnboardingOption<LearningGoal> option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 78),
+          padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: _goalColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.auto_awesome_rounded,
+                  color: _goalColor(option.value),
+                  size: 30,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  option.label.replaceAll('.', ''),
+                  style: const TextStyle(
+                    color: Color(0xFF3B2318),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: 30,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _goalColor(LearningGoal goal) => switch (goal) {
+        LearningGoal.understandSubject => const Color(0xFF2D8CFF),
+        LearningGoal.examPreparation => const Color(0xFF4CAF50),
+        LearningGoal.improveGrade => const Color(0xFFFF6B6B),
+        LearningGoal.learnNewSkill => const Color(0xFFF4B400),
+        LearningGoal.buildThinkingSkill => const Color(0xFF7C5CFF),
+        LearningGoal.exploreCareer => const Color(0xFF0E3A5F),
+        LearningGoal.needRecommendation => const Color(0xFFFFA629),
+      };
 }
 
 class _LoginWelcomeStep extends StatelessWidget {

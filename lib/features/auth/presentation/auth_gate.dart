@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/token_store.dart';
+import '../../../theme/bale_theme.dart';
 import '../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_service.dart';
@@ -19,12 +20,16 @@ class AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<AuthGate> {
   late final AuthController _controller;
+  bool _splashDone = false;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? _buildController();
     _controller.initialize();
+    Future<void>.delayed(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _splashDone = true);
+    });
   }
 
   @override
@@ -42,8 +47,11 @@ class _AuthGateState extends State<AuthGate> {
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, _) {
+          if (!_splashDone || _controller.status == AuthStatus.checking) {
+            return const BaleSplashScreen();
+          }
           return switch (_controller.status) {
-            AuthStatus.checking => const _LoadingScreen(),
+            AuthStatus.checking => const BaleSplashScreen(),
             AuthStatus.signedOut => SignedOutFlow(
                 key: const ValueKey('signed-out-onboarding'),
                 controller: _controller,
@@ -69,13 +77,61 @@ class _AuthGateState extends State<AuthGate> {
   }
 }
 
-class _LoadingScreen extends StatelessWidget {
-  const _LoadingScreen();
+class BaleSplashScreen extends StatelessWidget {
+  const BaleSplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
+    final shortestSide = MediaQuery.sizeOf(context).shortestSide;
+    final mascotSize = shortestSide.clamp(260.0, 360.0);
+
+    return Scaffold(
+      backgroundColor: BaleColors.warning,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(28, 28, 28, 32),
+          child: Column(
+            children: [
+              const Spacer(flex: 5),
+              SizedBox(
+                width: mascotSize,
+                height: mascotSize,
+                child: Image.asset(
+                  'assets/mascot/splash.png',
+                  fit: BoxFit.contain,
+                  semanticLabel: 'Maskot splash Bale Belajar',
+                ),
+              ),
+              const Spacer(flex: 4),
+              const _SplashBrand(),
+              const SizedBox(height: 26),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SplashBrand extends StatelessWidget {
+  const _SplashBrand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.school_rounded, color: Colors.white, size: 42),
+        const SizedBox(width: 12),
+        Text(
+          'balebelajar',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontSize: 34,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+      ],
     );
   }
 }

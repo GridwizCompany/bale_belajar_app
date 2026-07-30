@@ -20,7 +20,7 @@ enum BaleTab { home, worlds, mission, circle, profile }
 
 class BaleVerseDemoScreen extends StatefulWidget {
   const BaleVerseDemoScreen({
-    this.skipDemoLogin = false,
+    this.skipDemoLogin = true,
     this.authController,
     super.key,
   });

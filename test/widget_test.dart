@@ -98,7 +98,9 @@ void main() {
   });
 
   testWidgets('BaleVerse dashboard renders after demo login', (tester) async {
-    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
+    await tester.pumpWidget(
+      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
+    );
 
     expect(find.text('Masuk ke BaleVerse'), findsOneWidget);
 
@@ -120,7 +122,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
+    await tester.pumpWidget(
+      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
+    );
     await tester.tap(find.text('Masuk sebagai Nara'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lanjutkan Misi'));
@@ -148,7 +152,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const BaleBelajarApp(home: BaleVerseDemoScreen()));
+    await tester.pumpWidget(
+      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
+    );
     await tester.tap(find.text('Masuk sebagai Nara'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Lanjutkan Misi'));

@@ -6,7 +6,7 @@ import '../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_service.dart';
 import 'onboarding_screen.dart';
-import 'simple_auth_screen.dart';
+import 'signed_out_flow.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({this.controller, super.key});
@@ -44,7 +44,7 @@ class _AuthGateState extends State<AuthGate> {
         builder: (context, _) {
           return switch (_controller.status) {
             AuthStatus.checking => const _LoadingScreen(),
-            AuthStatus.signedOut => SimpleAuthScreen(
+            AuthStatus.signedOut => SignedOutFlow(
                 key: const ValueKey('signed-out-onboarding'),
                 controller: _controller,
               ),

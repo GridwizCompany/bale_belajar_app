@@ -16,9 +16,16 @@ const _authDark = Color(0xFF0E3A5F);
 enum AuthMode { welcome, register, login, code }
 
 class SimpleAuthScreen extends StatefulWidget {
-  const SimpleAuthScreen({required this.controller, super.key});
+  const SimpleAuthScreen({
+    required this.controller,
+    this.initialMode = AuthMode.welcome,
+    this.onBackToLanding,
+    super.key,
+  });
 
   final AuthController controller;
+  final AuthMode initialMode;
+  final VoidCallback? onBackToLanding;
 
   @override
   State<SimpleAuthScreen> createState() => _SimpleAuthScreenState();
@@ -39,14 +46,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   @override
   void initState() {
     super.initState();
-    _resetToWelcome();
+    _resetToInitialMode();
   }
 
   @override
   void didUpdateWidget(covariant SimpleAuthScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller != widget.controller) {
-      _resetToWelcome();
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.initialMode != widget.initialMode) {
+      _resetToInitialMode();
     }
   }
 
@@ -54,7 +62,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   void reassemble() {
     super.reassemble();
     if (mounted) {
-      setState(_resetToWelcome);
+      setState(_resetToInitialMode);
     }
   }
 
@@ -67,9 +75,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     super.dispose();
   }
 
-  void _resetToWelcome() {
-    _mode = AuthMode.welcome;
-    _flowStep = 1;
+  void _resetToInitialMode() {
+    _mode = widget.initialMode;
+    _flowStep = widget.initialMode == AuthMode.welcome ? 1 : 2;
     _googleBusy = false;
     _showPassword = false;
   }
@@ -124,7 +132,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                           title: _title,
                           helper: _helper,
                           mascotPose: _mascotPose,
-                          onBack: () => _goTo(AuthMode.welcome),
+                          onBack: widget.onBackToLanding ??
+                              () => _goTo(AuthMode.welcome),
                           child: _form(),
                         ),
                 ),

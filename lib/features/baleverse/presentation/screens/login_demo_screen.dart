@@ -16,7 +16,7 @@ class LoginDemoScreen extends StatelessWidget {
         child: PageShell(
           children: [
             BaleCard(
-              color: BaleColors.ink,
+              color: BaleColors.soft,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -27,13 +27,13 @@ class LoginDemoScreen extends StatelessWidget {
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
-                        ?.copyWith(color: Colors.white),
+                        ?.copyWith(color: BaleColors.ink),
                   ),
                   const SizedBox(height: 10),
                   const Text(
                     'Coba alur belajar berbasis misi dengan dummy data. Tidak ada backend atau AI API yang dipakai.',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: BaleColors.earth,
                       fontWeight: FontWeight.w700,
                       height: 1.45,
                     ),

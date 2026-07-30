@@ -37,12 +37,41 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   int _flowStep = 1;
 
   @override
+  void initState() {
+    super.initState();
+    _resetToWelcome();
+  }
+
+  @override
+  void didUpdateWidget(covariant SimpleAuthScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      _resetToWelcome();
+    }
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    if (mounted) {
+      setState(_resetToWelcome);
+    }
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _email.dispose();
     _password.dispose();
     _code.dispose();
     super.dispose();
+  }
+
+  void _resetToWelcome() {
+    _mode = AuthMode.welcome;
+    _flowStep = 1;
+    _googleBusy = false;
+    _showPassword = false;
   }
 
   @override

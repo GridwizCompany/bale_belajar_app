@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -251,53 +249,20 @@ class _MiniBrand extends StatelessWidget {
   }
 }
 
-class _LoginMascot extends StatefulWidget {
+class _LoginMascot extends StatelessWidget {
   const _LoginMascot({required this.size});
 
   final double size;
 
   @override
-  State<_LoginMascot> createState() => _LoginMascotState();
-}
-
-class _LoginMascotState extends State<_LoginMascot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1700),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final wave = math.sin(_controller.value * math.pi * 2);
-        return Transform.translate(
-          offset: Offset(0, wave * 4),
-          child: Transform.rotate(angle: wave * 0.014, child: child),
-        );
-      },
-      child: SizedBox(
-        width: widget.size,
-        height: widget.size * 1.22,
-        child: Image.asset(
-          'assets/mascot/login.png',
-          fit: BoxFit.contain,
-          semanticLabel: 'Maskot login Bale Belajar',
-        ),
+    return SizedBox(
+      width: size,
+      height: size * 1.22,
+      child: Image.asset(
+        'assets/mascot/login.png',
+        fit: BoxFit.contain,
+        semanticLabel: 'Maskot login Bale Belajar',
       ),
     );
   }

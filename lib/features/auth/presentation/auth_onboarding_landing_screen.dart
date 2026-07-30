@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 import '../../../theme/bale_theme.dart';
@@ -137,54 +135,21 @@ class _AuthOnboardingLandingScreenState
   }
 }
 
-class _WelcomeMascot extends StatefulWidget {
+class _WelcomeMascot extends StatelessWidget {
   const _WelcomeMascot({required this.size});
 
   final double size;
 
   @override
-  State<_WelcomeMascot> createState() => _WelcomeMascotState();
-}
-
-class _WelcomeMascotState extends State<_WelcomeMascot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1700),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final wave = math.sin(_controller.value * math.pi * 2);
-        return Transform.translate(
-          offset: Offset(0, wave * 5),
-          child: Transform.rotate(angle: wave * 0.018, child: child),
-        );
-      },
-      child: SizedBox(
-        width: widget.size,
-        height: widget.size * 1.28,
-        child: Image.asset(
-          'assets/mascot/welcome.png',
-          fit: BoxFit.contain,
-          alignment: Alignment.center,
-          semanticLabel: 'Maskot Bale Belajar menyambut',
-        ),
+    return SizedBox(
+      width: size,
+      height: size * 1.28,
+      child: Image.asset(
+        'assets/mascot/welcome.png',
+        fit: BoxFit.contain,
+        alignment: Alignment.center,
+        semanticLabel: 'Maskot Bale Belajar menyambut',
       ),
     );
   }

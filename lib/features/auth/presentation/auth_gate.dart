@@ -27,7 +27,7 @@ class _AuthGateState extends State<AuthGate> {
     super.initState();
     _controller = widget.controller ?? _buildController();
     _controller.initialize();
-    Future<void>.delayed(const Duration(milliseconds: 1100), () {
+    Future<void>.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _splashDone = true);
     });
   }

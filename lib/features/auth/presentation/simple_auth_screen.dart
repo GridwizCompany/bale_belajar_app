@@ -9,13 +9,33 @@ import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
+import 'onboarding_questions/daily_duration_question.dart';
+import 'onboarding_questions/grade_question.dart';
+import 'onboarding_questions/learning_format_question.dart';
 import 'onboarding_questions/learning_goal_question.dart';
+import 'onboarding_questions/learning_world_question.dart';
 import 'onboarding_questions/onboarding_question_models.dart';
+import 'onboarding_questions/self_reported_level_question.dart';
+import 'onboarding_questions/study_time_question.dart';
 
 const _authPrimary = Color(0xFFF4B400);
 const _authDark = Color(0xFF0E3A5F);
 
-enum AuthMode { welcome, register, account, login, code }
+enum AuthMode {
+  welcome,
+  register,
+  world,
+  grade,
+  level,
+  format,
+  duration,
+  studyTime,
+  recommendation,
+  placement,
+  account,
+  login,
+  code,
+}
 
 class SimpleAuthScreen extends StatefulWidget {
   const SimpleAuthScreen({
@@ -47,6 +67,12 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   bool _googleBusy = false;
   int _flowStep = 1;
   LearningGoal? _learningGoal;
+  LearningWorld? _learningWorld;
+  GradeChoice? _gradeChoice;
+  SelfReportedLevel? _selfReportedLevel;
+  final Set<LearningFormat> _learningFormats = {};
+  DailyDuration? _dailyDuration;
+  StudyTime? _studyTime;
 
   @override
   void initState() {
@@ -161,20 +187,186 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                   },
                                   onContinue: _learningGoal == null
                                       ? null
-                                      : () => _goTo(AuthMode.account),
-                                  onSkip: () => _goTo(AuthMode.account),
+                                      : () => _goTo(AuthMode.world),
+                                  onSkip: () => _goTo(AuthMode.world),
                                 )
-                              : _AuthStep(
-                                  key: ValueKey(_mode),
-                                  controller: widget.controller,
-                                  flowStep: _flowStep,
-                                  title: _title,
-                                  helper: _helper,
-                                  mascotPose: _mascotPose,
-                                  onBack: widget.onBackToLanding ??
-                                      () => _goTo(AuthMode.welcome),
-                                  child: _form(),
-                                ),
+                              : _mode == AuthMode.world
+                                  ? _LearningWorldStep(
+                                      key: const ValueKey(
+                                        'learning-world-step',
+                                      ),
+                                      selectedWorld: _learningWorld,
+                                      onBack: () => _goTo(AuthMode.register),
+                                      onSelected: (world) {
+                                        setState(() => _learningWorld = world);
+                                      },
+                                      onContinue: _learningWorld == null
+                                          ? null
+                                          : () => _goTo(AuthMode.grade),
+                                      onSkip: () => _goTo(AuthMode.grade),
+                                    )
+                                  : _mode == AuthMode.grade
+                                      ? _GradeStep(
+                                          key: const ValueKey('grade-step'),
+                                          selectedGrade: _gradeChoice,
+                                          onBack: () => _goTo(AuthMode.world),
+                                          onSelected: (grade) {
+                                            setState(() {
+                                              _gradeChoice = grade;
+                                              if (grade.gradeLevel != null) {
+                                                _grade = grade.gradeLevel!;
+                                              }
+                                            });
+                                          },
+                                          onContinue: _gradeChoice == null
+                                              ? null
+                                              : () => _goTo(AuthMode.level),
+                                          onSkip: () => _goTo(AuthMode.level),
+                                        )
+                                      : _mode == AuthMode.level
+                                          ? _SelfReportedLevelStep(
+                                              key: const ValueKey(
+                                                'self-reported-level-step',
+                                              ),
+                                              selectedLevel: _selfReportedLevel,
+                                              onBack: () =>
+                                                  _goTo(AuthMode.grade),
+                                              onSelected: (level) {
+                                                setState(() =>
+                                                    _selfReportedLevel = level);
+                                              },
+                                              onContinue:
+                                                  _selfReportedLevel == null
+                                                      ? null
+                                                      : () => _goTo(
+                                                            AuthMode.format,
+                                                          ),
+                                              onSkip: () =>
+                                                  _goTo(AuthMode.format),
+                                            )
+                                          : _mode == AuthMode.format
+                                              ? _LearningFormatStep(
+                                                  key: const ValueKey(
+                                                    'learning-format-step',
+                                                  ),
+                                                  selectedFormats:
+                                                      _learningFormats,
+                                                  onBack: () =>
+                                                      _goTo(AuthMode.level),
+                                                  onToggle: _toggleFormat,
+                                                  onContinue: _learningFormats
+                                                          .isEmpty
+                                                      ? null
+                                                      : () => _goTo(
+                                                            AuthMode.duration,
+                                                          ),
+                                                  onSkip: () =>
+                                                      _goTo(AuthMode.duration),
+                                                )
+                                              : _mode == AuthMode.duration
+                                                  ? _DailyDurationStep(
+                                                      key: const ValueKey(
+                                                        'daily-duration-step',
+                                                      ),
+                                                      selectedDuration:
+                                                          _dailyDuration,
+                                                      onBack: () => _goTo(
+                                                        AuthMode.format,
+                                                      ),
+                                                      onSelected: (duration) {
+                                                        setState(() {
+                                                          _dailyDuration =
+                                                              duration;
+                                                        });
+                                                      },
+                                                      onContinue:
+                                                          _dailyDuration == null
+                                                              ? null
+                                                              : () => _goTo(
+                                                                    AuthMode
+                                                                        .studyTime,
+                                                                  ),
+                                                      onSkip: () => _goTo(
+                                                        AuthMode.studyTime,
+                                                      ),
+                                                    )
+                                                  : _mode == AuthMode.studyTime
+                                                      ? _StudyTimeStep(
+                                                          key: const ValueKey(
+                                                            'study-time-step',
+                                                          ),
+                                                          selectedTime:
+                                                              _studyTime,
+                                                          onBack: () => _goTo(
+                                                            AuthMode.duration,
+                                                          ),
+                                                          onSelected: (time) {
+                                                            setState(() {
+                                                              _studyTime = time;
+                                                            });
+                                                          },
+                                                          onContinue: _studyTime ==
+                                                                  null
+                                                              ? null
+                                                              : _showRecommendation,
+                                                          onSkip:
+                                                              _showRecommendation,
+                                                        )
+                                                      : _mode ==
+                                                              AuthMode
+                                                                  .recommendation
+                                                          ? _RecommendationSplash(
+                                                              key:
+                                                                  const ValueKey(
+                                                                'recommendation-splash',
+                                                              ),
+                                                              world:
+                                                                  _learningWorld,
+                                                            )
+                                                          : _mode ==
+                                                                  AuthMode
+                                                                      .placement
+                                                              ? _PlacementTestIntroStep(
+                                                                  key:
+                                                                      const ValueKey(
+                                                                    'placement-test-intro',
+                                                                  ),
+                                                                  world:
+                                                                      _learningWorld,
+                                                                  onBack: () =>
+                                                                      _goTo(
+                                                                    AuthMode
+                                                                        .studyTime,
+                                                                  ),
+                                                                  onContinue:
+                                                                      () =>
+                                                                          _goTo(
+                                                                    AuthMode
+                                                                        .account,
+                                                                  ),
+                                                                )
+                                                              : _AuthStep(
+                                                                  key: ValueKey(
+                                                                    _mode,
+                                                                  ),
+                                                                  controller: widget
+                                                                      .controller,
+                                                                  flowStep:
+                                                                      _flowStep,
+                                                                  title: _title,
+                                                                  helper:
+                                                                      _helper,
+                                                                  mascotPose:
+                                                                      _mascotPose,
+                                                                  onBack: widget
+                                                                          .onBackToLanding ??
+                                                                      () =>
+                                                                          _goTo(
+                                                                            AuthMode.welcome,
+                                                                          ),
+                                                                  child:
+                                                                      _form(),
+                                                                ),
                 ),
               ),
             ),
@@ -305,6 +497,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   BeloPose get _mascotPose => switch (_mode) {
         AuthMode.register => BeloPose.lompatKegirangan,
+        AuthMode.world => BeloPose.lompatKegirangan,
+        AuthMode.grade => BeloPose.lompatKegirangan,
+        AuthMode.level => BeloPose.lompatKegirangan,
+        AuthMode.format => BeloPose.lompatKegirangan,
+        AuthMode.duration => BeloPose.lompatKegirangan,
+        AuthMode.studyTime => BeloPose.lompatKegirangan,
+        AuthMode.recommendation => BeloPose.lompatKegirangan,
+        AuthMode.placement => BeloPose.lompatKegirangan,
         AuthMode.account => BeloPose.lompatKegirangan,
         AuthMode.login => BeloPose.kedip,
         AuthMode.code => BeloPose.jempolOke,
@@ -314,6 +514,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   String get _title => switch (_mode) {
         AuthMode.welcome => 'BaleBelajar',
         AuthMode.register => learningGoalQuestion.title,
+        AuthMode.world => learningWorldQuestion.title,
+        AuthMode.grade => gradeQuestion.title,
+        AuthMode.level => selfReportedLevelQuestion.title,
+        AuthMode.format => learningFormatQuestion.title,
+        AuthMode.duration => dailyDurationQuestion.title,
+        AuthMode.studyTime => studyTimeQuestion.title,
+        AuthMode.recommendation => 'Menyiapkan rekomendasi',
+        AuthMode.placement => 'Cek Awal',
         AuthMode.account => 'Buat akunmu',
         AuthMode.login => 'Masuk lagi',
         AuthMode.code => 'Pakai kode siswa',
@@ -322,6 +530,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   String get _helper => switch (_mode) {
         AuthMode.welcome => '',
         AuthMode.register => 'Pilih tujuan yang paling cocok.',
+        AuthMode.world => 'Pilih satu dunia untuk mulai.',
+        AuthMode.grade => 'Ini hanya untuk memilih materi awal.',
+        AuthMode.level => 'Ini bukan ujian, hanya titik awal.',
+        AuthMode.format => 'Pilih sampai tiga cara belajar.',
+        AuthMode.duration => 'Pilih target yang realistis.',
+        AuthMode.studyTime => 'Pilih waktu yang cocok.',
+        AuthMode.recommendation => 'Sebentar, Bale sedang menyiapkan jalurmu.',
+        AuthMode.placement => 'Mulai dari tes singkat sesuai dunia pilihanmu.',
         AuthMode.account => 'Satu langkah lagi sebelum misi pertamamu.',
         AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
         AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
@@ -329,6 +545,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   String get _switchLabel => switch (_mode) {
         AuthMode.register => 'Sudah punya akun? Masuk',
+        AuthMode.world => 'Sudah punya akun? Masuk',
+        AuthMode.grade => 'Sudah punya akun? Masuk',
+        AuthMode.level => 'Sudah punya akun? Masuk',
+        AuthMode.format => 'Sudah punya akun? Masuk',
+        AuthMode.duration => 'Sudah punya akun? Masuk',
+        AuthMode.studyTime => 'Sudah punya akun? Masuk',
+        AuthMode.recommendation => '',
+        AuthMode.placement => 'Sudah punya akun? Masuk',
         AuthMode.account => 'Sudah punya akun? Masuk',
         AuthMode.login => 'Belum punya akun? Mulai belajar',
         AuthMode.code => 'Masuk pakai email',
@@ -337,6 +561,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   AuthMode get _switchTarget => switch (_mode) {
         AuthMode.register => AuthMode.login,
+        AuthMode.world => AuthMode.login,
+        AuthMode.grade => AuthMode.login,
+        AuthMode.level => AuthMode.login,
+        AuthMode.format => AuthMode.login,
+        AuthMode.duration => AuthMode.login,
+        AuthMode.studyTime => AuthMode.login,
+        AuthMode.recommendation => AuthMode.login,
+        AuthMode.placement => AuthMode.login,
         AuthMode.account => AuthMode.login,
         AuthMode.login => AuthMode.register,
         AuthMode.code => AuthMode.login,
@@ -345,6 +577,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   IconData get _buttonIcon => switch (_mode) {
         AuthMode.register => Icons.arrow_forward_rounded,
+        AuthMode.world => Icons.arrow_forward_rounded,
+        AuthMode.grade => Icons.arrow_forward_rounded,
+        AuthMode.level => Icons.arrow_forward_rounded,
+        AuthMode.format => Icons.arrow_forward_rounded,
+        AuthMode.duration => Icons.arrow_forward_rounded,
+        AuthMode.studyTime => Icons.arrow_forward_rounded,
+        AuthMode.recommendation => Icons.auto_awesome_rounded,
+        AuthMode.placement => Icons.quiz_rounded,
         AuthMode.account => Icons.arrow_forward_rounded,
         AuthMode.login => Icons.login_rounded,
         AuthMode.code => Icons.qr_code_2_rounded,
@@ -353,6 +593,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   String get _buttonLabel => switch (_mode) {
         AuthMode.register => 'Lanjutkan',
+        AuthMode.world => 'Lanjutkan',
+        AuthMode.grade => 'Lanjutkan',
+        AuthMode.level => 'Lanjutkan',
+        AuthMode.format => 'Lanjutkan',
+        AuthMode.duration => 'Lanjutkan',
+        AuthMode.studyTime => 'Lihat rekomendasiku',
+        AuthMode.recommendation => 'Menyiapkan',
+        AuthMode.placement => 'Mulai Cek Awal',
         AuthMode.account => 'Buat Akun',
         AuthMode.login => 'Masuk',
         AuthMode.code => 'Masuk dengan Kode',
@@ -369,8 +617,39 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       _flowStep = switch (mode) {
         AuthMode.welcome => 1,
         AuthMode.register => 1,
-        AuthMode.account || AuthMode.login || AuthMode.code => 2,
+        AuthMode.world => 2,
+        AuthMode.grade => 3,
+        AuthMode.level => 4,
+        AuthMode.format => 5,
+        AuthMode.duration => 6,
+        AuthMode.studyTime ||
+        AuthMode.recommendation ||
+        AuthMode.placement =>
+          7,
+        AuthMode.account || AuthMode.login || AuthMode.code => 7,
       };
+    });
+  }
+
+  void _showRecommendation() {
+    setState(() {
+      _mode = AuthMode.recommendation;
+      _flowStep = 7;
+    });
+    Future<void>.delayed(const Duration(seconds: 3), () {
+      if (mounted && _mode == AuthMode.recommendation) {
+        setState(() => _mode = AuthMode.placement);
+      }
+    });
+  }
+
+  void _toggleFormat(LearningFormat format) {
+    setState(() {
+      if (_learningFormats.contains(format)) {
+        _learningFormats.remove(format);
+      } else if (_learningFormats.length < 3) {
+        _learningFormats.add(format);
+      }
     });
   }
 
@@ -618,6 +897,8 @@ class _LearningGoalStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
     final options = learningGoalQuestion.options;
 
     return ListView(
@@ -637,64 +918,78 @@ class _LearningGoalStep extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 18),
+        SizedBox(height: compact ? 10 : 18),
         const _SevenStepProgress(currentStep: 1),
-        const SizedBox(height: 24),
-        const _IntroMascotBubble(),
-        const SizedBox(height: 28),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(compact: compact),
+        SizedBox(height: compact ? 14 : 22),
         Text(
-          learningGoalQuestion.title,
+          'Tujuan belajarmu?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: 28,
+                fontSize: compact ? 22 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Pilih tujuan yang paling cocok.\nKamu bisa mengubahnya nanti.',
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih satu. Bisa diubah nanti.',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: Color(0xFF747985),
-            fontSize: 16,
-            height: 1.35,
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 22),
-        for (final option in options) ...[
-          _LearningGoalCard(
-            option: option,
-            selected: selectedGoal == option.value,
-            onTap: () => onSelected(option.value),
-          ),
-          const SizedBox(height: 10),
-        ],
-        const SizedBox(height: 10),
+        SizedBox(height: compact ? 8 : 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 8.0;
+            final cardWidth = (constraints.maxWidth - gap) / 2;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final option in options)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _LearningGoalCard(
+                      option: option,
+                      selected: selectedGoal == option.value,
+                      compact: compact,
+                      onTap: () => onSelected(option.value),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        SizedBox(height: compact ? 8 : 12),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(58),
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
-            textStyle: const TextStyle(
-              fontSize: 22,
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
             shadowColor: const Color(0x66F4B400),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Lanjutkan'),
-              SizedBox(width: 12),
-              Icon(Icons.arrow_forward_rounded, size: 28),
+              const Text('Lanjutkan'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: compact ? 0 : 4),
         TextButton(
           onPressed: onSkip,
           child: const Text(
@@ -704,6 +999,878 @@ class _LearningGoalStep extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LearningWorldStep extends StatelessWidget {
+  const _LearningWorldStep({
+    required this.selectedWorld,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final LearningWorld? selectedWorld;
+  final VoidCallback onBack;
+  final ValueChanged<LearningWorld> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    final options = learningWorldQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 2 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 2),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sekarang pilih dunia belajar yang paling menarik. Nanti aku siapkan misi pertamamu.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Pilih dunia belajar',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih satu dulu. Yang lain bisa dibuka nanti.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const gap = 8.0;
+            final cardWidth = (constraints.maxWidth - gap) / 2;
+            return Wrap(
+              spacing: gap,
+              runSpacing: gap,
+              children: [
+                for (final option in options)
+                  SizedBox(
+                    width: cardWidth,
+                    child: _LearningWorldCard(
+                      option: option,
+                      selected: selectedWorld == option.value,
+                      compact: compact,
+                      onTap: () => onSelected(option.value),
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Lanjutkan'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GradeStep extends StatelessWidget {
+  const _GradeStep({
+    required this.selectedGrade,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final GradeChoice? selectedGrade;
+  final VoidCallback onBack;
+  final ValueChanged<GradeChoice> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    const options = [
+      GradeChoice.junior7,
+      GradeChoice.senior10,
+      GradeChoice.senior11,
+      GradeChoice.senior12,
+      GradeChoice.graduated,
+    ];
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 3 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 3),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sekarang pilih kelasmu dulu, ya. Ini bantu aku menyiapkan materi yang pas.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Kamu kelas berapa?',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih yang sesuai sekarang. Level bisa berubah nanti.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        for (final option in options) ...[
+          _GradeCard(
+            grade: option,
+            selected: selectedGrade == option,
+            compact: compact,
+            onTap: () => onSelected(option),
+          ),
+          SizedBox(height: compact ? 7 : 8),
+        ],
+        SizedBox(height: compact ? 4 : 8),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Lanjutkan'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SelfReportedLevelStep extends StatelessWidget {
+  const _SelfReportedLevelStep({
+    required this.selectedLevel,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final SelfReportedLevel? selectedLevel;
+  final VoidCallback onBack;
+  final ValueChanged<SelfReportedLevel> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    final options = selfReportedLevelQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 4 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 4),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sekarang aku mau tahu kamu sudah sejauh apa. Tenang, ini bukan ujian.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Sudah sejauh apa?',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih yang paling dekat dengan kondisimu.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        for (final option in options) ...[
+          _SelfReportedLevelCard(
+            option: option,
+            selected: selectedLevel == option.value,
+            compact: compact,
+            onTap: () => onSelected(option.value),
+          ),
+          SizedBox(height: compact ? 7 : 8),
+        ],
+        SizedBox(height: compact ? 4 : 8),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Lanjutkan'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LearningFormatStep extends StatelessWidget {
+  const _LearningFormatStep({
+    required this.selectedFormats,
+    required this.onBack,
+    required this.onToggle,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final Set<LearningFormat> selectedFormats;
+  final VoidCallback onBack;
+  final ValueChanged<LearningFormat> onToggle;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    final options = learningFormatQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 5 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 5),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sekarang pilih cara belajar yang kamu suka. Aku akan buat misinya terasa lebih pas.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Suka belajar gimana?',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih sampai 3 cara yang kamu suka.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        for (final option in options) ...[
+          _LearningFormatCard(
+            option: option,
+            selected: selectedFormats.contains(option.value),
+            compact: compact,
+            onTap: () => onToggle(option.value),
+          ),
+          SizedBox(height: compact ? 7 : 8),
+        ],
+        SizedBox(height: compact ? 4 : 8),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                selectedFormats.isEmpty
+                    ? 'Lanjutkan'
+                    : 'Lanjutkan (${selectedFormats.length}/3)',
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DailyDurationStep extends StatelessWidget {
+  const _DailyDurationStep({
+    required this.selectedDuration,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final DailyDuration? selectedDuration;
+  final VoidCallback onBack;
+  final ValueChanged<DailyDuration> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    final options = dailyDurationQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 6 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 6),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sekarang kita atur target belajarmu. Pilih durasi yang terasa nyaman dulu.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Belajar berapa menit?',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih durasi yang realistis buat harianmu.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        for (final option in options) ...[
+          _DailyDurationCard(
+            option: option,
+            selected: selectedDuration == option.value,
+            compact: compact,
+            onTap: () => onSelected(option.value),
+          ),
+          SizedBox(height: compact ? 7 : 8),
+        ],
+        SizedBox(height: compact ? 4 : 8),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Lanjutkan'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StudyTimeStep extends StatelessWidget {
+  const _StudyTimeStep({
+    required this.selectedTime,
+    required this.onBack,
+    required this.onSelected,
+    required this.onContinue,
+    required this.onSkip,
+    super.key,
+  });
+
+  final StudyTime? selectedTime;
+  final VoidCallback onBack;
+  final ValueChanged<StudyTime> onSelected;
+  final VoidCallback? onContinue;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+    final options = studyTimeQuestion.options;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Langkah 7 dari 7',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 10 : 18),
+        const _SevenStepProgress(currentStep: 7),
+        SizedBox(height: compact ? 12 : 20),
+        _IntroMascotBubble(
+          compact: compact,
+          text:
+              'Sip, tinggal satu langkah lagi! Pilih waktu belajar yang paling nyaman buatmu.',
+        ),
+        SizedBox(height: compact ? 14 : 22),
+        Text(
+          'Waktu belajar terbaik?',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 22 : 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        SizedBox(height: compact ? 4 : 8),
+        Text(
+          'Pilih waktu yang cocok dengan rutinitasmu.',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 12 : 14,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 8 : 12),
+        for (final option in options) ...[
+          _StudyTimeCard(
+            option: option,
+            selected: selectedTime == option.value,
+            compact: compact,
+            onTap: () => onSelected(option.value),
+          ),
+          SizedBox(height: compact ? 7 : 8),
+        ],
+        SizedBox(height: compact ? 4 : 8),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 16,
+              fontWeight: FontWeight.w900,
+            ),
+            elevation: 6,
+            shadowColor: const Color(0x66F4B400),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Lihat rekomendasiku'),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+            ],
+          ),
+        ),
+        SizedBox(height: compact ? 0 : 4),
+        TextButton(
+          onPressed: onSkip,
+          child: const Text(
+            'Lewati dulu',
+            style: TextStyle(
+              color: Color(0xFF8B8179),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecommendationSplash extends StatelessWidget {
+  const _RecommendationSplash({required this.world, super.key});
+
+  final LearningWorld? world;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Image.asset(
+          'assets/mascot/kenalan.png',
+          height: 210,
+          fit: BoxFit.contain,
+          semanticLabel: 'Bale menyiapkan rekomendasi',
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Menyiapkan Cek Awal',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Bale memilih tes singkat untuk ${_worldName(world)}.',
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Color(0xFF747985),
+            fontSize: 14,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 22),
+        const SizedBox.square(
+          dimension: 30,
+          child: CircularProgressIndicator(strokeWidth: 3),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlacementTestIntroStep extends StatelessWidget {
+  const _PlacementTestIntroStep({
+    required this.world,
+    required this.onBack,
+    required this.onContinue,
+    super.key,
+  });
+
+  final LearningWorld? world;
+  final VoidCallback onBack;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final compact = screenHeight < 760;
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Row(
+          children: [
+            _CircleBackButton(onPressed: onBack),
+            const Spacer(),
+            const Text(
+              'Cek Awal',
+              style: TextStyle(
+                color: _authDark,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: compact ? 18 : 28),
+        Image.asset(
+          'assets/mascot/kenalan.png',
+          height: compact ? 150 : 190,
+          fit: BoxFit.contain,
+        ),
+        SizedBox(height: compact ? 16 : 22),
+        Text(
+          'Mulai Cek Awal ${_worldName(world)}',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFF3B2318),
+                fontSize: compact ? 23 : 28,
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _placementCopy(world),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: const Color(0xFF747985),
+            fontSize: compact ? 13 : 15,
+            height: 1.35,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        SizedBox(height: compact ? 20 : 28),
+        _PlacementInfoTile(
+          icon: Icons.timer_rounded,
+          title: 'Singkat',
+          subtitle: 'Sekitar 5-10 menit.',
+          compact: compact,
+        ),
+        const SizedBox(height: 8),
+        _PlacementInfoTile(
+          icon: Icons.tune_rounded,
+          title: 'Disesuaikan',
+          subtitle: 'Soal awal mengikuti pilihanmu.',
+          compact: compact,
+        ),
+        const SizedBox(height: 8),
+        _PlacementInfoTile(
+          icon: Icons.lock_open_rounded,
+          title: 'Bisa berhenti',
+          subtitle: 'Progres tetap tersimpan setelah akun dibuat.',
+          compact: compact,
+        ),
+        SizedBox(height: compact ? 18 : 24),
+        FilledButton(
+          onPressed: onContinue,
+          style: FilledButton.styleFrom(
+            minimumSize: Size.fromHeight(compact ? 44 : 50),
+            backgroundColor: _authPrimary,
+            foregroundColor: const Color(0xFF3B2318),
+            textStyle: TextStyle(
+              fontSize: compact ? 15 : 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          child: const Text('Buat akun & mulai Cek Awal'),
         ),
       ],
     );
@@ -741,7 +1908,7 @@ class _SevenStepProgress extends StatelessWidget {
   Widget build(BuildContext context) {
     final step = currentStep.clamp(1, _totalSteps);
     return SizedBox(
-      height: 34,
+      height: 26,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final dotGap = constraints.maxWidth / (_totalSteps - 1);
@@ -783,8 +1950,8 @@ class _SevenStepProgress extends StatelessWidget {
               Positioned(
                 left: 76,
                 child: Container(
-                  width: 36,
-                  height: 36,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     color: _authPrimary,
                     shape: BoxShape.circle,
@@ -800,7 +1967,7 @@ class _SevenStepProgress extends StatelessWidget {
                   child: const Icon(
                     Icons.star_rounded,
                     color: Colors.white,
-                    size: 22,
+                    size: 18,
                   ),
                 ),
               ),
@@ -813,7 +1980,14 @@ class _SevenStepProgress extends StatelessWidget {
 }
 
 class _IntroMascotBubble extends StatelessWidget {
-  const _IntroMascotBubble();
+  const _IntroMascotBubble({
+    required this.compact,
+    this.text =
+        'Hai, saya Bale!\nAku mau tahu tujuanmu dulu, biar misi belajarnya pas.',
+  });
+
+  final bool compact;
+  final String text;
 
   @override
   Widget build(BuildContext context) {
@@ -824,17 +1998,17 @@ class _IntroMascotBubble extends StatelessWidget {
           flex: 9,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: 190,
+            height: compact ? 118 : 150,
             fit: BoxFit.contain,
             semanticLabel: 'Maskot Bale memperkenalkan diri',
           ),
         ),
         const SizedBox(width: 8),
-        const Expanded(
+        Expanded(
           flex: 11,
           child: _SpeechBubble(
-            text:
-                'Hai, saya Bale!\nSebelum kita mulai belajar, aku mau kenalan dulu biar bisa menyiapkan petualangan yang cocok buatmu.',
+            compact: compact,
+            text: text,
           ),
         ),
       ],
@@ -843,9 +2017,10 @@ class _IntroMascotBubble extends StatelessWidget {
 }
 
 class _SpeechBubble extends StatelessWidget {
-  const _SpeechBubble({required this.text});
+  const _SpeechBubble({required this.text, required this.compact});
 
   final String text;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -853,11 +2028,16 @@ class _SpeechBubble extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          constraints: const BoxConstraints(minHeight: 136),
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          constraints: BoxConstraints(minHeight: compact ? 76 : 96),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 12 : 16,
+            compact ? 12 : 16,
+            compact ? 12 : 16,
+            compact ? 12 : 16,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
+            borderRadius: BorderRadius.circular(compact ? 20 : 26),
             border: Border.all(color: const Color(0xFFEEDFBF), width: 2),
             boxShadow: const [
               BoxShadow(
@@ -867,7 +2047,7 @@ class _SpeechBubble extends StatelessWidget {
               ),
             ],
           ),
-          child: _TypingText(text: text),
+          child: _TypingText(text: text, compact: compact),
         ),
         Positioned(
           left: -10,
@@ -891,9 +2071,10 @@ class _SpeechBubble extends StatelessWidget {
 }
 
 class _TypingText extends StatefulWidget {
-  const _TypingText({required this.text});
+  const _TypingText({required this.text, required this.compact});
 
   final String text;
+  final bool compact;
 
   @override
   State<_TypingText> createState() => _TypingTextState();
@@ -928,10 +2109,10 @@ class _TypingTextState extends State<_TypingText> {
     final visibleText = widget.text.substring(0, _visibleCharacters);
     return Text(
       visibleText,
-      style: const TextStyle(
-        color: Color(0xFF3B2318),
-        fontSize: 15,
-        height: 1.42,
+      style: TextStyle(
+        color: const Color(0xFF3B2318),
+        fontSize: widget.compact ? 12 : 13,
+        height: 1.24,
         fontWeight: FontWeight.w900,
       ),
     );
@@ -942,28 +2123,35 @@ class _LearningGoalCard extends StatelessWidget {
   const _LearningGoalCard({
     required this.option,
     required this.selected,
+    required this.compact,
     required this.onTap,
   });
 
   final OnboardingOption<LearningGoal> option;
   final bool selected;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
       elevation: selected ? 5 : 2,
       shadowColor: const Color(0x16000000),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 78),
-          padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
+          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 8 : 9,
+            compact ? 8 : 10,
+            compact ? 8 : 9,
+          ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
             border: Border.all(
               color: selected ? _authPrimary : const Color(0xFFF2E4C5),
               width: selected ? 2 : 1,
@@ -972,25 +2160,28 @@ class _LearningGoalCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 56,
-                height: 56,
+                width: compact ? 32 : 38,
+                height: compact ? 32 : 38,
                 decoration: BoxDecoration(
                   color: _goalColor(option.value).withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
                 ),
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _goalColor(option.value),
-                  size: 30,
+                  size: compact ? 18 : 21,
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: compact ? 8 : 10),
               Expanded(
                 child: Text(
-                  option.label.replaceAll('.', ''),
-                  style: const TextStyle(
-                    color: Color(0xFF3B2318),
-                    fontSize: 18,
+                  _shortGoalLabel(option.value),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF3B2318),
+                    fontSize: compact ? 11 : 13,
+                    height: 1.12,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1000,7 +2191,7 @@ class _LearningGoalCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: 30,
+                size: compact ? 18 : 22,
               ),
             ],
           ),
@@ -1018,7 +2209,889 @@ class _LearningGoalCard extends StatelessWidget {
         LearningGoal.exploreCareer => const Color(0xFF0E3A5F),
         LearningGoal.needRecommendation => const Color(0xFFFFA629),
       };
+
+  String _shortGoalLabel(LearningGoal goal) => switch (goal) {
+        LearningGoal.understandSubject => 'Paham pelajaran',
+        LearningGoal.examPreparation => 'Siap ujian',
+        LearningGoal.improveGrade => 'Nilai naik',
+        LearningGoal.learnNewSkill => 'Skill baru',
+        LearningGoal.buildThinkingSkill => 'Latih logika',
+        LearningGoal.exploreCareer => 'Cari cita-cita',
+        LearningGoal.needRecommendation => 'Bantu pilih',
+      };
 }
+
+class _LearningWorldCard extends StatelessWidget {
+  const _LearningWorldCard({
+    required this.option,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final OnboardingOption<LearningWorld> option;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 52 : 60),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 8 : 9,
+            compact ? 8 : 10,
+            compact ? 8 : 9,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _worldColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.explore_rounded,
+                  color: _worldColor(option.value),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 8 : 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _shortWorldLabel(option.value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 12 : 14,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _worldSubject(option.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 18 : 22,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _worldColor(LearningWorld world) => switch (world) {
+        LearningWorld.numeria => const Color(0xFF2D8CFF),
+        LearningWorld.kodex => const Color(0xFF4CAF50),
+        LearningWorld.detectivia => const Color(0xFF7C5CFF),
+        LearningWorld.bahasa => const Color(0xFFFF6B6B),
+        LearningWorld.sains => const Color(0xFF0E3A5F),
+        LearningWorld.tryAll => const Color(0xFFF4B400),
+      };
+
+  String _shortWorldLabel(LearningWorld world) => switch (world) {
+        LearningWorld.numeria => 'Numeria',
+        LearningWorld.kodex => 'KodeX',
+        LearningWorld.detectivia => 'Detectivia',
+        LearningWorld.bahasa => 'Bahasa',
+        LearningWorld.sains => 'Sains',
+        LearningWorld.tryAll => 'Coba semua',
+      };
+
+  String _worldSubject(LearningWorld world) => switch (world) {
+        LearningWorld.numeria => 'Matematika',
+        LearningWorld.kodex => 'Informatika',
+        LearningWorld.detectivia => 'Logika',
+        LearningWorld.bahasa => 'Bahasa',
+        LearningWorld.sains => 'Sains',
+        LearningWorld.tryAll => 'Semua dunia',
+      };
+}
+
+class _GradeCard extends StatelessWidget {
+  const _GradeCard({
+    required this.grade,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final GradeChoice grade;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 50 : 58),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 7 : 8,
+            compact ? 10 : 12,
+            compact ? 7 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _gradeColor(grade).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  _gradeIcon(grade),
+                  color: _gradeColor(grade),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 10 : 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _gradeTitle(grade),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 13 : 15,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _gradeSubtitle(grade),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 20 : 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _gradeTitle(GradeChoice grade) => switch (grade) {
+        GradeChoice.junior7 ||
+        GradeChoice.junior8 ||
+        GradeChoice.junior9 =>
+          'SMP kelas 7-9',
+        GradeChoice.senior10 => 'SMA/SMK kelas 10',
+        GradeChoice.senior11 => 'SMA/SMK kelas 11',
+        GradeChoice.senior12 => 'SMA/SMK kelas 12',
+        GradeChoice.graduated => 'Sudah lulus / umum',
+        GradeChoice.customLevel => 'Pilih level sendiri',
+      };
+
+  String _gradeSubtitle(GradeChoice grade) => switch (grade) {
+        GradeChoice.junior7 ||
+        GradeChoice.junior8 ||
+        GradeChoice.junior9 =>
+          'Belajar tingkat SMP',
+        GradeChoice.senior10 => 'Mulai tingkat menengah atas',
+        GradeChoice.senior11 => 'Lanjut tingkat menengah atas',
+        GradeChoice.senior12 => 'Fokus persiapan akhir',
+        GradeChoice.graduated => 'Belajar fleksibel sesuai tujuan',
+        GradeChoice.customLevel => 'Atur tingkat belajar manual',
+      };
+
+  IconData _gradeIcon(GradeChoice grade) => switch (grade) {
+        GradeChoice.junior7 ||
+        GradeChoice.junior8 ||
+        GradeChoice.junior9 =>
+          Icons.backpack_rounded,
+        GradeChoice.senior10 => Icons.school_rounded,
+        GradeChoice.senior11 => Icons.menu_book_rounded,
+        GradeChoice.senior12 => Icons.ads_click_rounded,
+        GradeChoice.graduated => Icons.public_rounded,
+        GradeChoice.customLevel => Icons.tune_rounded,
+      };
+
+  Color _gradeColor(GradeChoice grade) => switch (grade) {
+        GradeChoice.junior7 ||
+        GradeChoice.junior8 ||
+        GradeChoice.junior9 =>
+          const Color(0xFF4CAF50),
+        GradeChoice.senior10 => const Color(0xFF2D8CFF),
+        GradeChoice.senior11 => const Color(0xFF7C5CFF),
+        GradeChoice.senior12 => const Color(0xFFFF6B6B),
+        GradeChoice.graduated => const Color(0xFF0E3A5F),
+        GradeChoice.customLevel => const Color(0xFFF4B400),
+      };
+}
+
+class _SelfReportedLevelCard extends StatelessWidget {
+  const _SelfReportedLevelCard({
+    required this.option,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final OnboardingOption<SelfReportedLevel> option;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 7 : 8,
+            compact ? 10 : 12,
+            compact ? 7 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _levelColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.auto_awesome_rounded,
+                  color: _levelColor(option.value),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 10 : 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _levelTitle(option.value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 13 : 15,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _levelSubtitle(option.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 20 : 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _levelTitle(SelfReportedLevel level) => switch (level) {
+        SelfReportedLevel.beginner => 'Baru mulai',
+        SelfReportedLevel.basic => 'Tahu sedikit',
+        SelfReportedLevel.foundationReady => 'Paham dasar',
+        SelfReportedLevel.intermediate => 'Soal menengah',
+        SelfReportedLevel.advanced => 'Siap tantangan',
+        SelfReportedLevel.unsure => 'Belum yakin',
+      };
+
+  String _levelSubtitle(SelfReportedLevel level) => switch (level) {
+        SelfReportedLevel.beginner => 'Aku masih sangat baru',
+        SelfReportedLevel.basic => 'Sudah pernah lihat dasarnya',
+        SelfReportedLevel.foundationReady => 'Aku mengerti dasar-dasarnya',
+        SelfReportedLevel.intermediate => 'Cukup nyaman belajar mandiri',
+        SelfReportedLevel.advanced => 'Aku ingin materi menantang',
+        SelfReportedLevel.unsure => 'Bantu aku menentukannya',
+      };
+
+  Color _levelColor(SelfReportedLevel level) => switch (level) {
+        SelfReportedLevel.beginner => const Color(0xFF4CAF50),
+        SelfReportedLevel.basic => const Color(0xFFF4B400),
+        SelfReportedLevel.foundationReady => const Color(0xFF2D8CFF),
+        SelfReportedLevel.intermediate => const Color(0xFF7C5CFF),
+        SelfReportedLevel.advanced => const Color(0xFFFFA629),
+        SelfReportedLevel.unsure => const Color(0xFFFF6B6B),
+      };
+}
+
+class _LearningFormatCard extends StatelessWidget {
+  const _LearningFormatCard({
+    required this.option,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final OnboardingOption<LearningFormat> option;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 7 : 8,
+            compact ? 10 : 12,
+            compact ? 7 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _formatColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.auto_awesome_rounded,
+                  color: _formatColor(option.value),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 10 : 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _formatTitle(option.value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 13 : 15,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatSubtitle(option.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 20 : 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatTitle(LearningFormat format) => switch (format) {
+        LearningFormat.visual => 'Gambar & contoh',
+        LearningFormat.practiceFirst => 'Langsung mencoba',
+        LearningFormat.audio => 'Mendengar',
+        LearningFormat.story => 'Lewat cerita',
+        LearningFormat.challenge => 'Tantangan',
+        LearningFormat.teachBack => 'Jelaskan sendiri',
+        LearningFormat.social => 'Bareng mentor/teman',
+      };
+
+  String _formatSubtitle(LearningFormat format) => switch (format) {
+        LearningFormat.visual => 'Lebih cepat paham lewat visual',
+        LearningFormat.practiceFirst => 'Suka belajar sambil praktik',
+        LearningFormat.audio => 'Nyaman dengan penjelasan',
+        LearningFormat.story => 'Suka penjelasan yang hidup',
+        LearningFormat.challenge => 'Suka target yang seru',
+        LearningFormat.teachBack => 'Biar benar-benar paham',
+        LearningFormat.social => 'Suka diskusi atau pendamping',
+      };
+
+  Color _formatColor(LearningFormat format) => switch (format) {
+        LearningFormat.visual => const Color(0xFF2D8CFF),
+        LearningFormat.practiceFirst => const Color(0xFF4CAF50),
+        LearningFormat.audio => const Color(0xFF0E3A5F),
+        LearningFormat.story => const Color(0xFF7C5CFF),
+        LearningFormat.challenge => const Color(0xFFFF6B6B),
+        LearningFormat.teachBack => const Color(0xFFF4B400),
+        LearningFormat.social => const Color(0xFFFFA629),
+      };
+}
+
+class _DailyDurationCard extends StatelessWidget {
+  const _DailyDurationCard({
+    required this.option,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final OnboardingOption<DailyDuration> option;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 7 : 8,
+            compact ? 10 : 12,
+            compact ? 7 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _durationColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.timer_rounded,
+                  color: _durationColor(option.value),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 10 : 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _durationTitle(option.value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 13 : 15,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _durationSubtitle(option.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 20 : 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _durationTitle(DailyDuration duration) => switch (duration) {
+        DailyDuration.five => '5 menit',
+        DailyDuration.ten => '10 menit',
+        DailyDuration.fifteen => '15 menit',
+        DailyDuration.twenty => '20 menit',
+        DailyDuration.thirty => '30 menit',
+        DailyDuration.adaptive => 'Otomatis',
+      };
+
+  String _durationSubtitle(DailyDuration duration) => switch (duration) {
+        DailyDuration.five => 'Santai, cocok buat mulai',
+        DailyDuration.ten => 'Ringan untuk setiap hari',
+        DailyDuration.fifteen => 'Pas untuk misi harian',
+        DailyDuration.twenty => 'Lebih fokus dan menantang',
+        DailyDuration.thirty => 'Untuk belajar lebih serius',
+        DailyDuration.adaptive => 'Bale menyesuaikan progresmu',
+      };
+
+  Color _durationColor(DailyDuration duration) => switch (duration) {
+        DailyDuration.five => const Color(0xFF2D8CFF),
+        DailyDuration.ten => const Color(0xFFF4B400),
+        DailyDuration.fifteen => const Color(0xFFFF6B6B),
+        DailyDuration.twenty => const Color(0xFF7C5CFF),
+        DailyDuration.thirty => const Color(0xFFFFA629),
+        DailyDuration.adaptive => const Color(0xFF4CAF50),
+      };
+}
+
+class _StudyTimeCard extends StatelessWidget {
+  const _StudyTimeCard({
+    required this.option,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final OnboardingOption<StudyTime> option;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(compact ? 16 : 18),
+      elevation: selected ? 5 : 2,
+      shadowColor: const Color(0x16000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
+        child: Container(
+          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 8 : 10,
+            compact ? 7 : 8,
+            compact ? 10 : 12,
+            compact ? 7 : 8,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+            border: Border.all(
+              color: selected ? _authPrimary : const Color(0xFFF2E4C5),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 34 : 40,
+                height: compact ? 34 : 40,
+                decoration: BoxDecoration(
+                  color: _timeColor(option.value).withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  option.icon ?? Icons.schedule_rounded,
+                  color: _timeColor(option.value),
+                  size: compact ? 18 : 22,
+                ),
+              ),
+              SizedBox(width: compact ? 10 : 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _timeTitle(option.value),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF3B2318),
+                        fontSize: compact ? 13 : 15,
+                        height: 1.1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    if (!compact) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _timeSubtitle(option.value),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF747985),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              Icon(
+                selected
+                    ? Icons.check_circle_rounded
+                    : Icons.chevron_right_rounded,
+                color: selected ? _authPrimary : const Color(0xFF30333A),
+                size: compact ? 20 : 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _timeTitle(StudyTime time) => switch (time) {
+        StudyTime.beforeSchool => 'Sebelum sekolah',
+        StudyTime.afternoon => 'Siang',
+        StudyTime.evening => 'Sore',
+        StudyTime.night => 'Malam',
+        StudyTime.differentDaily => 'Jadwal berbeda',
+        StudyTime.skipForNow => 'Nanti saja',
+      };
+
+  String _timeSubtitle(StudyTime time) => switch (time) {
+        StudyTime.beforeSchool => 'Mulai lebih pagi',
+        StudyTime.afternoon => 'Saat istirahat atau setelah pagi',
+        StudyTime.evening => 'Santai setelah sekolah',
+        StudyTime.night => 'Fokus di malam hari',
+        StudyTime.differentDaily => 'Bale akan menyesuaikan',
+        StudyTime.skipForNow => 'Bisa diatur nanti',
+      };
+
+  Color _timeColor(StudyTime time) => switch (time) {
+        StudyTime.beforeSchool => const Color(0xFFF4B400),
+        StudyTime.afternoon => const Color(0xFFFFA629),
+        StudyTime.evening => const Color(0xFFFF6B6B),
+        StudyTime.night => const Color(0xFF0E3A5F),
+        StudyTime.differentDaily => const Color(0xFF4CAF50),
+        StudyTime.skipForNow => const Color(0xFF7C5CFF),
+      };
+}
+
+class _PlacementInfoTile extends StatelessWidget {
+  const _PlacementInfoTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.compact,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(compact ? 10 : 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF2E4C5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: _authPrimary, size: compact ? 22 : 26),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: const Color(0xFF3B2318),
+                    fontSize: compact ? 13 : 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: const Color(0xFF747985),
+                    fontSize: compact ? 11 : 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _worldName(LearningWorld? world) => switch (world) {
+      LearningWorld.numeria => 'Numeria',
+      LearningWorld.kodex => 'KodeX',
+      LearningWorld.detectivia => 'Detectivia',
+      LearningWorld.bahasa => 'Bahasa',
+      LearningWorld.sains => 'Sains',
+      LearningWorld.tryAll || null => 'BaleBelajar',
+    };
+
+String _placementCopy(LearningWorld? world) => switch (world) {
+      LearningWorld.numeria =>
+        'Tes singkat ini membantu Bale memilih misi Matematika pertama yang pas.',
+      LearningWorld.kodex =>
+        'Tes singkat ini membantu Bale memilih misi Informatika pertama yang pas.',
+      LearningWorld.detectivia =>
+        'Tes singkat ini membantu Bale memilih misi Logika pertama yang pas.',
+      LearningWorld.bahasa =>
+        'Tes singkat ini membantu Bale memilih misi Bahasa pertama yang pas.',
+      LearningWorld.sains =>
+        'Tes singkat ini membantu Bale memilih misi Sains pertama yang pas.',
+      LearningWorld.tryAll ||
+      null =>
+        'Tes singkat ini membantu Bale memilih misi pertama yang paling pas.',
+    };
 
 class _LoginWelcomeStep extends StatelessWidget {
   const _LoginWelcomeStep({

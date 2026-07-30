@@ -11,7 +11,7 @@ class BaleBelajarApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'BaleBelajar',
+      title: 'Bale Belajar',
       debugShowCheckedModeBanner: false,
       theme: buildBaleTheme(),
       home: home ?? const AuthGate(),

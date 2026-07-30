@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +10,8 @@ import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
 
-const _authBlue = Color(0xFF38BDF8);
-const _authBlueDark = Color(0xFF0284C7);
+const _authPrimary = Color(0xFFF4B400);
+const _authDark = Color(0xFF0E3A5F);
 
 enum AuthMode { welcome, register, login, code }
 
@@ -419,10 +421,7 @@ class _OnboardingViewState extends State<_OnboardingView>
             const Spacer(flex: 3),
             FadeTransition(
               opacity: _fade,
-              child: const _MascotStage(
-                pose: BeloPose.jatuhCinta,
-                size: 188,
-              ),
+              child: const _WelcomeMascot(size: 230),
             ),
             const SizedBox(height: 16),
             FadeTransition(
@@ -436,7 +435,7 @@ class _OnboardingViewState extends State<_OnboardingView>
                       textAlign: TextAlign.center,
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: _authBlueDark,
+                                color: _authDark,
                                 fontSize: 36,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -500,6 +499,59 @@ class _MascotStage extends StatelessWidget {
       width: size + (compact ? 28 : 62),
       height: size * 1.36,
       child: Center(child: BeloMascot(pose: pose, size: size, animate: true)),
+    );
+  }
+}
+
+class _WelcomeMascot extends StatefulWidget {
+  const _WelcomeMascot({required this.size});
+
+  final double size;
+
+  @override
+  State<_WelcomeMascot> createState() => _WelcomeMascotState();
+}
+
+class _WelcomeMascotState extends State<_WelcomeMascot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final wave = math.sin(_controller.value * math.pi * 2);
+        return Transform.translate(
+          offset: Offset(0, wave * 5),
+          child: Transform.rotate(angle: wave * 0.018, child: child),
+        );
+      },
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size * 1.28,
+        child: Image.asset(
+          'assets/mascot/welcome.png',
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          semanticLabel: 'Maskot Bale Belajar menyambut',
+        ),
+      ),
     );
   }
 }
@@ -592,10 +644,11 @@ class _FiveStepProgress extends StatelessWidget {
                         curve: Curves.easeOutCubic,
                         height: 10,
                         decoration: BoxDecoration(
-                          color: index <= step ? _authBlue : Colors.white,
+                          color: index <= step ? _authPrimary : Colors.white,
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(
-                            color: index <= step ? _authBlue : BaleColors.line,
+                            color:
+                                index <= step ? _authPrimary : BaleColors.line,
                             width: 2,
                           ),
                         ),
@@ -679,7 +732,7 @@ class _GoogleGlyph extends StatelessWidget {
       child: const Text(
         'G',
         style: TextStyle(
-          color: BaleColors.info,
+          color: _authDark,
           fontSize: 14,
           fontWeight: FontWeight.w900,
         ),
@@ -730,10 +783,10 @@ class _PrimaryAction extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = FilledButton.styleFrom(
       minimumSize: const Size.fromHeight(58),
-      backgroundColor: _authBlue,
+      backgroundColor: _authPrimary,
       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
       elevation: 4,
-      shadowColor: const Color(0x5538BDF8),
+      shadowColor: const Color(0x55F4B400),
     );
     if (loading || icon != null) {
       return FilledButton.icon(
@@ -770,7 +823,7 @@ class _OutlineAction extends StatelessWidget {
     final style = OutlinedButton.styleFrom(
       minimumSize: const Size.fromHeight(58),
       backgroundColor: Colors.white,
-      foregroundColor: _authBlueDark,
+      foregroundColor: _authDark,
       side: const BorderSide(color: BaleColors.line, width: 2),
     );
     return OutlinedButton(
@@ -836,7 +889,7 @@ class _Field extends StatelessWidget {
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFFF8FAFC),
+        fillColor: BaleColors.soft.withValues(alpha: 0.62),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -844,7 +897,7 @@ class _Field extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: _authBlue, width: 2),
+          borderSide: const BorderSide(color: _authPrimary, width: 2),
         ),
       ),
     );

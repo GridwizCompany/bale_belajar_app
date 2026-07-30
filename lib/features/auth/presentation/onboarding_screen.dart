@@ -225,7 +225,7 @@ class _CareerOption extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected
               ? BaleColors.info.withValues(alpha: 0.1)
-              : const Color(0xFFF8FAFC),
+              : BaleColors.soft.withValues(alpha: 0.62),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: selected ? BaleColors.info : BaleColors.line,

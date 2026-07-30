@@ -115,7 +115,7 @@ class _BeloFallbackPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    paint.color = const Color(0x2238BDF8);
+    paint.color = const Color(0x22F4B400);
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(w * 0.5, h * 0.83),
@@ -129,10 +129,10 @@ class _BeloFallbackPainter extends CustomPainter {
       Rect.fromLTWH(w * 0.18, h * 0.2, w * 0.64, h * 0.48),
       Radius.circular(w * 0.12),
     );
-    paint.color = const Color(0xFF38BDF8);
+    paint.color = const Color(0xFFF4B400);
     canvas.drawRRect(book, paint);
 
-    paint.color = const Color(0xFF0284C7);
+    paint.color = const Color(0xFF8D5E34);
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(w * 0.48, h * 0.2, w * 0.06, h * 0.5),

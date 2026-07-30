@@ -1,11 +1,11 @@
 {
-    "name": "bale_belajar_app",
-    "short_name": "bale_belajar_app",
+    "name": "Bale Belajar",
+    "short_name": "Bale Belajar",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#F4B400",
+    "description": "Aplikasi belajar Bale Belajar.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

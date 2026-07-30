@@ -68,6 +68,8 @@ class _SignedOutFlowState extends State<SignedOutFlow> {
                   controller: widget.controller,
                   initialMode: _formMode!,
                   onBackToLanding: () => setState(() => _formMode = null),
+                  onLoginRequested: () =>
+                      setState(() => _formMode = AuthMode.login),
                 ),
     );
   }

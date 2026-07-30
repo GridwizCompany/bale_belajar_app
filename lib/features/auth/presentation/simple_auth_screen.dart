@@ -20,12 +20,14 @@ class SimpleAuthScreen extends StatefulWidget {
     required this.controller,
     this.initialMode = AuthMode.welcome,
     this.onBackToLanding,
+    this.onLoginRequested,
     super.key,
   });
 
   final AuthController controller;
   final AuthMode initialMode;
   final VoidCallback? onBackToLanding;
+  final VoidCallback? onLoginRequested;
 
   @override
   State<SimpleAuthScreen> createState() => _SimpleAuthScreenState();
@@ -76,7 +78,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   void _resetToInitialMode() {
-    _mode = widget.initialMode;
+    _mode = widget.initialMode == AuthMode.login
+        ? AuthMode.welcome
+        : widget.initialMode;
     _flowStep = widget.initialMode == AuthMode.welcome ? 1 : 2;
     _googleBusy = false;
     _showPassword = false;
@@ -332,6 +336,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       };
 
   void _goTo(AuthMode mode) {
+    if (mode == AuthMode.login && widget.onLoginRequested != null) {
+      widget.onLoginRequested!();
+      return;
+    }
     setState(() {
       _mode = mode;
       _flowStep = switch (mode) {

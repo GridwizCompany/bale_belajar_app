@@ -1,9 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/firebase/firebase_bootstrap.dart';
-import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/auth_controller.dart';
 
@@ -38,125 +39,119 @@ class _AuthLoginScreenState extends State<AuthLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final mascotSize = screenHeight < 700 ? 136.0 : 166.0;
+
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
-              children: [
-                const SizedBox(height: 16),
-                const _MiniBrand(),
-                const SizedBox(height: 24),
-                const Center(
-                  child: BeloMascot(
-                    pose: BeloPose.kedip,
-                    size: 136,
-                    animate: true,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
+              child: Column(
+                children: [
+                  SizedBox(height: screenHeight < 700 ? 18 : 42),
+                  const _MiniBrand(),
+                  const SizedBox(height: 10),
+                  _LoginMascot(size: mascotSize),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Selamat datang kembali!',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontSize: 22,
+                          color: BaleColors.ink,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Selamat datang kembali!',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontSize: 24,
-                        color: BaleColors.ink,
-                      ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Lanjutkan petualangan belajarmu',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF7A8796),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                  const SizedBox(height: 14),
+                  _GoogleLoginButton(
+                    loading: _googleBusy,
+                    disabled: widget.controller.isBusy,
+                    onPressed: _continueWithGoogle,
                   ),
-                ),
-                const SizedBox(height: 28),
-                _GoogleLoginButton(
-                  loading: _googleBusy,
-                  disabled: widget.controller.isBusy,
-                  onPressed: _continueWithGoogle,
-                ),
-                const SizedBox(height: 20),
-                const _DividerLabel(label: 'atau'),
-                const SizedBox(height: 20),
-                _LoginField(
-                  controller: _email,
-                  label: 'Email',
-                  icon: Icons.mail_rounded,
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 12),
-                _LoginField(
-                  controller: _password,
-                  label: 'Password',
-                  icon: Icons.lock_rounded,
-                  obscureText: !_showPassword,
-                  suffixIcon: IconButton(
-                    tooltip: _showPassword
-                        ? 'Sembunyikan password'
-                        : 'Lihat password',
-                    onPressed: () {
-                      setState(() => _showPassword = !_showPassword);
-                    },
-                    icon: Icon(
-                      _showPassword
-                          ? Icons.visibility_off_rounded
-                          : Icons.visibility_rounded,
-                    ),
+                  const SizedBox(height: 10),
+                  const _DividerLabel(label: 'atau'),
+                  const SizedBox(height: 10),
+                  _LoginField(
+                    controller: _email,
+                    label: 'Email',
+                    keyboardType: TextInputType.emailAddress,
                   ),
-                ),
-                if (widget.controller.errorMessage != null) ...[
-                  const SizedBox(height: 12),
-                  _ErrorBanner(message: widget.controller.errorMessage!),
-                ],
-                const SizedBox(height: 18),
-                FilledButton(
-                  onPressed:
-                      widget.controller.isBusy || _googleBusy ? null : _submit,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(58),
-                    backgroundColor: BaleColors.warning,
-                    foregroundColor: BaleColors.ink,
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                    elevation: 4,
-                    shadowColor: const Color(0x55F4B400),
-                  ),
-                  child: widget.controller.isBusy
-                      ? const SizedBox.square(
-                          dimension: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('MASUK'),
-                ),
-                const SizedBox(height: 22),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Belum punya akun? ',
-                      style: TextStyle(
-                        color: Color(0xFF7A8796),
-                        fontWeight: FontWeight.w800,
+                  const SizedBox(height: 8),
+                  _LoginField(
+                    controller: _password,
+                    label: 'Password',
+                    obscureText: !_showPassword,
+                    suffixIcon: IconButton(
+                      tooltip: _showPassword
+                          ? 'Sembunyikan password'
+                          : 'Lihat password',
+                      onPressed: () {
+                        setState(() => _showPassword = !_showPassword);
+                      },
+                      icon: Icon(
+                        _showPassword
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                       ),
                     ),
-                    TextButton(
-                      onPressed: widget.controller.isBusy || _googleBusy
-                          ? null
-                          : widget.onRegister,
-                      child: const Text('DAFTAR'),
-                    ),
+                  ),
+                  if (widget.controller.errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    _ErrorBanner(message: widget.controller.errorMessage!),
                   ],
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: widget.controller.isBusy || _googleBusy
+                        ? null
+                        : _submit,
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(50),
+                      backgroundColor: BaleColors.warning,
+                      foregroundColor: BaleColors.ink,
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      elevation: 4,
+                      shadowColor: const Color(0x55F4B400),
+                    ),
+                    child: widget.controller.isBusy
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('MASUK'),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Belum punya akun? ',
+                        style: TextStyle(
+                          color: Color(0xFF7A8796),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          minimumSize: const Size(48, 34),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        ),
+                        onPressed: widget.controller.isBusy || _googleBusy
+                            ? null
+                            : widget.onRegister,
+                        child: const Text('DAFTAR'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -225,19 +220,20 @@ class _MiniBrand extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 34,
-          height: 34,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             color: BaleColors.warning,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.menu_book_rounded, color: Colors.white),
+          child: const Icon(Icons.menu_book_rounded,
+              color: Colors.white, size: 18),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
         RichText(
           text: const TextSpan(
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 22,
               fontWeight: FontWeight.w900,
               color: BaleColors.ink,
             ),
@@ -251,6 +247,58 @@ class _MiniBrand extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LoginMascot extends StatefulWidget {
+  const _LoginMascot({required this.size});
+
+  final double size;
+
+  @override
+  State<_LoginMascot> createState() => _LoginMascotState();
+}
+
+class _LoginMascotState extends State<_LoginMascot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1700),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final wave = math.sin(_controller.value * math.pi * 2);
+        return Transform.translate(
+          offset: Offset(0, wave * 4),
+          child: Transform.rotate(angle: wave * 0.014, child: child),
+        );
+      },
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size * 1.22,
+        child: Image.asset(
+          'assets/mascot/login.png',
+          fit: BoxFit.contain,
+          semanticLabel: 'Maskot login Bale Belajar',
+        ),
+      ),
     );
   }
 }
@@ -271,11 +319,11 @@ class _GoogleLoginButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: loading || disabled ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(56),
+        minimumSize: const Size.fromHeight(50),
         backgroundColor: Colors.white,
         foregroundColor: BaleColors.ink,
         side: const BorderSide(color: BaleColors.line, width: 2),
-        textStyle: const TextStyle(fontWeight: FontWeight.w900),
+        textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -313,11 +361,12 @@ class _DividerLabel extends StatelessWidget {
       children: [
         const Expanded(child: Divider(color: BaleColors.line)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
             label,
             style: const TextStyle(
               color: Color(0xFF7A8796),
+              fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -332,7 +381,6 @@ class _LoginField extends StatelessWidget {
   const _LoginField({
     required this.controller,
     required this.label,
-    required this.icon,
     this.keyboardType,
     this.obscureText = false,
     this.suffixIcon,
@@ -340,31 +388,32 @@ class _LoginField extends StatelessWidget {
 
   final TextEditingController controller;
   final String label;
-  final IconData icon;
   final TextInputType? keyboardType;
   final bool obscureText;
   final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: BaleColors.soft.withValues(alpha: 0.62),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: BaleColors.line),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: BaleColors.warning, width: 2),
+    return SizedBox(
+      height: 50,
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          labelText: label,
+          suffixIcon: suffixIcon,
+          filled: true,
+          fillColor: BaleColors.soft.withValues(alpha: 0.62),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: BaleColors.line),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: BaleColors.warning, width: 2),
+          ),
         ),
       ),
     );
@@ -379,27 +428,19 @@ class _ErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: BaleColors.danger.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: BaleColors.danger.withValues(alpha: 0.25)),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.error_outline_rounded, color: BaleColors.danger),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              message,
-              style: const TextStyle(
-                color: BaleColors.danger,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: BaleColors.danger,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }

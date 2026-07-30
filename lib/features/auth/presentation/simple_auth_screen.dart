@@ -125,17 +125,35 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                           onRegister: () => _goTo(AuthMode.register),
                           onLogin: () => _goTo(AuthMode.login),
                         )
-                      : _AuthStep(
-                          key: ValueKey(_mode),
-                          controller: widget.controller,
-                          flowStep: _flowStep,
-                          title: _title,
-                          helper: _helper,
-                          mascotPose: _mascotPose,
-                          onBack: widget.onBackToLanding ??
-                              () => _goTo(AuthMode.welcome),
-                          child: _form(),
-                        ),
+                      : _mode == AuthMode.login
+                          ? _LoginWelcomeStep(
+                              key: const ValueKey('login-welcome-step'),
+                              controller: widget.controller,
+                              googleBusy: _googleBusy,
+                              showPassword: _showPassword,
+                              emailController: _email,
+                              passwordController: _password,
+                              errorMessage: widget.controller.errorMessage,
+                              onBack: widget.onBackToLanding ??
+                                  () => _goTo(AuthMode.welcome),
+                              onTogglePassword: () => setState(
+                                () => _showPassword = !_showPassword,
+                              ),
+                              onGoogle: _continueWithGoogle,
+                              onSubmit: _submit,
+                              onRegister: () => _goTo(AuthMode.register),
+                            )
+                          : _AuthStep(
+                              key: ValueKey(_mode),
+                              controller: widget.controller,
+                              flowStep: _flowStep,
+                              title: _title,
+                              helper: _helper,
+                              mascotPose: _mascotPose,
+                              onBack: widget.onBackToLanding ??
+                                  () => _goTo(AuthMode.welcome),
+                              child: _form(),
+                            ),
                 ),
               ),
             ),
@@ -353,7 +371,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_mode == AuthMode.login) {
+      if (_emailValidator(_email.text) != null ||
+          _passwordValidator(_password.text) != null) {
+        widget.controller.setError('Isi email dan password dengan benar.');
+        return;
+      }
+    } else if (!_formKey.currentState!.validate()) {
+      return;
+    }
     FocusScope.of(context).unfocus();
     if (_mode == AuthMode.login) {
       await widget.controller.loginWithEmail(_email.text, _password.text);
@@ -537,6 +563,190 @@ class _MascotStage extends StatelessWidget {
       width: size + (compact ? 28 : 62),
       height: size * 1.36,
       child: Center(child: BeloMascot(pose: pose, size: size, animate: true)),
+    );
+  }
+}
+
+class _LoginWelcomeStep extends StatelessWidget {
+  const _LoginWelcomeStep({
+    required this.controller,
+    required this.googleBusy,
+    required this.showPassword,
+    required this.emailController,
+    required this.passwordController,
+    required this.onBack,
+    required this.onTogglePassword,
+    required this.onGoogle,
+    required this.onSubmit,
+    required this.onRegister,
+    this.errorMessage,
+    super.key,
+  });
+
+  final AuthController controller;
+  final bool googleBusy;
+  final bool showPassword;
+  final TextEditingController emailController;
+  final TextEditingController passwordController;
+  final VoidCallback onBack;
+  final VoidCallback onTogglePassword;
+  final VoidCallback onGoogle;
+  final VoidCallback onSubmit;
+  final VoidCallback onRegister;
+  final String? errorMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+          children: [
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Kembali',
+                  onPressed: controller.isBusy ? null : onBack,
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+                const Expanded(child: _FiveStepProgress(currentStep: 2)),
+              ],
+            ),
+            const SizedBox(height: 22),
+            const _MiniBrand(),
+            const SizedBox(height: 24),
+            const Center(
+              child: _MascotStage(
+                pose: BeloPose.kedip,
+                size: 136,
+                compact: true,
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              'Selamat datang kembali!',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontSize: 24,
+                    color: BaleColors.ink,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Lanjutkan petualangan belajarmu',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF7A8796),
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 28),
+            _GoogleButton(
+              loading: googleBusy,
+              disabled: controller.isBusy,
+              onPressed: onGoogle,
+            ),
+            const SizedBox(height: 20),
+            const _DividerLabel(label: 'atau'),
+            const SizedBox(height: 20),
+            _Field(
+              controller: emailController,
+              label: 'Email',
+              icon: Icons.mail_rounded,
+              keyboardType: TextInputType.emailAddress,
+              validator: (_) => null,
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: passwordController,
+              label: 'Password',
+              icon: Icons.lock_rounded,
+              obscureText: !showPassword,
+              validator: (_) => null,
+              suffixIcon: IconButton(
+                tooltip:
+                    showPassword ? 'Sembunyikan password' : 'Lihat password',
+                onPressed: onTogglePassword,
+                icon: Icon(
+                  showPassword
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded,
+                ),
+              ),
+            ),
+            if (errorMessage != null) ...[
+              const SizedBox(height: 12),
+              _ErrorBanner(message: errorMessage!),
+            ],
+            const SizedBox(height: 18),
+            _PrimaryAction(
+              loading: controller.isBusy,
+              disabled: googleBusy,
+              label: 'MASUK',
+              onPressed: onSubmit,
+            ),
+            const SizedBox(height: 22),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  'Belum punya akun? ',
+                  style: TextStyle(
+                    color: Color(0xFF7A8796),
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                TextButton(
+                  onPressed:
+                      controller.isBusy || googleBusy ? null : onRegister,
+                  child: const Text('DAFTAR'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniBrand extends StatelessWidget {
+  const _MiniBrand();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: BaleColors.warning,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.menu_book_rounded, color: Colors.white),
+        ),
+        const SizedBox(width: 10),
+        RichText(
+          text: const TextSpan(
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: BaleColors.ink,
+            ),
+            children: [
+              TextSpan(text: 'Bale'),
+              TextSpan(
+                text: 'Belajar',
+                style: TextStyle(color: BaleColors.warning),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

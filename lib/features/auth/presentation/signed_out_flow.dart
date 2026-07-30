@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../application/auth_controller.dart';
+import 'auth_login_screen.dart';
 import 'auth_onboarding_landing_screen.dart';
 import 'simple_auth_screen.dart';
 
@@ -54,12 +55,20 @@ class _SignedOutFlowState extends State<SignedOutFlow> {
               onAlreadyHaveAccount: () =>
                   setState(() => _formMode = AuthMode.login),
             )
-          : SimpleAuthScreen(
-              key: ValueKey('auth-form-${_formMode!.name}'),
-              controller: widget.controller,
-              initialMode: _formMode!,
-              onBackToLanding: () => setState(() => _formMode = null),
-            ),
+          : _formMode == AuthMode.login
+              ? AuthLoginScreen(
+                  key: const ValueKey('auth-login-direct'),
+                  controller: widget.controller,
+                  onBack: () => setState(() => _formMode = null),
+                  onRegister: () =>
+                      setState(() => _formMode = AuthMode.register),
+                )
+              : SimpleAuthScreen(
+                  key: ValueKey('auth-form-${_formMode!.name}'),
+                  controller: widget.controller,
+                  initialMode: _formMode!,
+                  onBackToLanding: () => setState(() => _formMode = null),
+                ),
     );
   }
 }

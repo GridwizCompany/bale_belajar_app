@@ -21,6 +21,11 @@ import 'onboarding_questions/study_time_question.dart';
 const _authPrimary = Color(0xFFF4B400);
 const _authDark = Color(0xFF0E3A5F);
 
+bool _compactPhoneLayout(BuildContext context) {
+  final size = MediaQuery.sizeOf(context);
+  return size.shortestSide < 600 && size.height < 980;
+}
+
 enum AuthMode {
   welcome,
   register,
@@ -117,6 +122,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = _compactPhoneLayout(context);
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -124,7 +130,12 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+              padding: EdgeInsets.fromLTRB(
+                compact ? 14 : 22,
+                compact ? 10 : 18,
+                compact ? 14 : 22,
+                compact ? 8 : 18,
+              ),
               child: SizedBox.expand(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 420),
@@ -897,8 +908,7 @@ class _LearningGoalStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = learningGoalQuestion.options;
 
     return ListView(
@@ -922,7 +932,7 @@ class _LearningGoalStep extends StatelessWidget {
         const _SevenStepProgress(currentStep: 1),
         SizedBox(height: compact ? 12 : 20),
         _IntroMascotBubble(compact: compact),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Tujuan belajarmu?',
           textAlign: TextAlign.center,
@@ -970,7 +980,7 @@ class _LearningGoalStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1023,8 +1033,7 @@ class _LearningWorldStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = learningWorldQuestion.options;
 
     return ListView(
@@ -1052,7 +1061,7 @@ class _LearningWorldStep extends StatelessWidget {
           text:
               'Sekarang pilih dunia belajar yang paling menarik. Nanti aku siapkan misi pertamamu.',
         ),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Pilih dunia belajar',
           textAlign: TextAlign.center,
@@ -1100,7 +1109,7 @@ class _LearningWorldStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1153,8 +1162,7 @@ class _GradeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     const options = [
       GradeChoice.junior7,
       GradeChoice.senior10,
@@ -1188,7 +1196,7 @@ class _GradeStep extends StatelessWidget {
           text:
               'Sekarang pilih kelasmu dulu, ya. Ini bantu aku menyiapkan materi yang pas.',
         ),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Kamu kelas berapa?',
           textAlign: TextAlign.center,
@@ -1223,7 +1231,7 @@ class _GradeStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1276,8 +1284,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = selfReportedLevelQuestion.options;
 
     return ListView(
@@ -1305,7 +1312,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
           text:
               'Sekarang aku mau tahu kamu sudah sejauh apa. Tenang, ini bukan ujian.',
         ),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Sudah sejauh apa?',
           textAlign: TextAlign.center,
@@ -1340,7 +1347,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1393,8 +1400,7 @@ class _LearningFormatStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = learningFormatQuestion.options;
 
     return ListView(
@@ -1422,7 +1428,7 @@ class _LearningFormatStep extends StatelessWidget {
           text:
               'Sekarang pilih cara belajar yang kamu suka. Aku akan buat misinya terasa lebih pas.',
         ),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Suka belajar gimana?',
           textAlign: TextAlign.center,
@@ -1457,7 +1463,7 @@ class _LearningFormatStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1514,8 +1520,7 @@ class _DailyDurationStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = dailyDurationQuestion.options;
 
     return ListView(
@@ -1543,7 +1548,7 @@ class _DailyDurationStep extends StatelessWidget {
           text:
               'Sekarang kita atur target belajarmu. Pilih durasi yang terasa nyaman dulu.',
         ),
-        SizedBox(height: compact ? 14 : 22),
+        SizedBox(height: compact ? 8 : 22),
         Text(
           'Belajar berapa menit?',
           textAlign: TextAlign.center,
@@ -1578,7 +1583,7 @@ class _DailyDurationStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 38 : 46),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
@@ -1631,8 +1636,7 @@ class _StudyTimeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final compact = _compactPhoneLayout(context);
     final options = studyTimeQuestion.options;
 
     return ListView(
@@ -1912,6 +1916,10 @@ class _SevenStepProgress extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final dotGap = constraints.maxWidth / (_totalSteps - 1);
+          final progress =
+              _totalSteps == 1 ? 0.0 : (step - 1) / (_totalSteps - 1);
+          final markerLeft = ((constraints.maxWidth - 30) * progress)
+              .clamp(0.0, constraints.maxWidth - 30);
           return Stack(
             alignment: Alignment.centerLeft,
             children: [
@@ -1923,32 +1931,43 @@ class _SevenStepProgress extends StatelessWidget {
                   border: Border.all(color: BaleColors.line, width: 2),
                 ),
               ),
-              FractionallySizedBox(
-                widthFactor: step / _totalSteps,
-                child: Container(
-                  height: 13,
-                  decoration: BoxDecoration(
-                    color: _authPrimary,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 420),
+                curve: Curves.easeOutCubic,
+                width: constraints.maxWidth * progress,
+                height: 13,
+                decoration: BoxDecoration(
+                  color: _authPrimary,
+                  borderRadius: BorderRadius.circular(99),
                 ),
               ),
               for (var index = 1; index <= _totalSteps; index++)
                 Positioned(
                   left: (dotGap * (index - 1) - 6)
                       .clamp(0, constraints.maxWidth - 12),
-                  child: Container(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
                     width: 12,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: index == step ? _authPrimary : BaleColors.line,
+                      color: index <= step ? _authPrimary : BaleColors.line,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2),
                     ),
+                    child: index < step
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 8,
+                          )
+                        : null,
                   ),
                 ),
-              Positioned(
-                left: 76,
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 520),
+                curve: Curves.easeOutBack,
+                left: markerLeft,
                 child: Container(
                   width: 30,
                   height: 30,
@@ -1998,7 +2017,7 @@ class _IntroMascotBubble extends StatelessWidget {
           flex: 9,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 118 : 150,
+            height: compact ? 88 : 150,
             fit: BoxFit.contain,
             semanticLabel: 'Maskot Bale memperkenalkan diri',
           ),
@@ -2028,7 +2047,7 @@ class _SpeechBubble extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          constraints: BoxConstraints(minHeight: compact ? 76 : 96),
+          constraints: BoxConstraints(minHeight: compact ? 58 : 96),
           padding: EdgeInsets.fromLTRB(
             compact ? 12 : 16,
             compact ? 12 : 16,
@@ -2111,8 +2130,8 @@ class _TypingTextState extends State<_TypingText> {
       visibleText,
       style: TextStyle(
         color: const Color(0xFF3B2318),
-        fontSize: widget.compact ? 12 : 13,
-        height: 1.24,
+        fontSize: widget.compact ? 10.5 : 13,
+        height: 1.16,
         fontWeight: FontWeight.w900,
       ),
     );
@@ -2143,7 +2162,7 @@ class _LearningGoalCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 8 : 9,
@@ -2262,8 +2281,8 @@ class _LearningWorldCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _worldColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2271,7 +2290,7 @@ class _LearningWorldCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.explore_rounded,
                   color: _worldColor(option.value),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 8 : 10),
@@ -2373,7 +2392,7 @@ class _GradeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 50 : 58),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 58),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 7 : 8,
@@ -2390,8 +2409,8 @@ class _GradeCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _gradeColor(grade).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2399,7 +2418,7 @@ class _GradeCard extends StatelessWidget {
                 child: Icon(
                   _gradeIcon(grade),
                   color: _gradeColor(grade),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2414,7 +2433,7 @@ class _GradeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 13 : 15,
+                        fontSize: compact ? 11.5 : 15,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2440,7 +2459,7 @@ class _GradeCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 20 : 24,
+                size: compact ? 18 : 24,
               ),
             ],
           ),
@@ -2522,7 +2541,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 7 : 8,
@@ -2539,8 +2558,8 @@ class _SelfReportedLevelCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _levelColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2548,7 +2567,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _levelColor(option.value),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2563,7 +2582,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 13 : 15,
+                        fontSize: compact ? 11.5 : 15,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2589,7 +2608,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 20 : 24,
+                size: compact ? 18 : 24,
               ),
             ],
           ),
@@ -2650,7 +2669,7 @@ class _LearningFormatCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 7 : 8,
@@ -2667,8 +2686,8 @@ class _LearningFormatCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _formatColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2676,7 +2695,7 @@ class _LearningFormatCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _formatColor(option.value),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2691,7 +2710,7 @@ class _LearningFormatCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 13 : 15,
+                        fontSize: compact ? 11.5 : 15,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2717,7 +2736,7 @@ class _LearningFormatCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 20 : 24,
+                size: compact ? 18 : 24,
               ),
             ],
           ),
@@ -2781,7 +2800,7 @@ class _DailyDurationCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 7 : 8,
@@ -2798,8 +2817,8 @@ class _DailyDurationCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _durationColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2807,7 +2826,7 @@ class _DailyDurationCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.timer_rounded,
                   color: _durationColor(option.value),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2822,7 +2841,7 @@ class _DailyDurationCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 13 : 15,
+                        fontSize: compact ? 11.5 : 15,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2848,7 +2867,7 @@ class _DailyDurationCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 20 : 24,
+                size: compact ? 18 : 24,
               ),
             ],
           ),
@@ -2909,7 +2928,7 @@ class _StudyTimeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 48 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
           padding: EdgeInsets.fromLTRB(
             compact ? 8 : 10,
             compact ? 7 : 8,
@@ -2926,8 +2945,8 @@ class _StudyTimeCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 34 : 40,
-                height: compact ? 34 : 40,
+                width: compact ? 28 : 40,
+                height: compact ? 28 : 40,
                 decoration: BoxDecoration(
                   color: _timeColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2935,7 +2954,7 @@ class _StudyTimeCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.schedule_rounded,
                   color: _timeColor(option.value),
-                  size: compact ? 18 : 22,
+                  size: compact ? 16 : 22,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2950,7 +2969,7 @@ class _StudyTimeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 13 : 15,
+                        fontSize: compact ? 11.5 : 15,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2976,7 +2995,7 @@ class _StudyTimeCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 20 : 24,
+                size: compact ? 18 : 24,
               ),
             ],
           ),

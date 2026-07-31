@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -415,11 +417,6 @@ class _QuestionCard extends StatelessWidget {
                 child: _InputModeBadge(config: config, compact: compact),
               ),
             ],
-          ),
-          SizedBox(height: compact ? 8 : 24),
-          _TipCard(
-            text: tipText ?? _defaultTipFor(config),
-            compact: compact,
           ),
           SizedBox(height: compact ? 8 : 28),
           FilledButton(

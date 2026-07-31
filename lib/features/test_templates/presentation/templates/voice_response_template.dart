@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -396,8 +398,6 @@ class _QuestionCard extends StatelessWidget {
             maxSeconds: maxSeconds,
             onToggleRecording: onToggleRecording,
           ),
-          SizedBox(height: compact ? 8 : 20),
-          _TipsCard(compact: compact),
           SizedBox(height: compact ? 8 : 28),
           FilledButton(
             onPressed: hasRecording || elapsedSeconds > 0 ? onSubmit : null,

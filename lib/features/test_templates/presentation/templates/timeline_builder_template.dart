@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 
 import '../../domain/test_template_models.dart';
@@ -376,8 +378,6 @@ class _QuestionCard extends StatelessWidget {
             compact: compact,
             onSelectItem: onSelectItem,
           ),
-          SizedBox(height: compact ? 8 : 20),
-          _TipsCard(compact: compact),
           SizedBox(height: compact ? 8 : 28),
           FilledButton(
             onPressed: onCheckAnswer,

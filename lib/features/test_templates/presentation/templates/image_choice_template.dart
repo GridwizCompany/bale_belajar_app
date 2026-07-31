@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 
 import '../../domain/test_template_models.dart';
@@ -450,12 +452,6 @@ class _QuestionCard extends StatelessWidget {
                 onTap: () => onSelected(option.id),
               );
             },
-          ),
-          SizedBox(height: compact ? 8 : 20),
-          _TipCard(
-            text: tipText ??
-                'Perhatikan bagian paling menonjol pada gambar sebelum menjawab.',
-            compact: compact,
           ),
           SizedBox(height: compact ? 8 : 28),
           FilledButton(

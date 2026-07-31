@@ -48,6 +48,7 @@ class _MatchingTemplateState extends State<MatchingTemplate> {
       backgroundColor: const Color(0xFFFFF3C6),
       body: SafeArea(
         child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             compact ? 10 : 20,
             compact ? 8 : 18,
@@ -229,7 +230,7 @@ class _MatchingMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 88 : 190,
             fit: BoxFit.contain,
           ),
         ),
@@ -351,28 +352,28 @@ class _QuestionCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: compact ? 8 : 20),
+          SizedBox(height: compact ? 6 : 20),
           Text(
             question.prompt,
             style: TextStyle(
               color: _matchingInk,
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? 18 : 28,
               height: 1.2,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: compact ? 8 : 12),
+          SizedBox(height: compact ? 4 : 12),
           Text(
             question.instruction ??
                 'Tarik jawaban dari kanan ke kotak di kiri.',
             style: TextStyle(
               color: const Color(0xFF8C8274),
-              fontSize: compact ? 15 : 19,
+              fontSize: compact ? 12 : 19,
               height: 1.25,
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: compact ? 8 : 28),
+          SizedBox(height: compact ? 6 : 28),
           Row(
             children: [
               Expanded(
@@ -384,7 +385,7 @@ class _QuestionCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: compact ? 10 : 14),
+          SizedBox(height: compact ? 6 : 14),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -411,7 +412,7 @@ class _QuestionCard extends StatelessWidget {
                         onClear: () =>
                             onClearMatch(question.matchingPairs[index].leftId),
                       ),
-                      SizedBox(height: compact ? 10 : 14),
+                      SizedBox(height: compact ? 6 : 14),
                     ],
                   ],
                 ),
@@ -428,18 +429,18 @@ class _QuestionCard extends StatelessWidget {
                         compact: compact,
                         onTap: () => onRightTap(rightPairs[index].rightId),
                       ),
-                      SizedBox(height: compact ? 10 : 14),
+                      SizedBox(height: compact ? 6 : 14),
                     ],
                   ],
                 ),
               ),
             ],
           ),
-          SizedBox(height: compact ? 8 : 14),
+          SizedBox(height: compact ? 4 : 14),
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(compact ? 54 : 72),
+              minimumSize: Size.fromHeight(compact ? 46 : 72),
               backgroundColor: _matchingYellow,
               foregroundColor: _matchingInk,
               disabledBackgroundColor: const Color(0xFFE8E0D2),
@@ -447,7 +448,7 @@ class _QuestionCard extends StatelessWidget {
               elevation: 8,
               shadowColor: const Color(0x55F4B400),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 28,
+                fontSize: compact ? 17 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -539,8 +540,8 @@ class _LeftMatchCard extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(14),
             child: Container(
-              constraints: BoxConstraints(minHeight: compact ? 70 : 90),
-              padding: EdgeInsets.all(compact ? 10 : 14),
+              constraints: BoxConstraints(minHeight: compact ? 52 : 90),
+              padding: EdgeInsets.all(compact ? 7 : 14),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
@@ -561,7 +562,7 @@ class _LeftMatchCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: _matchingInk,
-                        fontSize: compact ? 14 : 18,
+                        fontSize: compact ? 12 : 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -570,8 +571,8 @@ class _LeftMatchCard extends StatelessWidget {
                   GestureDetector(
                     onTap: matchedLabel == null ? null : onClear,
                     child: Container(
-                      width: compact ? 54 : 76,
-                      height: compact ? 46 : 58,
+                      width: compact ? 44 : 76,
+                      height: compact ? 36 : 58,
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       decoration: BoxDecoration(
@@ -596,7 +597,7 @@ class _LeftMatchCard extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: _matchingInk,
-                                fontSize: compact ? 10 : 12,
+                                fontSize: compact ? 9 : 12,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -638,8 +639,8 @@ class _RightMatchCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 70 : 90),
-          padding: EdgeInsets.all(compact ? 10 : 14),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 90),
+          padding: EdgeInsets.all(compact ? 7 : 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: const Color(0xFFEEDDAE), width: 1.1),
@@ -649,7 +650,7 @@ class _RightMatchCard extends StatelessWidget {
               Icon(
                 Icons.drag_indicator_rounded,
                 color: const Color(0xFF9A9690),
-                size: compact ? 18 : 24,
+                size: compact ? 14 : 24,
               ),
               SizedBox(width: compact ? 4 : 8),
               _CircleLabel(label: letter, compact: compact),
@@ -661,8 +662,8 @@ class _RightMatchCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _matchingInk,
-                    fontSize: compact ? 12 : 16,
-                    height: 1.15,
+                    fontSize: compact ? 10 : 16,
+                    height: compact ? 1.08 : 1.15,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -697,8 +698,8 @@ class _CircleLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: compact ? 30 : 38,
-      height: compact ? 30 : 38,
+      width: compact ? 24 : 38,
+      height: compact ? 24 : 38,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Color(0xFFFFE9A8),
@@ -708,7 +709,7 @@ class _CircleLabel extends StatelessWidget {
         label,
         style: TextStyle(
           color: _matchingInk,
-          fontSize: compact ? 14 : 17,
+          fontSize: compact ? 11 : 17,
           fontWeight: FontWeight.w900,
         ),
       ),
@@ -734,37 +735,56 @@ class _BottomActions extends StatelessWidget {
         Expanded(
           child: TextButton.icon(
             onPressed: onHint ?? () => showTemplateHintSheet(context),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+              minimumSize: Size(0, compact ? 34 : 44),
+            ),
             icon: Icon(
               Icons.tips_and_updates_outlined,
               color: _matchingGreen,
-              size: compact ? 22 : 28,
+              size: compact ? 18 : 28,
             ),
-            label: Text(
-              'Butuh petunjuk?',
-              style: TextStyle(
-                color: _matchingGreen,
-                fontSize: compact ? 11 : 18,
-                fontWeight: FontWeight.w900,
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Butuh petunjuk?',
+                style: TextStyle(
+                  color: _matchingGreen,
+                  fontSize: compact ? 11 : 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
         ),
-        Container(width: 1, height: 34, color: const Color(0xFFE4D8C8)),
+        Container(
+          width: 1,
+          height: compact ? 26 : 34,
+          color: const Color(0xFFE4D8C8),
+        ),
         Expanded(
           child: TextButton.icon(
             onPressed: onSkip,
-            label: Text(
-              'Lewati untuk sekarang',
-              style: TextStyle(
-                color: const Color(0xFF7D7A78),
-                fontSize: compact ? 11 : 18,
-                fontWeight: FontWeight.w900,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+              minimumSize: Size(0, compact ? 34 : 44),
+            ),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                compact ? 'Lewati' : 'Lewati untuk sekarang',
+                style: TextStyle(
+                  color: const Color(0xFF7D7A78),
+                  fontSize: compact ? 11 : 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
             iconAlignment: IconAlignment.end,
-            icon: const Icon(
+            icon: Icon(
               Icons.chevron_right_rounded,
-              color: Color(0xFF7D7A78),
+              color: const Color(0xFF7D7A78),
+              size: compact ? 18 : 24,
             ),
           ),
         ),

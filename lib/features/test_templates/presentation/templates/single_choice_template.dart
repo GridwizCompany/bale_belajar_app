@@ -323,7 +323,7 @@ class _QuestionCard extends StatelessWidget {
             question.prompt,
             style: TextStyle(
               color: _singleChoiceInk,
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? 17 : 28,
               height: compact ? 1.12 : 1.2,
               fontWeight: FontWeight.w900,
             ),
@@ -343,7 +343,7 @@ class _QuestionCard extends StatelessWidget {
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(compact ? 54 : 72),
+              minimumSize: Size.fromHeight(compact ? 50 : 72),
               backgroundColor: _singleChoiceYellow,
               foregroundColor: _singleChoiceInk,
               disabledBackgroundColor: const Color(0xFFE8E0D2),
@@ -399,10 +399,10 @@ class _SingleChoiceOptionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 62 : 78),
+          constraints: BoxConstraints(minHeight: compact ? 54 : 78),
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 14 : 20,
-            vertical: compact ? 10 : 14,
+            horizontal: compact ? 12 : 20,
+            vertical: compact ? 8 : 14,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
@@ -414,8 +414,8 @@ class _SingleChoiceOptionCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 42 : 56,
-                height: compact ? 42 : 56,
+                width: compact ? 36 : 56,
+                height: compact ? 36 : 56,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color:
@@ -426,26 +426,26 @@ class _SingleChoiceOptionCard extends StatelessWidget {
                   letter,
                   style: TextStyle(
                     color: _singleChoiceInk,
-                    fontSize: compact ? 22 : 28,
+                    fontSize: compact ? 18 : 28,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
-              SizedBox(width: compact ? 16 : 28),
+              SizedBox(width: compact ? 12 : 28),
               Expanded(
                 child: Text(
                   option.label,
                   style: TextStyle(
                     color: _singleChoiceInk,
-                    fontSize: compact ? 22 : 28,
+                    fontSize: compact ? 18 : 28,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               if (selected)
                 Container(
-                  width: compact ? 32 : 40,
-                  height: compact ? 32 : 40,
+                  width: compact ? 28 : 40,
+                  height: compact ? 28 : 40,
                   decoration: const BoxDecoration(
                     color: _singleChoiceYellow,
                     shape: BoxShape.circle,

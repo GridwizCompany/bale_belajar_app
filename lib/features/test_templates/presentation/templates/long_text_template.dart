@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 
 import '../../domain/test_template_models.dart';
@@ -387,12 +389,6 @@ class _QuestionCard extends StatelessWidget {
                 ),
               );
             },
-          ),
-          SizedBox(height: compact ? 8 : 24),
-          _TipCard(
-            text: tipText ??
-                'Perhatikan kata keterangan waktu untuk membantu menentukan urutan kejadian.',
-            compact: compact,
           ),
           SizedBox(height: compact ? 8 : 28),
           FilledButton(

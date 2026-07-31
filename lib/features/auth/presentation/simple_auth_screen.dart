@@ -8,6 +8,8 @@ import '../../../core/firebase/firebase_bootstrap.dart';
 import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
+import '../../test_templates/domain/test_template_models.dart';
+import '../../test_templates/presentation/templates/test_templates.dart';
 import '../application/auth_controller.dart';
 import 'onboarding_questions/daily_duration_question.dart';
 import 'onboarding_questions/grade_question.dart';
@@ -78,6 +80,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   final Set<LearningFormat> _learningFormats = {};
   DailyDuration? _dailyDuration;
   StudyTime? _studyTime;
+  int _placementQuestionIndex = 0;
 
   @override
   void initState() {
@@ -337,24 +340,19 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                           : _mode ==
                                                                   AuthMode
                                                                       .placement
-                                                              ? _PlacementTestIntroStep(
+                                                              ? _PlacementTestFlow(
                                                                   key:
                                                                       const ValueKey(
-                                                                    'placement-test-intro',
+                                                                    'placement-test-flow',
                                                                   ),
                                                                   world:
                                                                       _learningWorld,
-                                                                  onBack: () =>
-                                                                      _goTo(
-                                                                    AuthMode
-                                                                        .studyTime,
-                                                                  ),
-                                                                  onContinue:
-                                                                      () =>
-                                                                          _goTo(
-                                                                    AuthMode
-                                                                        .account,
-                                                                  ),
+                                                                  currentIndex:
+                                                                      _placementQuestionIndex,
+                                                                  onBack:
+                                                                      _previousPlacementQuestion,
+                                                                  onNext:
+                                                                      _nextPlacementQuestion,
                                                                 )
                                                               : _AuthStep(
                                                                   key: ValueKey(
@@ -639,6 +637,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           7,
         AuthMode.account || AuthMode.login || AuthMode.code => 7,
       };
+      if (mode == AuthMode.placement) {
+        _placementQuestionIndex = 0;
+      }
     });
   }
 
@@ -649,9 +650,28 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     });
     Future<void>.delayed(const Duration(seconds: 3), () {
       if (mounted && _mode == AuthMode.recommendation) {
-        setState(() => _mode = AuthMode.placement);
+        setState(() {
+          _mode = AuthMode.placement;
+          _placementQuestionIndex = 0;
+        });
       }
     });
+  }
+
+  void _nextPlacementQuestion() {
+    if (_placementQuestionIndex >= 13) {
+      _goTo(AuthMode.account);
+      return;
+    }
+    setState(() => _placementQuestionIndex += 1);
+  }
+
+  void _previousPlacementQuestion() {
+    if (_placementQuestionIndex == 0) {
+      _goTo(AuthMode.studyTime);
+      return;
+    }
+    setState(() => _placementQuestionIndex -= 1);
   }
 
   void _toggleFormat(LearningFormat format) {
@@ -1780,105 +1800,444 @@ class _RecommendationSplash extends StatelessWidget {
   }
 }
 
-class _PlacementTestIntroStep extends StatelessWidget {
-  const _PlacementTestIntroStep({
+class _PlacementTestFlow extends StatelessWidget {
+  const _PlacementTestFlow({
     required this.world,
+    required this.currentIndex,
     required this.onBack,
-    required this.onContinue,
+    required this.onNext,
     super.key,
   });
 
   final LearningWorld? world;
+  final int currentIndex;
   final VoidCallback onBack;
-  final VoidCallback onContinue;
+  final VoidCallback onNext;
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    final compact = screenHeight < 760;
+    final questions = _placementQuestionsFor(world);
+    final index = currentIndex.clamp(0, questions.length - 1);
+    final question = questions[index];
+    final totalQuestions = questions.length;
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        Row(
-          children: [
-            _CircleBackButton(onPressed: onBack),
-            const Spacer(),
-            const Text(
-              'Cek Awal',
-              style: TextStyle(
-                color: _authDark,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: compact ? 18 : 28),
-        Image.asset(
-          'assets/mascot/kenalan.png',
-          height: compact ? 150 : 190,
-          fit: BoxFit.contain,
-        ),
-        SizedBox(height: compact ? 16 : 22),
-        Text(
-          'Mulai Cek Awal ${_worldName(world)}',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 28,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          _placementCopy(world),
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: const Color(0xFF747985),
-            fontSize: compact ? 13 : 15,
-            height: 1.35,
-            fontWeight: FontWeight.w800,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 360),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.08, 0),
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
           ),
-        ),
-        SizedBox(height: compact ? 20 : 28),
-        _PlacementInfoTile(
-          icon: Icons.timer_rounded,
-          title: 'Singkat',
-          subtitle: 'Sekitar 5-10 menit.',
-          compact: compact,
-        ),
-        const SizedBox(height: 8),
-        _PlacementInfoTile(
-          icon: Icons.tune_rounded,
-          title: 'Disesuaikan',
-          subtitle: 'Soal awal mengikuti pilihanmu.',
-          compact: compact,
-        ),
-        const SizedBox(height: 8),
-        _PlacementInfoTile(
-          icon: Icons.lock_open_rounded,
-          title: 'Bisa berhenti',
-          subtitle: 'Progres tetap tersimpan setelah akun dibuat.',
-          compact: compact,
-        ),
-        SizedBox(height: compact ? 18 : 24),
-        FilledButton(
-          onPressed: onContinue,
-          style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 44 : 50),
-            backgroundColor: _authPrimary,
-            foregroundColor: const Color(0xFF3B2318),
-            textStyle: TextStyle(
-              fontSize: compact ? 15 : 17,
-              fontWeight: FontWeight.w900,
-            ),
+        );
+      },
+      child: switch (index) {
+        0 => SingleChoiceTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 1,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
           ),
-          child: const Text('Buat akun & mulai Cek Awal'),
-        ),
-      ],
+        1 => MultipleSelectTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 2,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        2 => BinaryChoiceTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 3,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        3 => ShortTextTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 4,
+            totalQuestions: totalQuestions,
+            tipText: 'Ingat, 72 dibagi sama 8.',
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        4 => MatchingTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 5,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        5 => OrderingTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 6,
+            totalQuestions: totalQuestions,
+            tipText:
+                'Urutan dimulai dari proses penyerapan bahan hingga terbentuknya hasil akhir.',
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        6 => ImageChoiceTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 7,
+            totalQuestions: totalQuestions,
+            tipText:
+                'Perhatikan tinggi batang grafik untuk menentukan nilai terbesar.',
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        7 => AudioChoiceTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 8,
+            totalQuestions: totalQuestions,
+            tipText:
+                'Opini adalah pendapat atau penilaian seseorang, sedangkan fakta dapat dibuktikan.',
+            onPlay: () {},
+            onPause: () {},
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        8 => LongTextTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 9,
+            totalQuestions: totalQuestions,
+            tipText:
+                'Perhatikan kata keterangan waktu untuk membantu menentukan urutan kejadian.',
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onSubmitAnswer: (_) => onNext(),
+          ),
+        9 => CodeInputTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: 10,
+            totalQuestions: totalQuestions,
+            readingText:
+                'Di sebuah desa, warga berinisiatif membuat tempat sampah organik dan anorganik di setiap rumah. Mereka juga rutin membersihkan lingkungan setiap minggu. Kini, desa tersebut menjadi bersih, sehat, dan nyaman untuk ditinggali.',
+            tipText:
+                'Kesimpulan yang baik mencakup inti informasi dari keseluruhan bacaan, bukan hanya satu detail tertentu.',
+            onBack: onBack,
+            onHint: () {},
+            onSkip: onNext,
+            onBookmark: () {},
+            onCheckAnswer: (_) => onNext(),
+          ),
+        10 => ImageHotspotTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        11 => VoiceResponseTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            onStartRecording: () {},
+            onStopRecording: () {},
+            onSubmitAnswer: (_) => onNext(),
+          ),
+        12 => TimelineBuilderTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            onCheckAnswer: (_) => onNext(),
+          ),
+        _ => EvidenceBoardTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            onCheckAnswer: (_) => onNext(),
+          ),
+      },
     );
   }
+}
+
+List<TemplateQuestion> _placementQuestionsFor(LearningWorld? world) {
+  final worldName = _worldName(world);
+  return [
+    const TemplateQuestion(
+      id: 'placement-single-choice',
+      questionType: QuestionType.singleChoice,
+      prompt: 'Jika 3x + 5 = 20, berapa nilai x?',
+      options: [
+        TemplateOption(id: 'a', label: '3'),
+        TemplateOption(id: 'b', label: '4'),
+        TemplateOption(id: 'c', label: '5'),
+        TemplateOption(id: 'd', label: '6'),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-multiple-select',
+      questionType: QuestionType.multipleSelect,
+      prompt: 'Manakah yang termasuk bilangan genap?',
+      instruction: 'Pilih semua jawaban yang sesuai.',
+      scoringConfig: MultipleSelectScoring.allCorrect,
+      options: [
+        TemplateOption(id: 'a', label: '3'),
+        TemplateOption(id: 'b', label: '4'),
+        TemplateOption(id: 'c', label: '6'),
+        TemplateOption(id: 'd', label: '9'),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-binary-choice',
+      questionType: QuestionType.binaryChoice,
+      prompt: 'Semua bilangan genap pasti habis dibagi 2.',
+      instruction: 'Pernyataan berikut ini, benar atau salah?',
+    ),
+    const TemplateQuestion(
+      id: 'placement-short-text',
+      questionType: QuestionType.shortText,
+      prompt: 'Berapa hasil dari 72 ÷ 8?',
+      instruction: 'Tulis jawaban berupa angka saja.',
+      responseConfig: ResponseConfig(
+        inputMode: TextInputMode.numeric,
+        maxLength: 3,
+      ),
+    ),
+    const TemplateQuestion(
+      id: 'placement-matching',
+      questionType: QuestionType.matching,
+      prompt: 'Pasangkan istilah di kiri dengan pengertiannya di kanan!',
+      instruction: 'Tarik jawaban dari kanan ke kotak di kiri.',
+      matchingPairs: [
+        MatchingPair(
+          leftId: 'variable',
+          leftLabel: 'Variable',
+          rightId: 'variable-def',
+          rightLabel: 'Tempat menyimpan data yang nilainya dapat berubah.',
+        ),
+        MatchingPair(
+          leftId: 'algorithm',
+          leftLabel: 'Algorithm',
+          rightId: 'algorithm-def',
+          rightLabel: 'Urutan langkah-langkah untuk menyelesaikan masalah.',
+        ),
+        MatchingPair(
+          leftId: 'loop',
+          leftLabel: 'Loop',
+          rightId: 'loop-def',
+          rightLabel:
+              'Struktur perulangan yang menjalankan blok kode berulang.',
+        ),
+        MatchingPair(
+          leftId: 'function',
+          leftLabel: 'Function',
+          rightId: 'function-def',
+          rightLabel: 'Blok kode yang dapat digunakan kembali.',
+        ),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-ordering',
+      questionType: QuestionType.ordering,
+      prompt:
+          'Susun langkah-langkah fotosintesis pada tumbuhan berikut dengan benar!',
+      instruction: 'Tekan dan geser untuk mengurutkan.',
+      orderingItems: [
+        OrderingItem(
+          id: 'sunlight',
+          label: 'Cahaya matahari diserap oleh klorofil.',
+        ),
+        OrderingItem(
+          id: 'co2',
+          label: 'Karbon dioksida masuk melalui stomata daun.',
+        ),
+        OrderingItem(
+          id: 'glucose',
+          label: 'Terbentuk glukosa sebagai makanan tumbuhan.',
+        ),
+        OrderingItem(
+          id: 'water',
+          label: 'Air diserap oleh akar dan diangkut ke daun.',
+        ),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-image-choice',
+      questionType: QuestionType.imageChoice,
+      prompt:
+          'Grafik berikut menunjukkan jumlah curah hujan di kota X selama 6 bulan.',
+      instruction: 'Bulan manakah yang memiliki curah hujan tertinggi?',
+      options: [
+        TemplateOption(id: 'jan', label: 'Januari'),
+        TemplateOption(id: 'mar', label: 'Maret'),
+        TemplateOption(id: 'may', label: 'Mei'),
+        TemplateOption(id: 'jun', label: 'Juni'),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-multiple-choice',
+      questionType: QuestionType.audioChoice,
+      prompt: 'Manakah dari pernyataan berikut yang merupakan opini?',
+      instruction: 'Pilih jawaban yang paling tepat.',
+      options: [
+        TemplateOption(id: 'a', label: 'Bandung terletak di Jawa Barat.'),
+        TemplateOption(id: 'b', label: 'Makanan ini rasanya enak sekali!'),
+        TemplateOption(id: 'c', label: 'Ibu kota Indonesia adalah Jakarta.'),
+        TemplateOption(
+          id: 'd',
+          label: 'Air terjun Curug Ngebul berada di Bogor.',
+        ),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-sorting',
+      questionType: QuestionType.longText,
+      prompt: 'Urutkan kalimat berikut menjadi sebuah paragraf yang padu.',
+      instruction: 'Tarik dan letakkan untuk mengurutkan.',
+      orderingItems: [
+        OrderingItem(
+          id: 'start',
+          label: 'Suatu hari, Raka ingin menanam pohon di halaman rumahnya.',
+        ),
+        OrderingItem(
+          id: 'plant',
+          label: 'Ia mengambil bibit, menggali tanah, lalu menanamnya.',
+        ),
+        OrderingItem(
+          id: 'water',
+          label: 'Raka menyirami pohon itu setiap pagi dan sore.',
+        ),
+        OrderingItem(
+          id: 'grow',
+          label: 'Bulan demi bulan berlalu, pohon itu tumbuh semakin besar.',
+        ),
+        OrderingItem(
+          id: 'happy',
+          label: 'Raka merasa senang karena pohon itu memberi keteduhan.',
+        ),
+      ],
+    ),
+    TemplateQuestion(
+      id: 'placement-insight',
+      questionType: QuestionType.codeInput,
+      prompt:
+          'Manakah pernyataan yang menunjukkan kesimpulan terbaik dari bacaan berikut?',
+      instruction:
+          'Tes terakhir ini membantu Bale mengunci rekomendasi awal untuk $worldName.',
+      options: const [
+        TemplateOption(
+            id: 'a', label: 'Tempat sampah di setiap rumah harus besar.'),
+        TemplateOption(
+          id: 'b',
+          label: 'Kebersihan lingkungan terwujud karena kerja sama warga.',
+        ),
+        TemplateOption(
+          id: 'c',
+          label: 'Desa menjadi sehat karena warganya rajin berolahraga.',
+        ),
+        TemplateOption(
+          id: 'd',
+          label: 'Tempat sampah organik lebih penting daripada anorganik.',
+        ),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-image-hotspot',
+      questionType: QuestionType.imageHotspot,
+      prompt: 'Pilih bagian gambar yang menunjukkan sumber cahaya.',
+      instruction: 'Tekan titik yang menurutmu paling tepat.',
+      hotspotAreas: [
+        HotspotArea(id: 'sun', label: 'Matahari', x: 0.78, y: 0.22),
+        HotspotArea(id: 'leaf', label: 'Daun', x: 0.42, y: 0.52),
+        HotspotArea(id: 'root', label: 'Akar', x: 0.48, y: 0.82),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-voice-response',
+      questionType: QuestionType.voiceResponse,
+      prompt: 'Jelaskan dengan suaramu: apa itu kerja sama?',
+      instruction:
+          'Jawab singkat dengan contoh sederhana. Kamu bisa edit transkrip sebelum mengirim.',
+    ),
+    const TemplateQuestion(
+      id: 'placement-timeline-builder',
+      questionType: QuestionType.timelineBuilder,
+      prompt: 'Susun urutan kegiatan proyek kelas berikut.',
+      instruction: 'Tarik peristiwa dari awal sampai akhir.',
+      timelineItems: [
+        TimelineItem(
+          id: 'plan',
+          timeLabel: 'Awal',
+          label: 'Membuat rencana tugas kelompok.',
+        ),
+        TimelineItem(
+          id: 'research',
+          timeLabel: 'Setelah itu',
+          label: 'Mengumpulkan informasi dari buku dan internet.',
+        ),
+        TimelineItem(
+          id: 'create',
+          timeLabel: 'Berikutnya',
+          label: 'Menyusun poster dan latihan presentasi.',
+        ),
+        TimelineItem(
+          id: 'present',
+          timeLabel: 'Akhir',
+          label: 'Mempresentasikan hasil di depan kelas.',
+        ),
+      ],
+    ),
+    const TemplateQuestion(
+      id: 'placement-evidence-board',
+      questionType: QuestionType.evidenceBoard,
+      prompt:
+          'Pilih bukti yang mendukung kesimpulan: desa menjadi bersih karena warga bekerja sama.',
+      instruction: 'Pilih semua bukti yang paling relevan.',
+      evidenceItems: [
+        EvidenceItem(
+          id: 'weekly-cleaning',
+          category: 'Kegiatan',
+          label: 'Warga rutin membersihkan lingkungan setiap minggu.',
+        ),
+        EvidenceItem(
+          id: 'trash-bin',
+          category: 'Fasilitas',
+          label: 'Setiap rumah memiliki tempat sampah organik dan anorganik.',
+        ),
+        EvidenceItem(
+          id: 'weather',
+          category: 'Detail tambahan',
+          label: 'Cuaca desa sering cerah saat pagi hari.',
+        ),
+        EvidenceItem(
+          id: 'cooperation',
+          category: 'Kerja sama',
+          label: 'Warga berinisiatif menjaga kebersihan bersama.',
+        ),
+      ],
+    ),
+  ];
 }
 
 class _CircleBackButton extends StatelessWidget {
@@ -3032,61 +3391,6 @@ class _StudyTimeCard extends StatelessWidget {
       };
 }
 
-class _PlacementInfoTile extends StatelessWidget {
-  const _PlacementInfoTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.compact,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(compact ? 10 : 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF2E4C5)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: _authPrimary, size: compact ? 22 : 26),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: const Color(0xFF3B2318),
-                    fontSize: compact ? 13 : 15,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: const Color(0xFF747985),
-                    fontSize: compact ? 11 : 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 String _worldName(LearningWorld? world) => switch (world) {
       LearningWorld.numeria => 'Numeria',
       LearningWorld.kodex => 'KodeX',
@@ -3094,22 +3398,6 @@ String _worldName(LearningWorld? world) => switch (world) {
       LearningWorld.bahasa => 'Bahasa',
       LearningWorld.sains => 'Sains',
       LearningWorld.tryAll || null => 'BaleBelajar',
-    };
-
-String _placementCopy(LearningWorld? world) => switch (world) {
-      LearningWorld.numeria =>
-        'Tes singkat ini membantu Bale memilih misi Matematika pertama yang pas.',
-      LearningWorld.kodex =>
-        'Tes singkat ini membantu Bale memilih misi Informatika pertama yang pas.',
-      LearningWorld.detectivia =>
-        'Tes singkat ini membantu Bale memilih misi Logika pertama yang pas.',
-      LearningWorld.bahasa =>
-        'Tes singkat ini membantu Bale memilih misi Bahasa pertama yang pas.',
-      LearningWorld.sains =>
-        'Tes singkat ini membantu Bale memilih misi Sains pertama yang pas.',
-      LearningWorld.tryAll ||
-      null =>
-        'Tes singkat ini membantu Bale memilih misi pertama yang paling pas.',
     };
 
 class _LoginWelcomeStep extends StatelessWidget {

@@ -8,7 +8,11 @@ enum QuestionType {
   imageChoice('IMAGE_CHOICE'),
   audioChoice('AUDIO_CHOICE'),
   longText('LONG_TEXT'),
-  codeInput('CODE_INPUT');
+  codeInput('CODE_INPUT'),
+  imageHotspot('IMAGE_HOTSPOT'),
+  voiceResponse('VOICE_RESPONSE'),
+  timelineBuilder('TIMELINE_BUILDER'),
+  evidenceBoard('EVIDENCE_BOARD');
 
   const QuestionType(this.payload);
 
@@ -38,6 +42,9 @@ class TemplateQuestion {
     this.scoringConfig,
     this.matchingPairs = const [],
     this.orderingItems = const [],
+    this.hotspotAreas = const [],
+    this.timelineItems = const [],
+    this.evidenceItems = const [],
     this.codeConfig,
   });
 
@@ -51,6 +58,9 @@ class TemplateQuestion {
   final MultipleSelectScoring? scoringConfig;
   final List<MatchingPair> matchingPairs;
   final List<OrderingItem> orderingItems;
+  final List<HotspotArea> hotspotAreas;
+  final List<TimelineItem> timelineItems;
+  final List<EvidenceItem> evidenceItems;
   final CodeConfig? codeConfig;
 }
 
@@ -121,6 +131,50 @@ class OrderingItem {
 
   final String id;
   final String label;
+}
+
+class HotspotArea {
+  const HotspotArea({
+    required this.id,
+    required this.label,
+    required this.x,
+    required this.y,
+    this.radius = 0.08,
+  });
+
+  final String id;
+  final String label;
+  final double x;
+  final double y;
+  final double radius;
+}
+
+class TimelineItem {
+  const TimelineItem({
+    required this.id,
+    required this.label,
+    this.timeLabel,
+    this.description,
+  });
+
+  final String id;
+  final String label;
+  final String? timeLabel;
+  final String? description;
+}
+
+class EvidenceItem {
+  const EvidenceItem({
+    required this.id,
+    required this.label,
+    this.description,
+    this.category,
+  });
+
+  final String id;
+  final String label;
+  final String? description;
+  final String? category;
 }
 
 class CodeConfig {

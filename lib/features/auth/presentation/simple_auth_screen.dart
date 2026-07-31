@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/audio_scope.dart';
+import '../../../core/audio/audio_types.dart';
 import '../../../core/firebase/firebase_bootstrap.dart';
 import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
@@ -654,6 +656,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         _placementQuestionIndex = 0;
       }
     });
+    _syncAuthAudio(mode);
   }
 
   void _showRecommendation() {
@@ -667,15 +670,19 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           _mode = AuthMode.placement;
           _placementQuestionIndex = 0;
         });
+        _syncAuthAudio(AuthMode.placement);
       }
     });
   }
 
   void _nextPlacementQuestion() {
+    final audio = AudioScope.maybeOf(context);
     if (_placementQuestionIndex >= 13) {
+      audio?.playSound(SoundEffectId.audioLogo);
       _goTo(AuthMode.account);
       return;
     }
+    audio?.playSound(SoundEffectId.pageTransition);
     setState(() => _placementQuestionIndex += 1);
   }
 
@@ -684,7 +691,21 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       _goTo(AuthMode.studyTime);
       return;
     }
+    AudioScope.maybeOf(context)?.playSound(SoundEffectId.pageTransition);
     setState(() => _placementQuestionIndex -= 1);
+  }
+
+  void _syncAuthAudio(AuthMode mode) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final audio = AudioScope.maybeOf(context);
+      if (audio == null) return;
+      if (mode == AuthMode.placement) {
+        audio.playMusic(BackgroundMusicId.learning);
+      } else {
+        audio.stopMusic();
+      }
+    });
   }
 
   void _toggleFormat(LearningFormat format) {

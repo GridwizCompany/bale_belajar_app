@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/audio/audio_scope.dart';
+import '../../../core/audio/audio_types.dart';
 import '../../../theme/bale_theme.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/presentation/profile_screen.dart';
@@ -44,6 +46,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   final Set<String> _mentorShare = {
     ...humanHelpRecommendation.shareableContext,
   };
+  BackgroundMusicId? _lastRequestedMusic;
 
   BaleVerseProgress get _progress => _progressService.snapshot;
 
@@ -72,26 +75,35 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
 
   void _update(machine.BaleVerseState next) {
     setState(() => _state = next);
+    _syncMusic();
   }
 
   void _goToTab(BaleTab tab) {
+    if (_tab == tab) return;
+    AudioScope.maybeOf(context)?.playSound(SoundEffectId.buttonTap);
     setState(() => _tab = tab);
+    _syncMusic();
   }
 
   void _startMission() {
+    final audio = AudioScope.maybeOf(context);
+    audio?.playSound(SoundEffectId.pageTransition);
     setState(() {
       _tab = BaleTab.mission;
       _state = machine.startMission(_state);
     });
+    _syncMusic();
   }
 
   void _checkAnswer() {
+    final previousWrongAttempts = _state.wrongAttempts;
     final evaluation = _missionEngine.evaluate(
       state: _state,
       selectedOptionId: _selectedOptionId,
       mistakeMarked: _mistakeMarked,
       teachBackText: _teachBackText,
     );
+    final audio = AudioScope.maybeOf(context);
     setState(() {
       _feedback = evaluation.feedback;
       _state = evaluation.state;
@@ -102,6 +114,45 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         _selectedOptionId = null;
       }
     });
+    if (evaluation.shouldApplyReward) {
+      audio?.playSound(SoundEffectId.xpReward);
+    } else if (evaluation.state.wrongAttempts > previousWrongAttempts) {
+      audio?.handleIncorrectAnswer(
+        attemptId: 'mission-${evaluation.state.wrongAttempts}',
+        wrongAttemptCount: evaluation.state.wrongAttempts,
+      );
+    }
+    _syncMusic();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncMusic();
+  }
+
+  void _syncMusic() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final audio = AudioScope.maybeOf(context);
+      if (audio == null) return;
+      final target = _targetMusic;
+      if (target == null) {
+        _lastRequestedMusic = null;
+        audio.stopMusic();
+        return;
+      }
+      if (_lastRequestedMusic == target) return;
+      _lastRequestedMusic = target;
+      audio.playMusic(target);
+    });
+  }
+
+  BackgroundMusicId? get _targetMusic {
+    if (_state.step == MissionStep.login) return null;
+    if (_tab == BaleTab.profile) return null;
+    if (_tab == BaleTab.mission) return BackgroundMusicId.learning;
+    return BackgroundMusicId.home;
   }
 
   @override
@@ -195,7 +246,11 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     return switch (_state.step) {
       MissionStep.missionIntro => MissionIntroScreen(
           key: const ValueKey('missionIntro'),
-          onStart: () => _update(machine.beginQuestion(_state)),
+          onStart: () {
+            AudioScope.maybeOf(context)
+                ?.playSound(SoundEffectId.pageTransition);
+            _update(machine.beginQuestion(_state));
+          },
         ),
       MissionStep.humanHelp => MentorHandoffScreen(
           key: const ValueKey('handoff'),
@@ -232,6 +287,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
           },
           onTryAgain: _progress.mentorFeedbackReceived
               ? () {
+                  AudioScope.maybeOf(context)
+                      ?.playSound(SoundEffectId.encouragement);
                   setState(() {
                     _feedback = null;
                     _selectedOptionId = null;
@@ -249,6 +306,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
           key: const ValueKey('reward'),
           progress: _progress,
           onBackToDashboard: () {
+            AudioScope.maybeOf(context)
+                ?.playSound(SoundEffectId.pageTransition);
             setState(() {
               _feedback = null;
               _selectedOptionId = null;
@@ -260,6 +319,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
                 wrongAttempts: 0,
               );
             });
+            _syncMusic();
           },
         ),
       _ => MissionQuestionScreen(

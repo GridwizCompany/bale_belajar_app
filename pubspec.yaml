@@ -39,6 +39,8 @@ dependencies:
   firebase_core: ^4.12.1
   firebase_auth: ^6.5.6
   flutter_svg: ^2.3.0
+  audioplayers: ^6.1.0
+  shared_preferences: ^2.3.5
 
 dev_dependencies:
   flutter_test:
@@ -66,6 +68,8 @@ flutter:
   assets:
     - assets/mascot/
     - assets/icon/
+    - assets/audio/sfx/
+    - assets/audio/music/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

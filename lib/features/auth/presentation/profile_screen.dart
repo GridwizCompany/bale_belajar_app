@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
+import '../../settings/presentation/widgets/audio_settings_section.dart';
 import '../application/auth_controller.dart';
 import '../domain/auth_models.dart';
 
@@ -77,6 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 14),
+            const AudioSettingsSection(),
             const SizedBox(height: 14),
             BaleCard(
               child: Form(

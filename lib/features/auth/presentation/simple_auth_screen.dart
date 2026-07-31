@@ -127,255 +127,268 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   Widget build(BuildContext context) {
     final compact = _compactPhoneLayout(context);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFFF3C6),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                compact ? 14 : 22,
-                compact ? 10 : 18,
-                compact ? 14 : 22,
-                compact ? 8 : 18,
-              ),
-              child: SizedBox.expand(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 420),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) {
-                    final curved = CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                      reverseCurve: Curves.easeInCubic,
-                    );
-                    return FadeTransition(
-                      opacity: curved,
-                      child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.08, 0),
-                          end: Offset.zero,
-                        ).animate(curved),
-                        child: ScaleTransition(
-                          scale: Tween<double>(begin: 0.98, end: 1)
-                              .animate(curved),
-                          child: child,
+        child: ColoredBox(
+          color: const Color(0xFFFFF3C6),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(
+                  compact ? 14 : 22,
+                  compact ? 10 : 18,
+                  compact ? 14 : 22,
+                  compact ? 8 : 18,
+                ),
+                child: SizedBox.expand(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 420),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final curved = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                        reverseCurve: Curves.easeInCubic,
+                      );
+                      return FadeTransition(
+                        opacity: curved,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.08, 0),
+                            end: Offset.zero,
+                          ).animate(curved),
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.98, end: 1)
+                                .animate(curved),
+                            child: child,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: _mode == AuthMode.welcome
-                      ? _OnboardingView(
-                          key: const ValueKey('onboarding'),
-                          flowStep: _flowStep,
-                          onRegister: () => _goTo(AuthMode.register),
-                          onLogin: () => _goTo(AuthMode.login),
-                        )
-                      : _mode == AuthMode.login
-                          ? _LoginWelcomeStep(
-                              key: const ValueKey('login-welcome-step'),
-                              controller: widget.controller,
-                              googleBusy: _googleBusy,
-                              showPassword: _showPassword,
-                              emailController: _email,
-                              passwordController: _password,
-                              errorMessage: widget.controller.errorMessage,
-                              onBack: widget.onBackToLanding ??
-                                  () => _goTo(AuthMode.welcome),
-                              onTogglePassword: () => setState(
-                                () => _showPassword = !_showPassword,
-                              ),
-                              onGoogle: _continueWithGoogle,
-                              onSubmit: _submit,
-                              onRegister: () => _goTo(AuthMode.register),
-                            )
-                          : _mode == AuthMode.register
-                              ? _LearningGoalStep(
-                                  key: const ValueKey('learning-goal-step'),
-                                  selectedGoal: _learningGoal,
-                                  onBack: widget.onBackToLanding ??
-                                      () => _goTo(AuthMode.welcome),
-                                  onSelected: (goal) {
-                                    setState(() => _learningGoal = goal);
-                                  },
-                                  onContinue: _learningGoal == null
-                                      ? null
-                                      : () => _goTo(AuthMode.world),
-                                  onSkip: () => _goTo(AuthMode.world),
-                                )
-                              : _mode == AuthMode.world
-                                  ? _LearningWorldStep(
-                                      key: const ValueKey(
-                                        'learning-world-step',
-                                      ),
-                                      selectedWorld: _learningWorld,
-                                      onBack: () => _goTo(AuthMode.register),
-                                      onSelected: (world) {
-                                        setState(() => _learningWorld = world);
-                                      },
-                                      onContinue: _learningWorld == null
-                                          ? null
-                                          : () => _goTo(AuthMode.grade),
-                                      onSkip: () => _goTo(AuthMode.grade),
-                                    )
-                                  : _mode == AuthMode.grade
-                                      ? _GradeStep(
-                                          key: const ValueKey('grade-step'),
-                                          selectedGrade: _gradeChoice,
-                                          onBack: () => _goTo(AuthMode.world),
-                                          onSelected: (grade) {
-                                            setState(() {
-                                              _gradeChoice = grade;
-                                              if (grade.gradeLevel != null) {
-                                                _grade = grade.gradeLevel!;
-                                              }
-                                            });
-                                          },
-                                          onContinue: _gradeChoice == null
-                                              ? null
-                                              : () => _goTo(AuthMode.level),
-                                          onSkip: () => _goTo(AuthMode.level),
-                                        )
-                                      : _mode == AuthMode.level
-                                          ? _SelfReportedLevelStep(
-                                              key: const ValueKey(
-                                                'self-reported-level-step',
-                                              ),
-                                              selectedLevel: _selfReportedLevel,
-                                              onBack: () =>
-                                                  _goTo(AuthMode.grade),
-                                              onSelected: (level) {
-                                                setState(() =>
-                                                    _selfReportedLevel = level);
-                                              },
-                                              onContinue:
-                                                  _selfReportedLevel == null
-                                                      ? null
-                                                      : () => _goTo(
-                                                            AuthMode.format,
-                                                          ),
-                                              onSkip: () =>
-                                                  _goTo(AuthMode.format),
-                                            )
-                                          : _mode == AuthMode.format
-                                              ? _LearningFormatStep(
-                                                  key: const ValueKey(
-                                                    'learning-format-step',
-                                                  ),
-                                                  selectedFormats:
-                                                      _learningFormats,
-                                                  onBack: () =>
-                                                      _goTo(AuthMode.level),
-                                                  onToggle: _toggleFormat,
-                                                  onContinue: _learningFormats
-                                                          .isEmpty
-                                                      ? null
-                                                      : () => _goTo(
-                                                            AuthMode.duration,
-                                                          ),
-                                                  onSkip: () =>
-                                                      _goTo(AuthMode.duration),
-                                                )
-                                              : _mode == AuthMode.duration
-                                                  ? _DailyDurationStep(
-                                                      key: const ValueKey(
-                                                        'daily-duration-step',
-                                                      ),
-                                                      selectedDuration:
-                                                          _dailyDuration,
-                                                      onBack: () => _goTo(
-                                                        AuthMode.format,
-                                                      ),
-                                                      onSelected: (duration) {
-                                                        setState(() {
-                                                          _dailyDuration =
-                                                              duration;
-                                                        });
-                                                      },
-                                                      onContinue:
-                                                          _dailyDuration == null
-                                                              ? null
-                                                              : () => _goTo(
-                                                                    AuthMode
-                                                                        .studyTime,
-                                                                  ),
-                                                      onSkip: () => _goTo(
-                                                        AuthMode.studyTime,
-                                                      ),
-                                                    )
-                                                  : _mode == AuthMode.studyTime
-                                                      ? _StudyTimeStep(
-                                                          key: const ValueKey(
-                                                            'study-time-step',
-                                                          ),
-                                                          selectedTime:
-                                                              _studyTime,
-                                                          onBack: () => _goTo(
-                                                            AuthMode.duration,
-                                                          ),
-                                                          onSelected: (time) {
-                                                            setState(() {
-                                                              _studyTime = time;
-                                                            });
-                                                          },
-                                                          onContinue: _studyTime ==
-                                                                  null
-                                                              ? null
-                                                              : _showRecommendation,
-                                                          onSkip:
-                                                              _showRecommendation,
-                                                        )
-                                                      : _mode ==
-                                                              AuthMode
-                                                                  .recommendation
-                                                          ? _RecommendationSplash(
-                                                              key:
-                                                                  const ValueKey(
-                                                                'recommendation-splash',
-                                                              ),
-                                                              world:
-                                                                  _learningWorld,
-                                                            )
-                                                          : _mode ==
-                                                                  AuthMode
-                                                                      .placement
-                                                              ? _PlacementTestFlow(
-                                                                  key:
-                                                                      const ValueKey(
-                                                                    'placement-test-flow',
-                                                                  ),
-                                                                  world:
-                                                                      _learningWorld,
-                                                                  currentIndex:
-                                                                      _placementQuestionIndex,
-                                                                  onBack:
-                                                                      _previousPlacementQuestion,
-                                                                  onNext:
-                                                                      _nextPlacementQuestion,
-                                                                )
-                                                              : _AuthStep(
-                                                                  key: ValueKey(
-                                                                    _mode,
-                                                                  ),
-                                                                  controller: widget
-                                                                      .controller,
-                                                                  flowStep:
-                                                                      _flowStep,
-                                                                  title: _title,
-                                                                  helper:
-                                                                      _helper,
-                                                                  mascotPose:
-                                                                      _mascotPose,
-                                                                  onBack: widget
-                                                                          .onBackToLanding ??
-                                                                      () =>
-                                                                          _goTo(
-                                                                            AuthMode.welcome,
-                                                                          ),
-                                                                  child:
-                                                                      _form(),
+                      );
+                    },
+                    child: _mode == AuthMode.welcome
+                        ? _OnboardingView(
+                            key: const ValueKey('onboarding'),
+                            flowStep: _flowStep,
+                            onRegister: () => _goTo(AuthMode.register),
+                            onLogin: () => _goTo(AuthMode.login),
+                          )
+                        : _mode == AuthMode.login
+                            ? _LoginWelcomeStep(
+                                key: const ValueKey('login-welcome-step'),
+                                controller: widget.controller,
+                                googleBusy: _googleBusy,
+                                showPassword: _showPassword,
+                                emailController: _email,
+                                passwordController: _password,
+                                errorMessage: widget.controller.errorMessage,
+                                onBack: widget.onBackToLanding ??
+                                    () => _goTo(AuthMode.welcome),
+                                onTogglePassword: () => setState(
+                                  () => _showPassword = !_showPassword,
+                                ),
+                                onGoogle: _continueWithGoogle,
+                                onSubmit: _submit,
+                                onRegister: () => _goTo(AuthMode.register),
+                              )
+                            : _mode == AuthMode.register
+                                ? _LearningGoalStep(
+                                    key: const ValueKey('learning-goal-step'),
+                                    selectedGoal: _learningGoal,
+                                    onBack: widget.onBackToLanding ??
+                                        () => _goTo(AuthMode.welcome),
+                                    onSelected: (goal) {
+                                      setState(() => _learningGoal = goal);
+                                    },
+                                    onContinue: _learningGoal == null
+                                        ? null
+                                        : () => _goTo(AuthMode.world),
+                                    onSkip: () => _goTo(AuthMode.world),
+                                  )
+                                : _mode == AuthMode.world
+                                    ? _LearningWorldStep(
+                                        key: const ValueKey(
+                                          'learning-world-step',
+                                        ),
+                                        selectedWorld: _learningWorld,
+                                        onBack: () => _goTo(AuthMode.register),
+                                        onSelected: (world) {
+                                          setState(
+                                              () => _learningWorld = world);
+                                        },
+                                        onContinue: _learningWorld == null
+                                            ? null
+                                            : () => _goTo(AuthMode.grade),
+                                        onSkip: () => _goTo(AuthMode.grade),
+                                      )
+                                    : _mode == AuthMode.grade
+                                        ? _GradeStep(
+                                            key: const ValueKey('grade-step'),
+                                            selectedGrade: _gradeChoice,
+                                            onBack: () => _goTo(AuthMode.world),
+                                            onSelected: (grade) {
+                                              setState(() {
+                                                _gradeChoice = grade;
+                                                if (grade.gradeLevel != null) {
+                                                  _grade = grade.gradeLevel!;
+                                                }
+                                              });
+                                            },
+                                            onContinue: _gradeChoice == null
+                                                ? null
+                                                : () => _goTo(AuthMode.level),
+                                            onSkip: () => _goTo(AuthMode.level),
+                                          )
+                                        : _mode == AuthMode.level
+                                            ? _SelfReportedLevelStep(
+                                                key: const ValueKey(
+                                                  'self-reported-level-step',
+                                                ),
+                                                selectedLevel:
+                                                    _selfReportedLevel,
+                                                onBack: () =>
+                                                    _goTo(AuthMode.grade),
+                                                onSelected: (level) {
+                                                  setState(() =>
+                                                      _selfReportedLevel =
+                                                          level);
+                                                },
+                                                onContinue:
+                                                    _selfReportedLevel == null
+                                                        ? null
+                                                        : () => _goTo(
+                                                              AuthMode.format,
+                                                            ),
+                                                onSkip: () =>
+                                                    _goTo(AuthMode.format),
+                                              )
+                                            : _mode == AuthMode.format
+                                                ? _LearningFormatStep(
+                                                    key: const ValueKey(
+                                                      'learning-format-step',
+                                                    ),
+                                                    selectedFormats:
+                                                        _learningFormats,
+                                                    onBack: () =>
+                                                        _goTo(AuthMode.level),
+                                                    onToggle: _toggleFormat,
+                                                    onContinue: _learningFormats
+                                                            .isEmpty
+                                                        ? null
+                                                        : () => _goTo(
+                                                              AuthMode.duration,
+                                                            ),
+                                                    onSkip: () => _goTo(
+                                                        AuthMode.duration),
+                                                  )
+                                                : _mode == AuthMode.duration
+                                                    ? _DailyDurationStep(
+                                                        key: const ValueKey(
+                                                          'daily-duration-step',
+                                                        ),
+                                                        selectedDuration:
+                                                            _dailyDuration,
+                                                        onBack: () => _goTo(
+                                                          AuthMode.format,
+                                                        ),
+                                                        onSelected: (duration) {
+                                                          setState(() {
+                                                            _dailyDuration =
+                                                                duration;
+                                                          });
+                                                        },
+                                                        onContinue:
+                                                            _dailyDuration ==
+                                                                    null
+                                                                ? null
+                                                                : () => _goTo(
+                                                                      AuthMode
+                                                                          .studyTime,
+                                                                    ),
+                                                        onSkip: () => _goTo(
+                                                          AuthMode.studyTime,
+                                                        ),
+                                                      )
+                                                    : _mode ==
+                                                            AuthMode.studyTime
+                                                        ? _StudyTimeStep(
+                                                            key: const ValueKey(
+                                                              'study-time-step',
+                                                            ),
+                                                            selectedTime:
+                                                                _studyTime,
+                                                            onBack: () => _goTo(
+                                                              AuthMode.duration,
+                                                            ),
+                                                            onSelected: (time) {
+                                                              setState(() {
+                                                                _studyTime =
+                                                                    time;
+                                                              });
+                                                            },
+                                                            onContinue:
+                                                                _studyTime ==
+                                                                        null
+                                                                    ? null
+                                                                    : _showRecommendation,
+                                                            onSkip:
+                                                                _showRecommendation,
+                                                          )
+                                                        : _mode ==
+                                                                AuthMode
+                                                                    .recommendation
+                                                            ? _RecommendationSplash(
+                                                                key:
+                                                                    const ValueKey(
+                                                                  'recommendation-splash',
                                                                 ),
+                                                                world:
+                                                                    _learningWorld,
+                                                              )
+                                                            : _mode ==
+                                                                    AuthMode
+                                                                        .placement
+                                                                ? _PlacementTestFlow(
+                                                                    key:
+                                                                        const ValueKey(
+                                                                      'placement-test-flow',
+                                                                    ),
+                                                                    world:
+                                                                        _learningWorld,
+                                                                    currentIndex:
+                                                                        _placementQuestionIndex,
+                                                                    onBack:
+                                                                        _previousPlacementQuestion,
+                                                                    onNext:
+                                                                        _nextPlacementQuestion,
+                                                                  )
+                                                                : _AuthStep(
+                                                                    key:
+                                                                        ValueKey(
+                                                                      _mode,
+                                                                    ),
+                                                                    controller:
+                                                                        widget
+                                                                            .controller,
+                                                                    flowStep:
+                                                                        _flowStep,
+                                                                    title:
+                                                                        _title,
+                                                                    helper:
+                                                                        _helper,
+                                                                    mascotPose:
+                                                                        _mascotPose,
+                                                                    onBack: widget
+                                                                            .onBackToLanding ??
+                                                                        () =>
+                                                                            _goTo(
+                                                                              AuthMode.welcome,
+                                                                            ),
+                                                                    child:
+                                                                        _form(),
+                                                                  ),
+                  ),
                 ),
               ),
             ),
@@ -958,7 +971,7 @@ class _LearningGoalStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -968,7 +981,7 @@ class _LearningGoalStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1004,7 +1017,7 @@ class _LearningGoalStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1087,7 +1100,7 @@ class _LearningWorldStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1097,7 +1110,7 @@ class _LearningWorldStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1133,7 +1146,7 @@ class _LearningWorldStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1222,7 +1235,7 @@ class _GradeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1232,7 +1245,7 @@ class _GradeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1255,7 +1268,7 @@ class _GradeStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1338,7 +1351,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1348,7 +1361,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1371,7 +1384,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1454,7 +1467,7 @@ class _LearningFormatStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1464,7 +1477,7 @@ class _LearningFormatStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1487,7 +1500,7 @@ class _LearningFormatStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1574,7 +1587,7 @@ class _DailyDurationStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1584,7 +1597,7 @@ class _DailyDurationStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1607,7 +1620,7 @@ class _DailyDurationStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1690,7 +1703,7 @@ class _StudyTimeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 22 : 26,
+                fontSize: compact ? 20 : 26,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1700,7 +1713,7 @@ class _StudyTimeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 14,
+            fontSize: compact ? 11 : 14,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1723,7 +1736,7 @@ class _StudyTimeStep extends StatelessWidget {
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 15 : 16,
+              fontSize: compact ? 14 : 16,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -2643,7 +2656,7 @@ class _LearningWorldCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 12 : 14,
+                        fontSize: compact ? 11 : 14,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),

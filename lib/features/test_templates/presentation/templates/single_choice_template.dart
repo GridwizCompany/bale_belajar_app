@@ -115,16 +115,16 @@ class _SingleChoiceHeader extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 44 : 64,
+              dimension: 0,
               child: Icon(
                 Icons.arrow_back_rounded,
                 color: _singleChoiceInk,
-                size: compact ? 26 : 32,
+                size: 0,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 8 : 22),
+        const SizedBox.shrink(),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -134,11 +134,11 @@ class _SingleChoiceHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _singleChoiceInk,
-                  fontSize: compact ? 16 : 22,
+                  fontSize: compact ? 0 : 0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 0),
               Stack(
                 alignment: Alignment.centerRight,
                 children: [
@@ -207,7 +207,7 @@ class _SingleChoiceMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 172 : 300,
             fit: BoxFit.contain,
           ),
         ),
@@ -266,7 +266,7 @@ class _QuestionCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 10 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x13000000),
@@ -392,12 +392,12 @@ class _SingleChoiceOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? const Color(0xFFFFF8D9) : Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       elevation: selected ? 8 : 3,
       shadowColor: const Color(0x16000000),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           constraints: BoxConstraints(minHeight: compact ? 54 : 78),
           padding: EdgeInsets.symmetric(
@@ -405,7 +405,7 @@ class _SingleChoiceOptionCard extends StatelessWidget {
             vertical: compact ? 8 : 14,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: selected ? _singleChoiceYellow : const Color(0xFFE9E1D6),
               width: selected ? 2 : 1.4,
@@ -426,7 +426,7 @@ class _SingleChoiceOptionCard extends StatelessWidget {
                   letter,
                   style: TextStyle(
                     color: _singleChoiceInk,
-                    fontSize: compact ? 18 : 28,
+                    fontSize: compact ? 16 : 28,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -437,7 +437,7 @@ class _SingleChoiceOptionCard extends StatelessWidget {
                   option.label,
                   style: TextStyle(
                     color: _singleChoiceInk,
-                    fontSize: compact ? 18 : 28,
+                    fontSize: compact ? 16 : 28,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

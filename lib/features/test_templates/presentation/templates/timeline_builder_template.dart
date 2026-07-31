@@ -158,16 +158,16 @@ class _TimelineHeader extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 52 : 64,
+              dimension: 0,
               child: const Icon(
                 Icons.arrow_back_rounded,
                 color: _timelineInk,
-                size: 32,
+                size: 0,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 8 : 22),
+        const SizedBox.shrink(),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -177,11 +177,11 @@ class _TimelineHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _timelineInk,
-                  fontSize: compact ? 18 : 22,
+                  fontSize: compact ? 0 : 0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 0),
               Stack(
                 alignment: Alignment.centerRight,
                 children: [
@@ -250,7 +250,7 @@ class _TimelineMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 172 : 300,
             fit: BoxFit.contain,
           ),
         ),
@@ -327,7 +327,7 @@ class _QuestionCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 8 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x13000000),
@@ -345,7 +345,7 @@ class _QuestionCard extends StatelessWidget {
             question.prompt,
             style: TextStyle(
               color: _timelineInk,
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? 16 : 28,
               height: 1.2,
               fontWeight: FontWeight.w900,
             ),
@@ -356,7 +356,7 @@ class _QuestionCard extends StatelessWidget {
                 'Drag & drop kartu peristiwa ke dalam timeline dari kiri ke kanan.',
             style: TextStyle(
               color: const Color(0xFF8C8274),
-              fontSize: compact ? 15 : 19,
+              fontSize: compact ? 12 : 19,
               height: 1.25,
               fontWeight: FontWeight.w800,
             ),
@@ -382,7 +382,7 @@ class _QuestionCard extends StatelessWidget {
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(compact ? 54 : 72),
+              minimumSize: Size.fromHeight(compact ? 46 : 72),
               backgroundColor: _timelineYellow,
               foregroundColor: _timelineInk,
               disabledBackgroundColor: const Color(0xFFE8E0D2),
@@ -390,7 +390,7 @@ class _QuestionCard extends StatelessWidget {
               elevation: 8,
               shadowColor: const Color(0x55F4B400),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 28,
+                fontSize: compact ? 17 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -435,10 +435,10 @@ class _Badge extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Template 13 \u2022 Timeline Builder',
+              compact ? 'Template 13' : 'Template 13 \u2022 Timeline Builder',
               style: TextStyle(
                 color: const Color(0xFFD89B00),
-                fontSize: compact ? 13 : 17,
+                fontSize: compact ? 11 : 17,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -553,7 +553,7 @@ class _TimelineSlot extends StatelessWidget {
                       '${index + 1}',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: compact ? 18 : 22,
+                        fontSize: compact ? 0 : 0,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -606,23 +606,23 @@ class _EmptySlotContent extends StatelessWidget {
             fontWeight: FontWeight.w900,
           ),
         ),
-        const Spacer(),
+        SizedBox(height: compact ? 6 : 10),
         Icon(
           Icons.image_outlined,
           color: const Color(0xFFD8CBB5),
-          size: compact ? 38 : 48,
+          size: compact ? 30 : 48,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: compact ? 4 : 8),
         Text(
           'Letakkan\ndi sini',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 12 : 15,
+            fontSize: compact ? 10 : 15,
+            height: compact ? 1.1 : 1.2,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const Spacer(),
       ],
     );
   }
@@ -748,9 +748,9 @@ class _EventCard extends StatelessWidget {
         child: Opacity(
           opacity: used ? 0.45 : 1,
           child: Container(
-            width: compact ? 112 : 138,
-            height: compact ? 162 : 200,
-            padding: EdgeInsets.all(compact ? 10 : 12),
+            width: compact ? 104 : 138,
+            height: compact ? 150 : 200,
+            padding: EdgeInsets.all(compact ? 8 : 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
@@ -762,8 +762,8 @@ class _EventCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: compact ? 28 : 32,
-                  height: compact ? 28 : 32,
+                  width: compact ? 24 : 32,
+                  height: compact ? 24 : 32,
                   alignment: Alignment.center,
                   decoration: const BoxDecoration(
                     color: Color(0xFF1976D2),
@@ -777,27 +777,31 @@ class _EventCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const Spacer(),
-                Center(child: _EventIcon(item: item, size: compact ? 54 : 70)),
-                const Spacer(),
-                Text(
-                  item.label,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _timelineInk,
-                    fontSize: compact ? 12 : 14,
-                    height: 1.2,
-                    fontWeight: FontWeight.w800,
+                SizedBox(height: compact ? 4 : 8),
+                Center(child: _EventIcon(item: item, size: compact ? 40 : 70)),
+                SizedBox(height: compact ? 5 : 8),
+                Expanded(
+                  child: Text(
+                    item.label,
+                    maxLines: compact ? 4 : 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _timelineInk,
+                      fontSize: compact ? 10 : 14,
+                      height: compact ? 1.08 : 1.2,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                const Center(
-                  child: Icon(
-                    Icons.drag_indicator_rounded,
-                    color: Color(0xFFD8CBB5),
+                if (!compact) ...[
+                  const SizedBox(height: 6),
+                  const Center(
+                    child: Icon(
+                      Icons.drag_indicator_rounded,
+                      color: Color(0xFFD8CBB5),
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -808,7 +812,7 @@ class _EventCard extends StatelessWidget {
     return Draggable<String>(
       data: item.id,
       feedback: SizedBox(
-        width: compact ? 112 : 138,
+        width: compact ? 104 : 138,
         child: Material(
           color: Colors.transparent,
           child: Opacity(opacity: 0.92, child: card),

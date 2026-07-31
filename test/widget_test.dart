@@ -6,7 +6,10 @@ import 'package:bale_belajar_app/features/baleverse/data/baleverse_dummy_data.da
 import 'package:bale_belajar_app/features/baleverse/domain/baleverse_models.dart';
 import 'package:bale_belajar_app/features/baleverse/presentation/baleverse_demo_screen.dart';
 import 'package:bale_belajar_app/features/baleverse/state/mission_state_machine.dart';
-import 'package:flutter/widgets.dart';
+import 'package:bale_belajar_app/features/test_templates/domain/test_template_models.dart';
+import 'package:bale_belajar_app/features/test_templates/presentation/templates/image_choice_template.dart';
+import 'package:bale_belajar_app/features/test_templates/presentation/templates/timeline_builder_template.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -180,5 +183,83 @@ void main() {
     await tester.tap(find.text('Kirim Penjelasan'));
     await tester.pumpAndSettle();
     expect(find.text('Gerbang Distribusi terbuka.'), findsOneWidget);
+  });
+
+  testWidgets('image choice template fits a narrow phone viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ImageChoiceTemplate(
+          currentQuestion: 7,
+          totalQuestions: 14,
+          question: const TemplateQuestion(
+            id: 'image-choice-test',
+            questionType: QuestionType.imageChoice,
+            prompt:
+                'Grafik berikut menunjukkan jumlah curah hujan di kota X selama 6 bulan.',
+            instruction: 'Bulan manakah yang memiliki curah hujan tertinggi?',
+            options: [
+              TemplateOption(id: 'jan', label: 'Januari'),
+              TemplateOption(id: 'mar', label: 'Maret'),
+              TemplateOption(id: 'may', label: 'Mei'),
+              TemplateOption(id: 'jun', label: 'Juni'),
+            ],
+          ),
+          onCheckAnswer: (_) {},
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Template 7'), findsOneWidget);
+  });
+
+  testWidgets('timeline builder template fits a narrow phone viewport', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TimelineBuilderTemplate(
+          currentQuestion: 13,
+          totalQuestions: 14,
+          question: const TemplateQuestion(
+            id: 'timeline-test',
+            questionType: QuestionType.timelineBuilder,
+            prompt: 'Susun urutan kegiatan proyek kelas berikut.',
+            instruction: 'Tarik peristiwa dari awal sampai akhir.',
+            timelineItems: [
+              TimelineItem(
+                id: 'a',
+                label: 'Membuat rencana tugas kelompok.',
+              ),
+              TimelineItem(
+                id: 'b',
+                label: 'Mengumpulkan informasi dari buku dan internet.',
+              ),
+              TimelineItem(id: 'c', label: 'Menyusun poster latihan.'),
+              TimelineItem(id: 'd', label: 'Presentasi di depan kelas.'),
+              TimelineItem(id: 'e', label: 'Menerima masukan dari guru.'),
+            ],
+          ),
+          onCheckAnswer: (_) {},
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Template 13'), findsOneWidget);
   });
 }

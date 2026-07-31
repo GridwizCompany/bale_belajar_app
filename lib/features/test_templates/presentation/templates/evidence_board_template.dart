@@ -197,16 +197,16 @@ class _Header extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 52 : 64,
+              dimension: 0,
               child: const Icon(
                 Icons.arrow_back_rounded,
                 color: _ink,
-                size: 32,
+                size: 0,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 8 : 22),
+        const SizedBox.shrink(),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -216,11 +216,11 @@ class _Header extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _ink,
-                  fontSize: compact ? 18 : 22,
+                  fontSize: compact ? 0 : 0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 0),
               Stack(
                 alignment: Alignment.centerRight,
                 children: [
@@ -289,7 +289,7 @@ class _MascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 172 : 300,
             fit: BoxFit.contain,
           ),
         ),
@@ -370,7 +370,7 @@ class _QuestionCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 8 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x13000000),

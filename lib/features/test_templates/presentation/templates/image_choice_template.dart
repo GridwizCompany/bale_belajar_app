@@ -155,16 +155,16 @@ class _ImageChoiceHeader extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 52 : 64,
+              dimension: 0,
               child: const Icon(
                 Icons.arrow_back_rounded,
                 color: _imageChoiceInk,
-                size: 32,
+                size: 0,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 8 : 22),
+        const SizedBox.shrink(),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -174,11 +174,11 @@ class _ImageChoiceHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _imageChoiceInk,
-                  fontSize: compact ? 18 : 22,
+                  fontSize: compact ? 0 : 0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 0),
               Stack(
                 alignment: Alignment.centerRight,
                 children: [
@@ -247,7 +247,7 @@ class _ImageChoiceMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 172 : 300,
             fit: BoxFit.contain,
           ),
         ),
@@ -320,7 +320,7 @@ class _QuestionCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 8 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x13000000),
@@ -356,10 +356,12 @@ class _QuestionCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Template 7 \u2022 Image Choice',
+                          compact
+                              ? 'Template 7'
+                              : 'Template 7 \u2022 Image Choice',
                           style: TextStyle(
                             color: const Color(0xFFD89B00),
-                            fontSize: compact ? 13 : 17,
+                            fontSize: compact ? 11 : 17,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -395,7 +397,7 @@ class _QuestionCard extends StatelessWidget {
             question.prompt,
             style: TextStyle(
               color: _imageChoiceInk,
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? 16 : 28,
               height: 1.2,
               fontWeight: FontWeight.w900,
             ),
@@ -406,7 +408,7 @@ class _QuestionCard extends StatelessWidget {
                 'Pilih jawaban yang paling sesuai dengan gambar.',
             style: TextStyle(
               color: const Color(0xFF8C8274),
-              fontSize: compact ? 15 : 19,
+              fontSize: compact ? 12 : 19,
               height: 1.25,
               fontWeight: FontWeight.w800,
             ),
@@ -457,7 +459,7 @@ class _QuestionCard extends StatelessWidget {
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(compact ? 54 : 72),
+              minimumSize: Size.fromHeight(compact ? 46 : 72),
               backgroundColor: _imageChoiceYellow,
               foregroundColor: _imageChoiceInk,
               disabledBackgroundColor: const Color(0xFFE8E0D2),
@@ -465,7 +467,7 @@ class _QuestionCard extends StatelessWidget {
               elevation: 8,
               shadowColor: const Color(0x55F4B400),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 28,
+                fontSize: compact ? 17 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -519,70 +521,117 @@ class _FallbackBarChart extends StatelessWidget {
       ('Jun', 180),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxHeight = constraints.maxHeight * 0.62;
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Curah Hujan (mm)',
-                style: TextStyle(
-                  color: Color(0xFF4A4A4A),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (final item in data)
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Text(
-                              '${item.$2}',
-                              style: const TextStyle(
-                                color: Color(0xFF4A4A4A),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Container(
-                              width: 28,
-                              height: maxHeight * (item.$2 / 250),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3F82D9),
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              item.$1,
-                              style: const TextStyle(
-                                color: Color(0xFF4A4A4A),
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      child: CustomPaint(
+        painter: _FallbackBarChartPainter(data),
+        child: const SizedBox.expand(),
+      ),
     );
   }
+}
+
+class _FallbackBarChartPainter extends CustomPainter {
+  const _FallbackBarChartPainter(this.data);
+
+  final List<(String, int)> data;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const labelColor = Color(0xFF4A4A4A);
+    final barPaint = Paint()
+      ..shader = const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF4F94E8), Color(0xFF2F73C9)],
+      ).createShader(Offset.zero & size);
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE7E0D5)
+      ..strokeWidth = 1;
+
+    final titlePainter = TextPainter(
+      text: const TextSpan(
+        text: 'Curah Hujan (mm)',
+        style: TextStyle(
+          color: labelColor,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: size.width);
+    titlePainter.paint(canvas, const Offset(0, 0));
+
+    final chartTop = titlePainter.height + 8;
+    final chartBottom = size.height - 18;
+    final chartHeight = (chartBottom - chartTop).clamp(36.0, size.height);
+    final stepWidth = size.width / data.length;
+
+    for (var i = 0; i < 4; i++) {
+      final y = chartTop + chartHeight * (i / 3);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    for (var index = 0; index < data.length; index++) {
+      final item = data[index];
+      final centerX = stepWidth * index + stepWidth / 2;
+      final barHeight = chartHeight * (item.$2 / 250);
+      final barWidth = stepWidth.clamp(28.0, 46.0) * 0.46;
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(
+          centerX - barWidth / 2,
+          chartBottom - barHeight,
+          barWidth,
+          barHeight,
+        ),
+        const Radius.circular(4),
+      );
+
+      canvas.drawRRect(rect, barPaint);
+      _paintCenteredText(
+        canvas,
+        '${item.$2}',
+        Offset(centerX, chartBottom - barHeight - 13),
+        10,
+        FontWeight.w800,
+      );
+      _paintCenteredText(
+        canvas,
+        item.$1,
+        Offset(centerX, chartBottom + 8),
+        10,
+        FontWeight.w800,
+      );
+    }
+  }
+
+  void _paintCenteredText(
+    Canvas canvas,
+    String text,
+    Offset center,
+    double fontSize,
+    FontWeight fontWeight,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: const Color(0xFF4A4A4A),
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    painter.paint(
+      canvas,
+      Offset(center.dx - painter.width / 2, center.dy - painter.height / 2),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _FallbackBarChartPainter oldDelegate) =>
+      oldDelegate.data != data;
 }
 
 class _ImageChoiceOptionCard extends StatelessWidget {
@@ -650,7 +699,7 @@ class _ImageChoiceOptionCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: _imageChoiceInk,
-                    fontSize: compact ? 15 : 19,
+                    fontSize: compact ? 12 : 19,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

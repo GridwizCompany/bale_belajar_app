@@ -122,16 +122,16 @@ class _MultipleSelectHeader extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 52 : 64,
+              dimension: 0,
               child: const Icon(
                 Icons.arrow_back_rounded,
                 color: _multipleSelectInk,
-                size: 32,
+                size: 0,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 8 : 22),
+        const SizedBox.shrink(),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -141,11 +141,11 @@ class _MultipleSelectHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _multipleSelectInk,
-                  fontSize: compact ? 18 : 22,
+                  fontSize: compact ? 0 : 0,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 0),
               Stack(
                 alignment: Alignment.centerRight,
                 children: [
@@ -214,7 +214,7 @@ class _MultipleSelectMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 104 : 190,
+            height: compact ? 172 : 300,
             fit: BoxFit.contain,
           ),
         ),
@@ -283,7 +283,7 @@ class _QuestionCard extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 8 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: const [
           BoxShadow(
             color: Color(0x13000000),
@@ -319,7 +319,7 @@ class _QuestionCard extends StatelessWidget {
                     'Template 2 \u2022 Multiple Select',
                     style: TextStyle(
                       color: _multipleSelectGreen,
-                      fontSize: compact ? 13 : 17,
+                      fontSize: compact ? 11 : 17,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -332,7 +332,7 @@ class _QuestionCard extends StatelessWidget {
             question.prompt,
             style: TextStyle(
               color: _multipleSelectInk,
-              fontSize: compact ? 22 : 28,
+              fontSize: compact ? 16 : 28,
               height: 1.2,
               fontWeight: FontWeight.w900,
             ),
@@ -363,7 +363,7 @@ class _QuestionCard extends StatelessWidget {
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
-              minimumSize: Size.fromHeight(compact ? 54 : 72),
+              minimumSize: Size.fromHeight(compact ? 46 : 72),
               backgroundColor: _multipleSelectYellow,
               foregroundColor: _multipleSelectInk,
               disabledBackgroundColor: const Color(0xFFE8E0D2),
@@ -371,7 +371,7 @@ class _QuestionCard extends StatelessWidget {
               elevation: 8,
               shadowColor: const Color(0x55F4B400),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 28,
+                fontSize: compact ? 17 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -407,20 +407,20 @@ class _MultipleSelectOptionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: selected ? const Color(0xFFFFF8D9) : Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       elevation: selected ? 8 : 3,
       shadowColor: const Color(0x16000000),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 58 : 78),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 78),
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 8 : 20,
             vertical: compact ? 10 : 14,
           ),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: selected ? _multipleSelectYellow : const Color(0xFFE9E1D6),
               width: selected ? 2 : 1.4,
@@ -429,8 +429,8 @@ class _MultipleSelectOptionCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 42 : 56,
-                height: compact ? 42 : 56,
+                width: compact ? 34 : 56,
+                height: compact ? 34 : 56,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: selected
@@ -442,7 +442,7 @@ class _MultipleSelectOptionCard extends StatelessWidget {
                   letter,
                   style: TextStyle(
                     color: _multipleSelectInk,
-                    fontSize: compact ? 22 : 28,
+                    fontSize: compact ? 16 : 28,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -453,7 +453,7 @@ class _MultipleSelectOptionCard extends StatelessWidget {
                   option.label,
                   style: TextStyle(
                     color: _multipleSelectInk,
-                    fontSize: compact ? 22 : 28,
+                    fontSize: compact ? 16 : 28,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -462,8 +462,8 @@ class _MultipleSelectOptionCard extends StatelessWidget {
                 opacity: selected ? 1 : 0,
                 duration: const Duration(milliseconds: 160),
                 child: Container(
-                  width: compact ? 32 : 40,
-                  height: compact ? 32 : 40,
+                  width: compact ? 26 : 40,
+                  height: compact ? 26 : 40,
                   decoration: const BoxDecoration(
                     color: _multipleSelectYellow,
                     shape: BoxShape.circle,

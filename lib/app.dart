@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'features/auth/presentation/auth_gate.dart';
 import 'theme/bale_theme.dart';
@@ -14,6 +15,25 @@ class BaleBelajarApp extends StatelessWidget {
       title: 'Bale Belajar',
       debugShowCheckedModeBanner: false,
       theme: buildBaleTheme(),
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Color(0xFFFFF3C6),
+            systemNavigationBarColor: Color(0xFFFFF3C6),
+            systemNavigationBarDividerColor: Color(0xFFFFF3C6),
+            statusBarIconBrightness: Brightness.dark,
+            systemNavigationBarIconBrightness: Brightness.dark,
+          ),
+          child: ColoredBox(
+            color: const Color(0xFFFFF3C6),
+            child: MediaQuery(
+              data: mediaQuery.copyWith(textScaler: TextScaler.noScaling),
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
+        );
+      },
       home: home ?? const AuthGate(),
     );
   }

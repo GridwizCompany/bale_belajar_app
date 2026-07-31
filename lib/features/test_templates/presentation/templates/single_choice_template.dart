@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/test_template_models.dart';
+import 'test_template_ui_helpers.dart';
 
 const _singleChoiceYellow = Color(0xFFF4B400);
 const _singleChoiceInk = Color(0xFF3B2318);
@@ -36,7 +37,7 @@ class _SingleChoiceTemplateState extends State<SingleChoiceTemplate> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.shortestSide < 600 && size.height < 820;
+    final compact = size.shortestSide < 600;
     final progress = widget.totalQuestions <= 0
         ? 0.0
         : (widget.currentQuestion / widget.totalQuestions).clamp(0.0, 1.0);
@@ -46,10 +47,10 @@ class _SingleChoiceTemplateState extends State<SingleChoiceTemplate> {
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.fromLTRB(
-            compact ? 14 : 20,
-            compact ? 10 : 18,
-            compact ? 14 : 20,
-            compact ? 18 : 28,
+            compact ? 10 : 20,
+            compact ? 8 : 18,
+            compact ? 10 : 20,
+            compact ? 10 : 28,
           ),
           children: [
             _SingleChoiceHeader(
@@ -59,9 +60,9 @@ class _SingleChoiceTemplateState extends State<SingleChoiceTemplate> {
               onBack: widget.onBack,
               compact: compact,
             ),
-            SizedBox(height: compact ? 16 : 24),
+            SizedBox(height: compact ? 8 : 24),
             _SingleChoiceMascotIntro(compact: compact),
-            SizedBox(height: compact ? 16 : 24),
+            SizedBox(height: compact ? 8 : 24),
             _QuestionCard(
               question: widget.question,
               selectedOptionId: _selectedOptionId,
@@ -72,7 +73,7 @@ class _SingleChoiceTemplateState extends State<SingleChoiceTemplate> {
                   ? null
                   : () => widget.onCheckAnswer(_selectedOptionId),
             ),
-            SizedBox(height: compact ? 12 : 18),
+            SizedBox(height: compact ? 6 : 18),
             _BottomActions(
               onHint: widget.onHint,
               onSkip: widget.onSkip,
@@ -114,16 +115,16 @@ class _SingleChoiceHeader extends StatelessWidget {
             onTap: onBack,
             borderRadius: BorderRadius.circular(22),
             child: SizedBox.square(
-              dimension: compact ? 52 : 64,
-              child: const Icon(
+              dimension: compact ? 44 : 64,
+              child: Icon(
                 Icons.arrow_back_rounded,
                 color: _singleChoiceInk,
-                size: 32,
+                size: compact ? 26 : 32,
               ),
             ),
           ),
         ),
-        SizedBox(width: compact ? 14 : 22),
+        SizedBox(width: compact ? 8 : 22),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,7 +134,7 @@ class _SingleChoiceHeader extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: _singleChoiceInk,
-                  fontSize: compact ? 18 : 22,
+                  fontSize: compact ? 16 : 22,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -142,7 +143,7 @@ class _SingleChoiceHeader extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 children: [
                   Container(
-                    height: compact ? 24 : 30,
+                    height: compact ? 18 : 30,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(99),
@@ -156,14 +157,18 @@ class _SingleChoiceHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
-                    child: Container(
-                      height: compact ? 24 : 30,
-                      decoration: BoxDecoration(
-                        color: _singleChoiceYellow,
-                        borderRadius: BorderRadius.circular(99),
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progress,
+                        child: Container(
+                          height: compact ? 18 : 30,
+                          decoration: BoxDecoration(
+                            color: _singleChoiceYellow,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -173,7 +178,7 @@ class _SingleChoiceHeader extends StatelessWidget {
                       '$percent%',
                       style: TextStyle(
                         color: _singleChoiceInk,
-                        fontSize: compact ? 14 : 18,
+                        fontSize: compact ? 12 : 18,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -202,7 +207,7 @@ class _SingleChoiceMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 130 : 180,
+            height: compact ? 104 : 190,
             fit: BoxFit.contain,
           ),
         ),
@@ -210,7 +215,7 @@ class _SingleChoiceMascotIntro extends StatelessWidget {
         Expanded(
           flex: 11,
           child: Container(
-            padding: EdgeInsets.all(compact ? 14 : 20),
+            padding: EdgeInsets.all(compact ? 10 : 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
@@ -222,24 +227,14 @@ class _SingleChoiceMascotIntro extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text.rich(
-              TextSpan(
-                children: [
-                  const TextSpan(text: 'Hai, aku '),
-                  TextSpan(
-                    text: 'Bale',
-                    style: TextStyle(color: _singleChoiceGreen),
-                  ),
-                  const TextSpan(
-                    text:
-                        '!\nYuk jawab pertanyaan pertama. Pilih satu jawaban yang paling tepat ya.',
-                  ),
-                ],
-              ),
+            child: TypewriterMessage(
+              text:
+                  'Hai, aku Babe!\nYuk jawab pertanyaan pertama. Pilih satu jawaban yang paling tepat ya.',
+              highlightColor: _singleChoiceGreen,
               style: TextStyle(
                 color: _singleChoiceInk,
-                fontSize: compact ? 13 : 18,
-                height: 1.35,
+                fontSize: compact ? 11 : 18,
+                height: compact ? 1.22 : 1.35,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -268,7 +263,7 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 22),
+      padding: EdgeInsets.all(compact ? 10 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -288,7 +283,7 @@ class _QuestionCard extends StatelessWidget {
             child: Container(
               padding: EdgeInsets.symmetric(
                 horizontal: compact ? 12 : 16,
-                vertical: compact ? 8 : 10,
+                vertical: compact ? 6 : 10,
               ),
               decoration: BoxDecoration(
                 color: _singleChoiceGreen.withValues(alpha: 0.1),
@@ -303,29 +298,37 @@ class _QuestionCard extends StatelessWidget {
                     size: compact ? 18 : 22,
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'Template 1 • Single Choice',
-                    style: TextStyle(
-                      color: _singleChoiceGreen,
-                      fontSize: compact ? 13 : 17,
-                      fontWeight: FontWeight.w900,
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: MediaQuery.sizeOf(context).width * 0.58,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Template 1 • Single Choice',
+                        style: TextStyle(
+                          color: _singleChoiceGreen,
+                          fontSize: compact ? 11 : 17,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: compact ? 18 : 28),
+          SizedBox(height: compact ? 8 : 28),
           Text(
             question.prompt,
             style: TextStyle(
               color: _singleChoiceInk,
               fontSize: compact ? 22 : 28,
-              height: 1.2,
+              height: compact ? 1.12 : 1.2,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: compact ? 16 : 24),
+          SizedBox(height: compact ? 8 : 24),
           for (var index = 0; index < question.options.length; index++) ...[
             _SingleChoiceOptionCard(
               option: question.options[index],
@@ -334,9 +337,9 @@ class _QuestionCard extends StatelessWidget {
               compact: compact,
               onTap: () => onSelected(question.options[index].id),
             ),
-            SizedBox(height: compact ? 10 : 14),
+            SizedBox(height: compact ? 6 : 14),
           ],
-          SizedBox(height: compact ? 10 : 18),
+          SizedBox(height: compact ? 4 : 18),
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
@@ -348,23 +351,18 @@ class _QuestionCard extends StatelessWidget {
               elevation: 8,
               shadowColor: const Color(0x55F4B400),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 28,
+                fontSize: compact ? 17 : 28,
                 fontWeight: FontWeight.w900,
               ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Periksa Jawaban'),
-                const SizedBox(width: 14),
-                Container(
-                  width: compact ? 36 : 48,
-                  height: compact ? 36 : 48,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
+                const Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text('Periksa Jawaban'),
                   ),
-                  child: const Icon(Icons.arrow_forward_rounded),
                 ),
               ],
             ),
@@ -401,7 +399,7 @@ class _SingleChoiceOptionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 58 : 78),
+          constraints: BoxConstraints(minHeight: compact ? 62 : 78),
           padding: EdgeInsets.symmetric(
             horizontal: compact ? 14 : 20,
             vertical: compact ? 10 : 14,
@@ -433,7 +431,7 @@ class _SingleChoiceOptionCard extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: compact ? 18 : 28),
+              SizedBox(width: compact ? 16 : 28),
               Expanded(
                 child: Text(
                   option.label,
@@ -482,38 +480,56 @@ class _BottomActions extends StatelessWidget {
       children: [
         Expanded(
           child: TextButton.icon(
-            onPressed: onHint,
+            onPressed: onHint ?? () => showTemplateHintSheet(context),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+              minimumSize: Size(0, compact ? 34 : 44),
+            ),
             icon: Icon(
               Icons.tips_and_updates_outlined,
               color: _singleChoiceGreen,
-              size: compact ? 22 : 28,
+              size: compact ? 8 : 28,
             ),
-            label: Text(
-              'Butuh petunjuk?',
-              style: TextStyle(
-                color: _singleChoiceGreen,
-                fontSize: compact ? 13 : 18,
-                fontWeight: FontWeight.w900,
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Butuh petunjuk?',
+                style: TextStyle(
+                  color: _singleChoiceGreen,
+                  fontSize: compact ? 11 : 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),
         ),
-        Container(width: 1, height: 34, color: const Color(0xFFE4D8C8)),
+        Container(
+            width: 1,
+            height: compact ? 26 : 34,
+            color: const Color(0xFFE4D8C8)),
         Expanded(
           child: TextButton.icon(
             onPressed: onSkip,
-            label: Text(
-              'Lewati untuk sekarang',
-              style: TextStyle(
-                color: const Color(0xFF7D7A78),
-                fontSize: compact ? 13 : 18,
-                fontWeight: FontWeight.w900,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: compact ? 4 : 8),
+              minimumSize: Size(0, compact ? 34 : 44),
+            ),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'Lewati',
+                style: TextStyle(
+                  color: const Color(0xFF7D7A78),
+                  fontSize: compact ? 11 : 18,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
             iconAlignment: IconAlignment.end,
-            icon: const Icon(
+            icon: Icon(
               Icons.chevron_right_rounded,
-              color: Color(0xFF7D7A78),
+              color: const Color(0xFF7D7A78),
+              size: compact ? 18 : 24,
             ),
           ),
         ),

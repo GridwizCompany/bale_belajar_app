@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/test_template_models.dart';
+import 'test_template_ui_helpers.dart';
 
 const _hotspotYellow = Color(0xFFF4B400);
 const _hotspotInk = Color(0xFF3B2318);
@@ -38,7 +39,7 @@ class _ImageHotspotTemplateState extends State<ImageHotspotTemplate> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.shortestSide < 600 && size.height < 820;
+    final compact = size.shortestSide < 600;
     final progress = widget.totalQuestions <= 0
         ? 0.0
         : (widget.currentQuestion / widget.totalQuestions).clamp(0.0, 1.0);
@@ -49,10 +50,10 @@ class _ImageHotspotTemplateState extends State<ImageHotspotTemplate> {
       body: SafeArea(
         child: ListView(
           padding: EdgeInsets.fromLTRB(
-            compact ? 14 : 20,
-            compact ? 10 : 18,
-            compact ? 14 : 20,
-            compact ? 18 : 28,
+            compact ? 10 : 20,
+            compact ? 8 : 18,
+            compact ? 10 : 20,
+            compact ? 10 : 28,
           ),
           children: [
             _HotspotHeader(
@@ -62,9 +63,9 @@ class _ImageHotspotTemplateState extends State<ImageHotspotTemplate> {
               compact: compact,
               onBack: widget.onBack,
             ),
-            SizedBox(height: compact ? 16 : 24),
+            SizedBox(height: compact ? 8 : 24),
             _HotspotMascotIntro(compact: compact),
-            SizedBox(height: compact ? 16 : 24),
+            SizedBox(height: compact ? 8 : 24),
             _QuestionCard(
               question: widget.question,
               selectedHotspot: selectedHotspot,
@@ -78,7 +79,7 @@ class _ImageHotspotTemplateState extends State<ImageHotspotTemplate> {
                   ? null
                   : () => widget.onCheckAnswer(_selectedHotspotId),
             ),
-            SizedBox(height: compact ? 12 : 18),
+            SizedBox(height: compact ? 6 : 18),
             _BottomActions(
               compact: compact,
               onHint: widget.onHint,
@@ -136,7 +137,7 @@ class _HotspotHeader extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(width: compact ? 14 : 22),
+        SizedBox(width: compact ? 8 : 22),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,7 +156,7 @@ class _HotspotHeader extends StatelessWidget {
                 alignment: Alignment.centerRight,
                 children: [
                   Container(
-                    height: compact ? 24 : 30,
+                    height: compact ? 18 : 30,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(99),
@@ -169,14 +170,18 @@ class _HotspotHeader extends StatelessWidget {
                       ],
                     ),
                   ),
-                  FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress,
-                    child: Container(
-                      height: compact ? 24 : 30,
-                      decoration: BoxDecoration(
-                        color: _hotspotYellow,
-                        borderRadius: BorderRadius.circular(99),
+                  Positioned.fill(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: progress,
+                        child: Container(
+                          height: compact ? 18 : 30,
+                          decoration: BoxDecoration(
+                            color: _hotspotYellow,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -215,7 +220,7 @@ class _HotspotMascotIntro extends StatelessWidget {
           flex: 8,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 130 : 180,
+            height: compact ? 104 : 190,
             fit: BoxFit.contain,
           ),
         ),
@@ -223,7 +228,7 @@ class _HotspotMascotIntro extends StatelessWidget {
         Expanded(
           flex: 11,
           child: Container(
-            padding: EdgeInsets.all(compact ? 14 : 20),
+            padding: EdgeInsets.all(compact ? 8 : 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
@@ -240,7 +245,7 @@ class _HotspotMascotIntro extends StatelessWidget {
                 children: [
                   const TextSpan(text: 'Hai, aku '),
                   TextSpan(
-                    text: 'Bale',
+                    text: 'Babe',
                     style: TextStyle(color: _hotspotGreen),
                   ),
                   const TextSpan(
@@ -251,8 +256,8 @@ class _HotspotMascotIntro extends StatelessWidget {
               ),
               style: TextStyle(
                 color: _hotspotInk,
-                fontSize: compact ? 13 : 18,
-                height: 1.35,
+                fontSize: compact ? 11 : 18,
+                height: compact ? 1.22 : 1.35,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -285,7 +290,7 @@ class _QuestionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 22),
+      padding: EdgeInsets.all(compact ? 8 : 22),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
@@ -332,7 +337,7 @@ class _QuestionCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: compact ? 14 : 20),
+          SizedBox(height: compact ? 8 : 20),
           Text(
             question.prompt,
             style: TextStyle(
@@ -352,7 +357,7 @@ class _QuestionCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: compact ? 16 : 24),
+          SizedBox(height: compact ? 8 : 24),
           AspectRatio(
             aspectRatio: 16 / 9,
             child: Container(
@@ -390,7 +395,7 @@ class _QuestionCard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: compact ? 16 : 20),
+          SizedBox(height: compact ? 8 : 20),
           _TipCard(
             text: tipText ??
                 'Perhatikan gambar dengan teliti sebelum memilih jawaban.',
@@ -401,7 +406,7 @@ class _QuestionCard extends StatelessWidget {
             selectedHotspot: selectedHotspot,
             compact: compact,
           ),
-          SizedBox(height: compact ? 18 : 28),
+          SizedBox(height: compact ? 8 : 28),
           FilledButton(
             onPressed: onCheckAnswer,
             style: FilledButton.styleFrom(
@@ -421,16 +426,6 @@ class _QuestionCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Text('Periksa Jawaban'),
-                const SizedBox(width: 14),
-                Container(
-                  width: compact ? 36 : 48,
-                  height: compact ? 36 : 48,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.arrow_forward_rounded),
-                ),
               ],
             ),
           ),
@@ -662,7 +657,7 @@ class _BottomActions extends StatelessWidget {
       children: [
         Expanded(
           child: TextButton.icon(
-            onPressed: onHint,
+            onPressed: onHint ?? () => showTemplateHintSheet(context),
             icon: Icon(
               Icons.tips_and_updates_outlined,
               color: _hotspotGreen,
@@ -672,7 +667,7 @@ class _BottomActions extends StatelessWidget {
               'Butuh petunjuk?',
               style: TextStyle(
                 color: _hotspotGreen,
-                fontSize: compact ? 13 : 18,
+                fontSize: compact ? 11 : 18,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -686,7 +681,7 @@ class _BottomActions extends StatelessWidget {
               'Lewati untuk sekarang',
               style: TextStyle(
                 color: const Color(0xFF7D7A78),
-                fontSize: compact ? 13 : 18,
+                fontSize: compact ? 11 : 18,
                 fontWeight: FontWeight.w900,
               ),
             ),

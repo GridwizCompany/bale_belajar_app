@@ -10,16 +10,21 @@ const _worldYellow = Color(0xFFF4B400);
 class WorldsScreen extends StatelessWidget {
   const WorldsScreen({
     required this.selectedWorld,
+    this.backendData,
     required this.onSelectWorld,
     super.key,
   });
 
   final BaleWorld selectedWorld;
+  final Map<String, dynamic>? backendData;
   final ValueChanged<BaleWorldKey> onSelectWorld;
 
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).height < 900;
+    final backendWorlds =
+        (backendData?['worlds'] as List?)?.cast<Map<String, dynamic>>();
+    final selectedBackendWorld = backendData?['selectedWorld'] as String?;
     return Container(
       color: _worldBg,
       child: ListView(
@@ -27,17 +32,159 @@ class WorldsScreen extends StatelessWidget {
         children: [
           _WorldHeader(compact: compact),
           SizedBox(height: compact ? 8 : 16),
-          for (final world in baleWorlds) ...[
-            _WorldCard(
-              world: world,
-              selected: world.key == selectedWorld.key,
-              compact: compact,
-              onTap: () => onSelectWorld(world.key),
-            ),
-            SizedBox(height: compact ? 8 : 12),
-          ],
+          if (backendWorlds != null)
+            for (final world in backendWorlds) ...[
+              _BackendWorldCard(
+                world: world,
+                selected: world['key'] == selectedBackendWorld,
+                compact: compact,
+                onTap: () {
+                  final key = _worldKeyFromBackend(world['key'] as String?);
+                  if (key != null) onSelectWorld(key);
+                },
+              ),
+              SizedBox(height: compact ? 8 : 12),
+            ]
+          else
+            for (final world in baleWorlds) ...[
+              _WorldCard(
+                world: world,
+                selected: world.key == selectedWorld.key,
+                compact: compact,
+                onTap: () => onSelectWorld(world.key),
+              ),
+              SizedBox(height: compact ? 8 : 12),
+            ],
           if (!compact) _ComingSoonWorldCard(compact: compact),
         ],
+      ),
+    );
+  }
+}
+
+BaleWorldKey? _worldKeyFromBackend(String? key) => switch (key) {
+      'NUMERIA' => BaleWorldKey.numeria,
+      'KODEX' => BaleWorldKey.kodex,
+      'DETECTIVIA' => BaleWorldKey.detectivia,
+      _ => null,
+    };
+
+class _BackendWorldCard extends StatelessWidget {
+  const _BackendWorldCard({
+    required this.world,
+    required this.selected,
+    required this.compact,
+    required this.onTap,
+  });
+
+  final Map<String, dynamic> world;
+  final bool selected;
+  final bool compact;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (world['key']) {
+      'NUMERIA' => const Color(0xFF2D8CFF),
+      'KODEX' => const Color(0xFF4CAF50),
+      'DETECTIVIA' => const Color(0xFF8D5E34),
+      _ => _worldYellow,
+    };
+    final icon = switch (world['key']) {
+      'NUMERIA' => Icons.calculate_rounded,
+      'KODEX' => Icons.code_rounded,
+      'DETECTIVIA' => Icons.search_rounded,
+      _ => Icons.public_rounded,
+    };
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(22),
+        child: Container(
+          padding: EdgeInsets.all(compact ? 10 : 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: selected ? _worldYellow : const Color(0xFFFFE0A1),
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: compact ? 46 : 64,
+                height: compact ? 46 : 64,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(compact ? 14 : 18),
+                ),
+                child: Icon(icon, color: color, size: compact ? 25 : 34),
+              ),
+              SizedBox(width: compact ? 10 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            world['name'] as String? ?? 'Dunia',
+                            style: const TextStyle(
+                              color: _worldInk,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        if (selected)
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: _worldYellow,
+                          ),
+                      ],
+                    ),
+                    Text(
+                      world['subject'] as String? ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF60646F),
+                        fontSize: compact ? 12 : 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: compact ? 3 : 8),
+                    Text(
+                      world['description'] as String? ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: const Color(0xFF60646F),
+                        fontSize: compact ? 11 : 13,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    SizedBox(height: compact ? 3 : 8),
+                    Text(
+                      'Misi contoh: ${world['exampleMission'] ?? '-'}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: _worldInk,
+                        fontSize: compact ? 11 : 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

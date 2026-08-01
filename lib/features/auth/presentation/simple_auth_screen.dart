@@ -86,6 +86,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   DailyDuration? _dailyDuration;
   StudyTime? _studyTime;
   int _placementQuestionIndex = 0;
+  String? _prototypeStudentProfileId;
+  String? _prototypePlacementAttemptId;
+  List<TemplateQuestion>? _backendPlacementQuestions;
 
   @override
   void initState() {
@@ -126,6 +129,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     _flowStep = widget.initialMode == AuthMode.welcome ? 1 : 2;
     _googleBusy = false;
     _showPassword = false;
+    _prototypePlacementAttemptId = null;
+    if (widget.initialMode == AuthMode.register) {
+      unawaited(_ensurePrototypeSession());
+    }
   }
 
   @override
@@ -376,6 +383,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                     ),
                                                                     world:
                                                                         _learningWorld,
+                                                                    questions:
+                                                                        _backendPlacementQuestions,
                                                                     currentIndex:
                                                                         _placementQuestionIndex,
                                                                     onBack:
@@ -384,6 +393,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                         _nextPlacementQuestion,
                                                                     onShowAnalysis:
                                                                         _showAnalysis,
+                                                                    onQuestionCompleted:
+                                                                        _completePrototypePlacementQuestion,
                                                                   )
                                                                 : _mode ==
                                                                         AuthMode
@@ -411,6 +422,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                               builder: (_) => BaleVerseDemoScreen(
                                                                                 skipDemoLogin: true,
                                                                                 authController: widget.controller,
+                                                                                prototypeStudentProfileId: _prototypeStudentProfileId,
                                                                               ),
                                                                             ),
                                                                           );
@@ -693,6 +705,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       widget.onLoginRequested!();
       return;
     }
+    if (mode == AuthMode.register) {
+      unawaited(_ensurePrototypeSession());
+    }
     setState(() {
       _mode = mode;
       _flowStep = switch (mode) {
@@ -712,12 +727,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       };
       if (mode == AuthMode.placement) {
         _placementQuestionIndex = 0;
+        _prototypePlacementAttemptId = null;
+        _backendPlacementQuestions = null;
       }
     });
     _syncAuthAudio(mode);
   }
 
   void _showRecommendation() {
+    unawaited(_completePrototypeOnboarding());
     setState(() {
       _mode = AuthMode.recommendation;
       _flowStep = 7;
@@ -728,6 +746,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           _mode = AuthMode.placement;
           _placementQuestionIndex = 0;
         });
+        unawaited(_ensurePrototypePlacementAttempt());
         _syncAuthAudio(AuthMode.placement);
       }
     });
@@ -745,11 +764,124 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   void _showAnalysis() {
+    unawaited(_submitPrototypePlacement());
     setState(() {
       _mode = AuthMode.analysis;
       _flowStep = 7;
     });
     _syncAuthAudio(AuthMode.analysis);
+  }
+
+  Future<void> _ensurePrototypeSession() async {
+    if (_prototypeStudentProfileId != null) return;
+    try {
+      _prototypeStudentProfileId =
+          await widget.controller.authService.startPrototypeSession();
+    } catch (_) {
+      // Prototype UI tetap bisa dipakai ketika backend belum aktif.
+    }
+  }
+
+  Future<void> _completePrototypeOnboarding() async {
+    await _ensurePrototypeSession();
+    final studentProfileId = _prototypeStudentProfileId;
+    if (studentProfileId == null) return;
+    try {
+      await widget.controller.authService.savePrototypeOnboarding(
+        studentProfileId: studentProfileId,
+        complete: true,
+        answers: _onboardingPayload(),
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _ensurePrototypePlacementAttempt() async {
+    if (_prototypePlacementAttemptId != null) return;
+    await _ensurePrototypeSession();
+    final studentProfileId = _prototypeStudentProfileId;
+    if (studentProfileId == null) return;
+    try {
+      _prototypePlacementAttemptId =
+          await widget.controller.authService.startPrototypePlacement(
+        studentProfileId: studentProfileId,
+        worldKey: _learningWorldPayload(_learningWorld),
+      );
+      final questionJson =
+          await widget.controller.authService.getPrototypePlacementQuestions(
+        studentProfileId: studentProfileId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _backendPlacementQuestions =
+            questionJson.map(_templateQuestionFromJson).toList(growable: false);
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _savePrototypePlacementAnswer(
+    TemplateQuestion question,
+    Object? answer, {
+    required bool skipped,
+  }) async {
+    await _ensurePrototypePlacementAttempt();
+    final attemptId = _prototypePlacementAttemptId;
+    if (attemptId == null) return;
+    try {
+      if (skipped) {
+        await widget.controller.authService.skipPrototypePlacementAnswer(
+          attemptId: attemptId,
+          questionId: question.id,
+          questionType: question.questionType.payload,
+        );
+        return;
+      }
+      await widget.controller.authService.savePrototypePlacementAnswer(
+        attemptId: attemptId,
+        questionId: question.id,
+        questionType: question.questionType.payload,
+        answer: {'value': answer?.toString()},
+      );
+    } catch (_) {}
+  }
+
+  void _completePrototypePlacementQuestion(
+    TemplateQuestion question,
+    Object? answer, {
+    required bool skipped,
+  }) {
+    unawaited(
+        _savePrototypePlacementAnswer(question, answer, skipped: skipped));
+  }
+
+  Future<void> _submitPrototypePlacement() async {
+    await _ensurePrototypePlacementAttempt();
+    final attemptId = _prototypePlacementAttemptId;
+    if (attemptId == null) return;
+    try {
+      await widget.controller.authService.submitPrototypePlacement(attemptId);
+    } catch (_) {}
+  }
+
+  Map<String, dynamic> _onboardingPayload() {
+    return {
+      'learningGoal': _learningGoal?.name,
+      'learningWorld': _learningWorldPayload(_learningWorld),
+      'gradeChoice': _gradeChoice?.name,
+      'selfReportedLevel': _selfReportedLevel?.name,
+      'learningFormats': _learningFormats.map((format) => format.name).toList(),
+      'dailyDuration': _dailyDuration?.name,
+      'studyTime': _studyTime?.name,
+      'rawAnswers': {
+        'learningGoal': _learningGoal?.name,
+        'learningWorld': _learningWorld?.name,
+        'gradeChoice': _gradeChoice?.name,
+        'selfReportedLevel': _selfReportedLevel?.name,
+        'learningFormats':
+            _learningFormats.map((format) => format.name).toList(),
+        'dailyDuration': _dailyDuration?.name,
+        'studyTime': _studyTime?.name,
+      },
+    };
   }
 
   void _goToBaleVerseHome() {
@@ -759,6 +891,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         builder: (_) => BaleVerseDemoScreen(
           skipDemoLogin: true,
           authController: widget.controller,
+          prototypeStudentProfileId: _prototypeStudentProfileId,
         ),
       ),
     );
@@ -999,6 +1132,118 @@ class _OnboardingViewState extends State<_OnboardingView>
       ],
     );
   }
+}
+
+String? _learningWorldPayload(LearningWorld? world) => switch (world) {
+      LearningWorld.numeria => 'NUMERIA',
+      LearningWorld.kodex => 'KODEX',
+      LearningWorld.detectivia => 'DETECTIVIA',
+      LearningWorld.bahasa => 'BAHASA',
+      LearningWorld.sains => 'SAINS',
+      LearningWorld.tryAll => 'TRY_ALL',
+      null => null,
+    };
+
+TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
+  final questionType = QuestionType.values.firstWhere(
+    (type) => type.payload == json['questionType'],
+    orElse: () => QuestionType.singleChoice,
+  );
+  return TemplateQuestion(
+    id: json['id'] as String,
+    questionType: questionType,
+    prompt: json['prompt'] as String,
+    instruction: json['instruction'] as String?,
+    options: _jsonList(json['options']).map((item) {
+      return TemplateOption(
+        id: item['id'] as String,
+        label: item['label'] as String,
+        imageUrl: item['imageUrl'] as String?,
+        description: item['description'] as String?,
+      );
+    }).toList(growable: false),
+    media: json['media'] is Map<String, dynamic>
+        ? _templateMediaFromJson(json['media'] as Map<String, dynamic>)
+        : null,
+    responseConfig: json['responseConfig'] is Map<String, dynamic>
+        ? _responseConfigFromJson(
+            json['responseConfig'] as Map<String, dynamic>)
+        : null,
+    matchingPairs: _jsonList(json['matchingPairs']).map((item) {
+      return MatchingPair(
+        leftId: item['leftId'] as String,
+        leftLabel: item['leftLabel'] as String,
+        rightId: item['rightId'] as String,
+        rightLabel: item['rightLabel'] as String,
+      );
+    }).toList(growable: false),
+    orderingItems: _jsonList(json['orderingItems']).map((item) {
+      return OrderingItem(
+        id: item['id'] as String,
+        label: item['label'] as String,
+      );
+    }).toList(growable: false),
+    hotspotAreas: _jsonList(json['hotspotAreas']).map((item) {
+      return HotspotArea(
+        id: item['id'] as String,
+        label: item['label'] as String,
+        x: (item['x'] as num).toDouble(),
+        y: (item['y'] as num).toDouble(),
+        radius: ((item['radius'] as num?) ?? 0.08).toDouble(),
+      );
+    }).toList(growable: false),
+    timelineItems: _jsonList(json['timelineItems']).map((item) {
+      return TimelineItem(
+        id: item['id'] as String,
+        label: item['label'] as String,
+        timeLabel: item['timeLabel'] as String?,
+        description: item['description'] as String?,
+      );
+    }).toList(growable: false),
+    codeConfig: json['codeConfig'] is Map<String, dynamic>
+        ? _codeConfigFromJson(json['codeConfig'] as Map<String, dynamic>)
+        : null,
+  );
+}
+
+TemplateMedia _templateMediaFromJson(Map<String, dynamic> json) {
+  return TemplateMedia(
+    type: json['type'] as String,
+    url: json['url'] as String,
+    durationSeconds: json['durationSeconds'] as int?,
+    maxReplay: json['maxReplay'] as int?,
+    transcriptAvailable: json['transcriptAvailable'] as bool? ?? false,
+    transcript: json['transcript'] as String?,
+  );
+}
+
+ResponseConfig _responseConfigFromJson(Map<String, dynamic> json) {
+  final mode = TextInputMode.values.firstWhere(
+    (mode) => mode.name == json['inputMode'],
+    orElse: () => TextInputMode.text,
+  );
+  return ResponseConfig(
+    inputMode: mode,
+    maxLength: json['maxLength'] as int? ?? 200,
+    caseSensitive: json['caseSensitive'] as bool? ?? false,
+    allowEmpty: json['allowEmpty'] as bool? ?? false,
+    allowUnit: json['allowUnit'] as bool? ?? false,
+  );
+}
+
+CodeConfig _codeConfigFromJson(Map<String, dynamic> json) {
+  return CodeConfig(
+    language: json['language'] as String,
+    initialCode: json['initialCode'] as String? ?? '',
+    readOnlyPrefix: json['readOnlyPrefix'] as String?,
+    expectedOutput: json['expectedOutput'] as String?,
+    backendExecutionEnabled: json['backendExecutionEnabled'] as bool? ?? false,
+  );
+}
+
+List<Map<String, dynamic>> _jsonList(Object? value) {
+  if (value is! List) return const [];
+  return value.whereType<Map<String, dynamic>>().toList(growable: false);
 }
 
 class _MascotStage extends StatelessWidget {
@@ -1925,22 +2170,30 @@ class _RecommendationSplash extends StatelessWidget {
 class _PlacementTestFlow extends StatelessWidget {
   const _PlacementTestFlow({
     required this.world,
+    required this.questions,
     required this.currentIndex,
     required this.onBack,
     required this.onNext,
     required this.onShowAnalysis,
+    required this.onQuestionCompleted,
     super.key,
   });
 
   final LearningWorld? world;
+  final List<TemplateQuestion>? questions;
   final int currentIndex;
   final VoidCallback onBack;
   final VoidCallback onNext;
   final VoidCallback onShowAnalysis;
+  final void Function(
+    TemplateQuestion question,
+    Object? answer, {
+    required bool skipped,
+  }) onQuestionCompleted;
 
   @override
   Widget build(BuildContext context) {
-    final questions = _placementQuestionsFor(world);
+    final questions = this.questions ?? _placementQuestionsFor(world);
     if (currentIndex >= 13) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onShowAnalysis());
       return const ColoredBox(
@@ -1953,6 +2206,20 @@ class _PlacementTestFlow extends StatelessWidget {
     final index = currentIndex.clamp(0, questions.length - 1);
     final question = questions[index];
     final totalQuestions = questions.length;
+
+    void skipCurrent() {
+      onQuestionCompleted(question, null, skipped: true);
+      onNext();
+    }
+
+    void answerCurrent(Object? answer) {
+      onQuestionCompleted(question, answer, skipped: false);
+      if (index >= 12) {
+        onShowAnalysis();
+      } else {
+        onNext();
+      }
+    }
 
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 360),
@@ -1977,8 +2244,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 1,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         1 => MultipleSelectTemplate(
             key: ValueKey(question.id),
@@ -1986,8 +2253,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 2,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         2 => BinaryChoiceTemplate(
             key: ValueKey(question.id),
@@ -1995,8 +2262,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 3,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         3 => ShortTextTemplate(
             key: ValueKey(question.id),
@@ -2004,8 +2271,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 4,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         4 => MatchingTemplate(
             key: ValueKey(question.id),
@@ -2013,8 +2280,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 5,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         5 => OrderingTemplate(
             key: ValueKey(question.id),
@@ -2022,8 +2289,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 6,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         6 => ImageChoiceTemplate(
             key: ValueKey(question.id),
@@ -2031,8 +2298,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 7,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         7 => AudioChoiceTemplate(
             key: ValueKey(question.id),
@@ -2042,8 +2309,8 @@ class _PlacementTestFlow extends StatelessWidget {
             onPlay: () {},
             onPause: () {},
             onBack: onBack,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         8 => LongTextTemplate(
             key: ValueKey(question.id),
@@ -2051,8 +2318,8 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 9,
             totalQuestions: totalQuestions,
             onBack: onBack,
-            onSkip: onNext,
-            onSubmitAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onSubmitAnswer: answerCurrent,
           ),
         9 => CodeInputTemplate(
             key: ValueKey(question.id),
@@ -2062,23 +2329,23 @@ class _PlacementTestFlow extends StatelessWidget {
             readingText:
                 'Di sebuah desa, warga berinisiatif membuat tempat sampah organik dan anorganik di setiap rumah. Mereka juga rutin membersihkan lingkungan setiap minggu. Kini, desa tersebut menjadi bersih, sehat, dan nyaman untuk ditinggali.',
             onBack: onBack,
-            onSkip: onNext,
+            onSkip: skipCurrent,
             onBookmark: () {},
-            onCheckAnswer: (_) => onNext(),
+            onCheckAnswer: answerCurrent,
           ),
         10 => ImageHotspotTemplate(
             key: ValueKey(question.id),
             question: question,
-            onSkip: onNext,
-            onCheckAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
         11 => VoiceResponseTemplate(
             key: ValueKey(question.id),
             question: question,
             onStartRecording: () {},
             onStopRecording: () {},
-            onSkip: onNext,
-            onSubmitAnswer: (_) => onNext(),
+            onSkip: skipCurrent,
+            onSubmitAnswer: answerCurrent,
           ),
         12 => TimelineBuilderTemplate(
             key: ValueKey(question.id),
@@ -2086,8 +2353,11 @@ class _PlacementTestFlow extends StatelessWidget {
             currentQuestion: 13,
             totalQuestions: totalQuestions,
             skipLabel: 'Lanjut ke Analisis Hasil',
-            onSkip: onShowAnalysis,
-            onCheckAnswer: (_) => onShowAnalysis(),
+            onSkip: () {
+              onQuestionCompleted(question, null, skipped: true);
+              onShowAnalysis();
+            },
+            onCheckAnswer: answerCurrent,
           ),
         _ => const ColoredBox(
             color: Color(0xFFFFF3C6),

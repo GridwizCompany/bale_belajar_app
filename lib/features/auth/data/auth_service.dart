@@ -74,6 +74,93 @@ class AuthService {
     }
   }
 
+  Future<String> startPrototypeSession() async {
+    final data = await apiClient.post('/prototype/student/session');
+    final json = data as Map<String, dynamic>;
+    return json['studentProfileId'] as String;
+  }
+
+  Future<void> savePrototypeOnboarding({
+    required String studentProfileId,
+    required Map<String, dynamic> answers,
+    bool complete = false,
+  }) async {
+    if (complete) {
+      await apiClient.post(
+        '/prototype/student/$studentProfileId/onboarding/complete',
+        body: answers,
+      );
+      return;
+    }
+    await apiClient.put(
+      '/prototype/student/$studentProfileId/onboarding',
+      body: answers,
+    );
+  }
+
+  Future<String> startPrototypePlacement({
+    required String studentProfileId,
+    String? worldKey,
+  }) async {
+    final suffix = worldKey == null ? '' : '?worldKey=$worldKey';
+    final data = await apiClient.post(
+      '/prototype/student/$studentProfileId/placement/start$suffix',
+    );
+    final json = data as Map<String, dynamic>;
+    return json['attemptId'] as String;
+  }
+
+  Future<List<Map<String, dynamic>>> getPrototypePlacementQuestions({
+    required String studentProfileId,
+  }) async {
+    final data = await apiClient.get(
+      '/prototype/student/$studentProfileId/placement/questions',
+    );
+    final json = data as Map<String, dynamic>;
+    return (json['questions'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> getPrototypeBaleVerse({
+    required String studentProfileId,
+  }) async {
+    final data = await apiClient.get(
+      '/prototype/student/$studentProfileId/baleverse',
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> savePrototypePlacementAnswer({
+    required String attemptId,
+    required String questionId,
+    required String questionType,
+    required Map<String, dynamic> answer,
+    bool skipped = false,
+  }) async {
+    await apiClient.put(
+      '/prototype/student/placement/$attemptId/answers/$questionId',
+      body: {
+        'questionType': questionType,
+        'answer': answer,
+        'isSkipped': skipped,
+        'clientAnsweredAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  Future<void> skipPrototypePlacementAnswer({
+    required String attemptId,
+    required String questionId,
+    required String questionType,
+  }) async {
+    await apiClient.post(
+      '/prototype/student/placement/$attemptId/skip/$questionId?questionType=$questionType',
+    );
+  }
+
+  Future<void> submitPrototypePlacement(String attemptId) async {
+    await apiClient.post('/prototype/student/placement/$attemptId/submit');
+  }
+
   Future<AuthSession> _persist(AuthSession session) async {
     await tokenStore.save(session.accessToken);
     return session;

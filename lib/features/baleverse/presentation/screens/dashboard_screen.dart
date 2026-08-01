@@ -12,17 +12,22 @@ class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
     required this.progress,
     required this.selectedWorld,
+    this.backendData,
     required this.onStartMission,
     super.key,
   });
 
   final BaleVerseProgress progress;
   final BaleWorld selectedWorld;
+  final Map<String, dynamic>? backendData;
   final VoidCallback onStartMission;
 
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
+    final profile = backendData?['profile'] as Map<String, dynamic>?;
+    final stats = backendData?['stats'] as Map<String, dynamic>?;
+    final todayMission = backendData?['todayMission'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
 
     return Container(
@@ -30,12 +35,16 @@ class DashboardScreen extends StatelessWidget {
       child: ListView(
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 18, 14, 10),
         children: [
-          _GreetingCard(userName: user.name, compact: compact),
+          _GreetingCard(
+            userName: profile?['name'] as String? ?? user.name,
+            compact: compact,
+          ),
           SizedBox(height: compact ? 8 : 14),
-          _StatsStrip(user: user, compact: compact),
+          _StatsStrip(user: user, stats: stats, compact: compact),
           SizedBox(height: compact ? 8 : 14),
           _TodayMissionCard(
             selectedWorld: selectedWorld,
+            mission: todayMission,
             compact: compact,
             onStartMission: onStartMission,
           ),
@@ -136,9 +145,14 @@ class _GreetingCard extends StatelessWidget {
 }
 
 class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.user, required this.compact});
+  const _StatsStrip({
+    required this.user,
+    required this.stats,
+    required this.compact,
+  });
 
   final BaleUser user;
+  final Map<String, dynamic>? stats;
   final bool compact;
 
   @override
@@ -155,16 +169,17 @@ class _StatsStrip extends StatelessWidget {
               icon: Icons.star_rounded,
               color: _homeYellow,
               label: compact ? 'XP' : 'XP Matematika',
-              value: '${user.xp[BaleWorldKey.detectivia] ?? 240}',
+              value:
+                  '${stats?['xp'] ?? user.xp[BaleWorldKey.detectivia] ?? 240}',
             ),
           ),
           const _StatDivider(),
-          const Expanded(
+          Expanded(
             child: _StatItem(
               icon: Icons.local_fire_department_rounded,
-              color: Color(0xFFFF6B2C),
+              color: const Color(0xFFFF6B2C),
               label: 'Nyala',
-              value: '3',
+              value: '${stats?['streak'] ?? 3}',
             ),
           ),
           const _StatDivider(),
@@ -251,11 +266,13 @@ class _StatDivider extends StatelessWidget {
 class _TodayMissionCard extends StatelessWidget {
   const _TodayMissionCard({
     required this.selectedWorld,
+    required this.mission,
     required this.compact,
     required this.onStartMission,
   });
 
   final BaleWorld selectedWorld;
+  final Map<String, dynamic>? mission;
   final bool compact;
   final VoidCallback onStartMission;
 
@@ -306,7 +323,7 @@ class _TodayMissionCard extends StatelessWidget {
                   children: [
                     Text(
                       selectedWorld.key == BaleWorldKey.detectivia
-                          ? 'Detektifia'
+                          ? (mission?['title'] as String? ?? 'Detektifia')
                           : selectedWorld.name,
                       style: TextStyle(
                         color: _homeInk,
@@ -317,7 +334,9 @@ class _TodayMissionCard extends StatelessWidget {
                     ),
                     SizedBox(height: compact ? 4 : 8),
                     Text(
-                      'Chapter 1 - Kamp Observasi',
+                      mission?['durationMinutes'] == null
+                          ? 'Chapter 1 - Kamp Observasi'
+                          : '${mission?['durationMinutes']} menit • ${mission?['activityCount'] ?? 5} aktivitas',
                       style: TextStyle(
                         color: Color(0xFF60646F),
                         fontSize: compact ? 12 : 16,

@@ -24,11 +24,13 @@ class BaleVerseDemoScreen extends StatefulWidget {
   const BaleVerseDemoScreen({
     this.skipDemoLogin = true,
     this.authController,
+    this.prototypeStudentProfileId,
     super.key,
   });
 
   final bool skipDemoLogin;
   final AuthController? authController;
+  final String? prototypeStudentProfileId;
 
   @override
   State<BaleVerseDemoScreen> createState() => _BaleVerseDemoScreenState();
@@ -47,6 +49,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     ...humanHelpRecommendation.shareableContext,
   };
   BackgroundMusicId? _lastRequestedMusic;
+  Map<String, dynamic>? _backendData;
 
   BaleVerseProgress get _progress => _progressService.snapshot;
 
@@ -57,6 +60,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         ? const machine.BaleVerseState(step: MissionStep.dashboard)
         : const machine.BaleVerseState();
     _progressService.addListener(_onProgressChanged);
+    _loadBackendData();
   }
 
   @override
@@ -67,6 +71,19 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
 
   void _onProgressChanged() {
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadBackendData() async {
+    final studentProfileId = widget.prototypeStudentProfileId;
+    final authController = widget.authController;
+    if (studentProfileId == null || authController == null) return;
+    try {
+      final data = await authController.authService.getPrototypeBaleVerse(
+        studentProfileId: studentProfileId,
+      );
+      if (!mounted) return;
+      setState(() => _backendData = data);
+    } catch (_) {}
   }
 
   BaleWorld get _selectedWorld {
@@ -199,11 +216,24 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   Widget _buildBody() {
+    if (widget.prototypeStudentProfileId != null &&
+        _backendData == null &&
+        _state.step == MissionStep.dashboard) {
+      return const ColoredBox(
+        key: ValueKey('baleverse-backend-loading'),
+        color: Color(0xFFFFF3C6),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF4B400)),
+        ),
+      );
+    }
+
     if (_tab == BaleTab.home) {
       return DashboardScreen(
         key: const ValueKey('dashboard'),
         progress: _progress,
         selectedWorld: _selectedWorld,
+        backendData: _backendData,
         onStartMission: _startMission,
       );
     }
@@ -212,6 +242,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return WorldsScreen(
         key: const ValueKey('worlds'),
         selectedWorld: _selectedWorld,
+        backendData: _backendData,
         onSelectWorld: (world) {
           _update(machine.selectWorld(_state, world));
         },
@@ -222,6 +253,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return BaleProfilePage(
         key: const ValueKey('profile'),
         progress: _progress,
+        backendData: _backendData,
         onSignOut: widget.authController?.signOut,
       );
     }
@@ -230,6 +262,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return MissionHubScreen(
         key: const ValueKey('missionHub'),
         progress: _progress,
+        backendData: _backendData,
         onStartMission: _startMission,
       );
     }

@@ -11,25 +11,29 @@ const _profileGreen = Color(0xFF4CAF50);
 class BaleProfilePage extends StatelessWidget {
   const BaleProfilePage({
     required this.progress,
+    this.backendData,
     this.onSignOut,
     super.key,
   });
 
   final BaleVerseProgress progress;
+  final Map<String, dynamic>? backendData;
   final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
+    final profile = backendData?['profile'] as Map<String, dynamic>?;
+    final stats = backendData?['stats'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _profileBg,
       child: ListView(
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
-          _ProfileHeader(user: user, compact: compact),
+          _ProfileHeader(user: user, profile: profile, compact: compact),
           SizedBox(height: compact ? 8 : 16),
-          _ProfileProgress(user: user, compact: compact),
+          _ProfileProgress(user: user, stats: stats, compact: compact),
           SizedBox(height: compact ? 8 : 14),
           _ProfileMenuTile(
             icon: Icons.school_rounded,
@@ -70,9 +74,14 @@ class BaleProfilePage extends StatelessWidget {
 }
 
 class _ProfileHeader extends StatelessWidget {
-  const _ProfileHeader({required this.user, required this.compact});
+  const _ProfileHeader({
+    required this.user,
+    required this.profile,
+    required this.compact,
+  });
 
   final BaleUser user;
+  final Map<String, dynamic>? profile;
   final bool compact;
 
   @override
@@ -107,7 +116,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user.name,
+                  profile?['name'] as String? ?? user.name,
                   style: TextStyle(
                     color: _profileInk,
                     fontSize: compact ? 25 : 38,
@@ -116,7 +125,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 SizedBox(height: compact ? 3 : 6),
                 Text(
-                  '${user.rank} - Level ${user.level}',
+                  '${profile?['rank'] ?? user.rank} - Level ${profile?['level'] ?? user.level}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -134,9 +143,9 @@ class _ProfileHeader extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: const Color(0xFFFFE0A1)),
                   ),
-                  child: const Text(
-                    'Foundation 3',
-                    style: TextStyle(
+                  child: Text(
+                    _formatFoundation(profile?['foundation'] as String?),
+                    style: const TextStyle(
                       color: _profileYellow,
                       fontWeight: FontWeight.w900,
                     ),
@@ -151,10 +160,25 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+String _formatFoundation(String? value) {
+  if (value == null || value.isEmpty) return 'Foundation 3';
+  return value
+      .toLowerCase()
+      .split('_')
+      .map((word) =>
+          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
 class _ProfileProgress extends StatelessWidget {
-  const _ProfileProgress({required this.user, required this.compact});
+  const _ProfileProgress({
+    required this.user,
+    required this.stats,
+    required this.compact,
+  });
 
   final BaleUser user;
+  final Map<String, dynamic>? stats;
   final bool compact;
 
   @override
@@ -179,15 +203,18 @@ class _ProfileProgress extends StatelessWidget {
           SizedBox(height: compact ? 8 : 14),
           _ProgressRow(
             label: 'XP Detectivia',
-            value: '${user.xp[BaleWorldKey.detectivia] ?? 0}',
+            value: '${stats?['xp'] ?? user.xp[BaleWorldKey.detectivia] ?? 0}',
             progress: 0.62,
             color: _profileYellow,
           ),
           SizedBox(height: compact ? 8 : 12),
           _ProgressRow(
             label: 'Target mingguan',
-            value: '${user.weeklyCompleted}/${user.weeklyTarget} hari',
-            progress: user.weeklyCompleted / user.weeklyTarget,
+            value:
+                '${stats?['weeklyCompleted'] ?? user.weeklyCompleted}/${stats?['weeklyTarget'] ?? user.weeklyTarget} hari',
+            progress:
+                ((stats?['weeklyCompleted'] ?? user.weeklyCompleted) as num) /
+                    ((stats?['weeklyTarget'] ?? user.weeklyTarget) as num),
             color: _profileGreen,
           ),
         ],

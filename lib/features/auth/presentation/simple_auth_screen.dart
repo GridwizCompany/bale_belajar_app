@@ -86,7 +86,6 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   DailyDuration? _dailyDuration;
   StudyTime? _studyTime;
   int _placementQuestionIndex = 0;
-  bool _openingAnalysis = false;
 
   @override
   void initState() {
@@ -136,8 +135,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         onBack: () {
           setState(() {
             _mode = AuthMode.placement;
-            _placementQuestionIndex = 13;
-            _openingAnalysis = false;
+            _placementQuestionIndex = 12;
           });
           _syncAuthAudio(AuthMode.placement);
         },
@@ -737,7 +735,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   void _nextPlacementQuestion() {
     final audio = AudioScope.maybeOf(context);
-    if (_placementQuestionIndex >= 13) {
+    if (_placementQuestionIndex >= 12) {
       audio?.playSound(SoundEffectId.pageTransition);
       _showAnalysis();
       return;
@@ -747,8 +745,6 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   void _showAnalysis() {
-    if (_openingAnalysis) return;
-    _openingAnalysis = true;
     setState(() {
       _mode = AuthMode.analysis;
       _flowStep = 7;

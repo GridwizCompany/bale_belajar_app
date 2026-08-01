@@ -171,6 +171,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         ),
       ),
       bottomNavigationBar: NavigationBar(
+        height: 64,
         selectedIndex: _tab.index,
         onDestinationSelected: (index) => _goToTab(BaleTab.values[index]),
         indicatorColor: const Color(0xFFFFF3C6),

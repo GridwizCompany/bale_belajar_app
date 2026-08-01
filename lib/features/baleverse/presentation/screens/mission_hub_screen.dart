@@ -20,40 +20,44 @@ class MissionHubScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < 760;
+    final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _missionBg,
       child: ListView(
-        padding: EdgeInsets.fromLTRB(20, compact ? 14 : 22, 20, 18),
+        padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
           _MissionHeader(compact: compact),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 8 : 16),
           _ActiveMissionCard(compact: compact, onStartMission: onStartMission),
-          const SizedBox(height: 14),
-          const _MissionListTile(
+          SizedBox(height: compact ? 8 : 14),
+          _MissionListTile(
             icon: Icons.visibility_rounded,
             title: 'Latihan Observasi',
             subtitle: 'Kenali petunjuk penting dari gambar.',
             meta: '6 menit',
             color: Color(0xFF4CAF50),
             unlocked: true,
+            compact: compact,
           ),
-          const _MissionListTile(
+          _MissionListTile(
             icon: Icons.timeline_rounded,
             title: 'Urutan Kejadian',
             subtitle: 'Susun cerita dari awal sampai akhir.',
             meta: '8 menit',
             color: Color(0xFFF4B400),
             unlocked: true,
+            compact: compact,
           ),
-          const _MissionListTile(
-            icon: Icons.lock_rounded,
-            title: 'Papan Bukti',
-            subtitle: 'Terbuka setelah dua misi selesai.',
-            meta: 'Terkunci',
-            color: Color(0xFF8B8179),
-            unlocked: false,
-          ),
+          if (!compact)
+            _MissionListTile(
+              icon: Icons.lock_rounded,
+              title: 'Papan Bukti',
+              subtitle: 'Terbuka setelah dua misi selesai.',
+              meta: 'Terkunci',
+              color: Color(0xFF8B8179),
+              unlocked: false,
+              compact: compact,
+            ),
         ],
       ),
     );
@@ -68,7 +72,7 @@ class _MissionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(compact ? 10 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -84,10 +88,10 @@ class _MissionHeader extends StatelessWidget {
         children: [
           Image.asset(
             'assets/mascot/welcome.png',
-            height: compact ? 112 : 148,
+            height: compact ? 74 : 148,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: compact ? 8 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,17 +100,19 @@ class _MissionHeader extends StatelessWidget {
                   'Misi Belajar',
                   style: TextStyle(
                     color: _missionInk,
-                    fontSize: compact ? 30 : 38,
+                    fontSize: compact ? 26 : 38,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Pilih misi pendek. Progres tetap tersimpan walau kamu berhenti.',
+                SizedBox(height: compact ? 4 : 8),
+                Text(
+                  compact
+                      ? 'Pilih misi pendek.'
+                      : 'Pilih misi pendek. Progres tetap tersimpan walau kamu berhenti.',
                   style: TextStyle(
                     color: Color(0xFF60646F),
-                    fontSize: 15,
-                    height: 1.35,
+                    fontSize: compact ? 12 : 15,
+                    height: 1.25,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -131,7 +137,7 @@ class _ActiveMissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(compact ? 10 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -140,35 +146,39 @@ class _ActiveMissionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Misi aktif',
             style: TextStyle(
               color: Color(0xFFF57C00),
-              fontSize: 18,
+              fontSize: compact ? 14 : 18,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 4 : 8),
           Text(
             numeriaMission.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: _missionInk,
-              fontSize: compact ? 28 : 34,
+              fontSize: compact ? 25 : 34,
               height: 1.05,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: compact ? 4 : 8),
           Text(
             numeriaMission.goal,
-            style: const TextStyle(
+            maxLines: compact ? 2 : 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
               color: Color(0xFF60646F),
-              fontSize: 15,
-              height: 1.35,
+              fontSize: compact ? 12 : 15,
+              height: 1.25,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 8 : 16),
           Row(
             children: [
               _MissionBadge(
@@ -182,10 +192,10 @@ class _ActiveMissionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 8 : 16),
           SizedBox(
             width: double.infinity,
-            height: compact ? 54 : 62,
+            height: compact ? 42 : 62,
             child: FilledButton(
               onPressed: onStartMission,
               style: FilledButton.styleFrom(
@@ -245,6 +255,7 @@ class _MissionListTile extends StatelessWidget {
     required this.meta,
     required this.color,
     required this.unlocked,
+    required this.compact,
   });
 
   final IconData icon;
@@ -253,12 +264,13 @@ class _MissionListTile extends StatelessWidget {
   final String meta;
   final Color color;
   final bool unlocked;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: EdgeInsets.only(bottom: compact ? 8 : 12),
+      padding: EdgeInsets.all(compact ? 10 : 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -273,13 +285,13 @@ class _MissionListTile extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: compact ? 42 : 56,
+            height: compact ? 42 : 56,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(icon, color: color, size: compact ? 24 : 30),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -288,17 +300,19 @@ class _MissionListTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _missionInk,
-                    fontSize: 18,
+                    fontSize: compact ? 15 : 18,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     color: Color(0xFF60646F),
-                    fontSize: 13,
+                    fontSize: compact ? 11 : 13,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

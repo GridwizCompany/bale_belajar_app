@@ -21,21 +21,22 @@ class BaleProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
-    final compact = MediaQuery.sizeOf(context).height < 760;
+    final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _profileBg,
       child: ListView(
-        padding: EdgeInsets.fromLTRB(20, compact ? 14 : 22, 20, 18),
+        padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
           _ProfileHeader(user: user, compact: compact),
-          const SizedBox(height: 16),
-          _ProfileProgress(user: user),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 16),
+          _ProfileProgress(user: user, compact: compact),
+          SizedBox(height: compact ? 8 : 14),
           _ProfileMenuTile(
             icon: Icons.school_rounded,
             title: 'Jalur belajar',
             subtitle: 'Foundation 3 - Detektifia',
             color: _profileYellow,
+            compact: compact,
             onTap: () {},
           ),
           _ProfileMenuTile(
@@ -43,6 +44,7 @@ class BaleProfilePage extends StatelessWidget {
             title: 'Pengingat belajar',
             subtitle: 'Sore hari, 10 menit',
             color: _profileGreen,
+            compact: compact,
             onTap: () {},
           ),
           _ProfileMenuTile(
@@ -50,6 +52,7 @@ class BaleProfilePage extends StatelessWidget {
             title: 'Data & keamanan',
             subtitle: 'Data belajar tersimpan aman',
             color: const Color(0xFF0E3A5F),
+            compact: compact,
             onTap: () {},
           ),
           if (onSignOut != null) ...[
@@ -75,7 +78,7 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(compact ? 10 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -90,15 +93,15 @@ class _ProfileHeader extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            radius: compact ? 42 : 52,
+            radius: compact ? 34 : 52,
             backgroundColor: const Color(0xFFFFF8E5),
             child: Image.asset(
               'assets/mascot/login.png',
-              height: compact ? 78 : 96,
+              height: compact ? 62 : 96,
               fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: compact ? 10 : 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,23 +110,25 @@ class _ProfileHeader extends StatelessWidget {
                   user.name,
                   style: TextStyle(
                     color: _profileInk,
-                    fontSize: compact ? 30 : 38,
+                    fontSize: compact ? 25 : 38,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: compact ? 3 : 6),
                 Text(
                   '${user.rank} - Level ${user.level}',
-                  style: const TextStyle(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     color: Color(0xFF60646F),
-                    fontSize: 15,
+                    fontSize: compact ? 12 : 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: compact ? 6 : 10),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: 10, vertical: compact ? 5 : 7),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF8E5),
                     borderRadius: BorderRadius.circular(999),
@@ -147,14 +152,15 @@ class _ProfileHeader extends StatelessWidget {
 }
 
 class _ProfileProgress extends StatelessWidget {
-  const _ProfileProgress({required this.user});
+  const _ProfileProgress({required this.user, required this.compact});
 
   final BaleUser user;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(compact ? 12 : 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -162,22 +168,22 @@ class _ProfileProgress extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ringkasan progres',
             style: TextStyle(
               color: _profileInk,
-              fontSize: 22,
+              fontSize: compact ? 18 : 22,
               fontWeight: FontWeight.w900,
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           _ProgressRow(
             label: 'XP Detectivia',
             value: '${user.xp[BaleWorldKey.detectivia] ?? 0}',
             progress: 0.62,
             color: _profileYellow,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: compact ? 8 : 12),
           _ProgressRow(
             label: 'Target mingguan',
             value: '${user.weeklyCompleted}/${user.weeklyTarget} hari',
@@ -248,6 +254,7 @@ class _ProfileMenuTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.color,
+    required this.compact,
     required this.onTap,
   });
 
@@ -255,12 +262,13 @@ class _ProfileMenuTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color color;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: compact ? 8 : 12),
       child: Material(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -268,17 +276,17 @@ class _ProfileMenuTile extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(compact ? 10 : 14),
             child: Row(
               children: [
                 Container(
-                  width: 54,
-                  height: 54,
+                  width: compact ? 42 : 54,
+                  height: compact ? 42 : 54,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Icon(icon, color: color, size: 30),
+                  child: Icon(icon, color: color, size: compact ? 23 : 30),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -287,17 +295,19 @@ class _ProfileMenuTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: _profileInk,
-                          fontSize: 18,
+                          fontSize: compact ? 15 : 18,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
                       Text(
                         subtitle,
-                        style: const TextStyle(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
                           color: Color(0xFF60646F),
-                          fontSize: 13,
+                          fontSize: compact ? 11 : 13,
                           fontWeight: FontWeight.w800,
                         ),
                       ),

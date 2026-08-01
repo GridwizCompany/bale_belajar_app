@@ -19,23 +19,24 @@ class WorldsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < 760;
+    final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _worldBg,
       child: ListView(
-        padding: EdgeInsets.fromLTRB(20, compact ? 14 : 22, 20, 18),
+        padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
           _WorldHeader(compact: compact),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 8 : 16),
           for (final world in baleWorlds) ...[
             _WorldCard(
               world: world,
               selected: world.key == selectedWorld.key,
+              compact: compact,
               onTap: () => onSelectWorld(world.key),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
           ],
-          _ComingSoonWorldCard(compact: compact),
+          if (!compact) _ComingSoonWorldCard(compact: compact),
         ],
       ),
     );
@@ -50,7 +51,7 @@ class _WorldHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(compact ? 10 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -66,10 +67,10 @@ class _WorldHeader extends StatelessWidget {
         children: [
           Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 112 : 150,
+            height: compact ? 74 : 150,
             fit: BoxFit.contain,
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: compact ? 8 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,18 +79,20 @@ class _WorldHeader extends StatelessWidget {
                   'Pilih Dunia',
                   style: TextStyle(
                     color: _worldInk,
-                    fontSize: compact ? 30 : 38,
+                    fontSize: compact ? 25 : 38,
                     height: 1,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Mulai dari satu dunia. Yang lain tetap bisa kamu buka kapan saja.',
+                SizedBox(height: compact ? 4 : 8),
+                Text(
+                  compact
+                      ? 'Mulai dari satu dunia.'
+                      : 'Mulai dari satu dunia. Yang lain tetap bisa kamu buka kapan saja.',
                   style: TextStyle(
                     color: Color(0xFF60646F),
-                    fontSize: 15,
-                    height: 1.35,
+                    fontSize: compact ? 12 : 15,
+                    height: 1.25,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -106,11 +109,13 @@ class _WorldCard extends StatelessWidget {
   const _WorldCard({
     required this.world,
     required this.selected,
+    required this.compact,
     required this.onTap,
   });
 
   final BaleWorld world;
   final bool selected;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -140,7 +145,7 @@ class _WorldCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(compact ? 10 : 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
@@ -151,15 +156,16 @@ class _WorldCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 64,
-                height: 64,
+                width: compact ? 46 : 64,
+                height: compact ? 46 : 64,
                 decoration: BoxDecoration(
                   color: world.color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(compact ? 14 : 18),
                 ),
-                child: Icon(details.icon, color: world.color, size: 34),
+                child: Icon(details.icon,
+                    color: world.color, size: compact ? 25 : 34),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: compact ? 10 : 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +177,7 @@ class _WorldCard extends StatelessWidget {
                             world.name,
                             style: const TextStyle(
                               color: _worldInk,
-                              fontSize: 23,
+                              fontSize: 20,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -185,28 +191,32 @@ class _WorldCard extends StatelessWidget {
                     ),
                     Text(
                       world.subject,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Color(0xFF60646F),
-                        fontSize: 14,
+                        fontSize: compact ? 12 : 14,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compact ? 3 : 8),
                     Text(
                       details.description,
-                      style: const TextStyle(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: Color(0xFF60646F),
-                        fontSize: 13,
-                        height: 1.3,
+                        fontSize: compact ? 11 : 13,
+                        height: 1.2,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compact ? 3 : 8),
                     Text(
                       details.mission,
-                      style: const TextStyle(
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         color: _worldInk,
-                        fontSize: 13,
+                        fontSize: compact ? 11 : 13,
                         fontWeight: FontWeight.w900,
                       ),
                     ),

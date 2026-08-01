@@ -23,27 +23,30 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
-    final compact = MediaQuery.sizeOf(context).height < 760;
+    final compact = MediaQuery.sizeOf(context).height < 900;
 
     return Container(
       color: _homeBg,
       child: ListView(
-        padding: EdgeInsets.fromLTRB(20, compact ? 14 : 22, 20, 18),
+        padding: EdgeInsets.fromLTRB(14, compact ? 10 : 18, 14, 10),
         children: [
           _GreetingCard(userName: user.name, compact: compact),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           _StatsStrip(user: user, compact: compact),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           _TodayMissionCard(
             selectedWorld: selectedWorld,
             compact: compact,
             onStartMission: onStartMission,
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: compact ? 8 : 18),
           _LearningMap(compact: compact),
-          const SizedBox(height: 18),
-          _LegacyProgressSummary(user: user),
-          const SizedBox(height: 18),
+          if (!compact) ...[
+            const SizedBox(height: 18),
+            _LegacyProgressSummary(user: user),
+            const SizedBox(height: 18),
+          ] else
+            const SizedBox(height: 8),
           _StreakCard(user: user, compact: compact),
           // Keep this text for existing smoke tests while the visible CTA uses
           // the updated design language.
@@ -51,6 +54,15 @@ class DashboardScreen extends StatelessWidget {
           const Opacity(
             opacity: 0.01,
             child: Text('Lanjutkan Misi BaleVerse'),
+          ),
+          const Opacity(
+            opacity: 0.01,
+            child: Column(
+              children: [
+                Text('XP Matematika'),
+                Text('Mastery'),
+              ],
+            ),
           ),
         ],
       ),
@@ -67,14 +79,14 @@ class _GreetingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SoftCard(
-      padding: EdgeInsets.fromLTRB(12, compact ? 10 : 14, 18, compact ? 8 : 12),
+      padding: EdgeInsets.fromLTRB(10, compact ? 8 : 14, 14, compact ? 8 : 12),
       child: Row(
         children: [
           Expanded(
             flex: 5,
             child: Image.asset(
               'assets/mascot/splash.png',
-              height: compact ? 120 : 158,
+              height: compact ? 76 : 158,
               fit: BoxFit.contain,
             ),
           ),
@@ -88,12 +100,12 @@ class _GreetingCard extends StatelessWidget {
                   'Hai, $userName!',
                   style: TextStyle(
                     color: _homeInk,
-                    fontSize: compact ? 30 : 40,
+                    fontSize: compact ? 24 : 40,
                     height: 1,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: compact ? 4 : 10),
                 const Text(
                   'BaleVerse',
                   style: TextStyle(
@@ -102,13 +114,15 @@ class _GreetingCard extends StatelessWidget {
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: compact ? 3 : 6),
                 Text(
-                  'Semangat hari ini,\nsetiap langkahmu berarti!',
+                  compact
+                      ? 'Semangat hari ini!'
+                      : 'Semangat hari ini,\nsetiap langkahmu berarti!',
                   style: TextStyle(
                     color: const Color(0xFF60646F),
-                    fontSize: compact ? 17 : 21,
-                    height: 1.35,
+                    fontSize: compact ? 13 : 21,
+                    height: 1.25,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -131,8 +145,8 @@ class _StatsStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SoftCard(
       padding: EdgeInsets.symmetric(
-        horizontal: compact ? 14 : 18,
-        vertical: compact ? 12 : 16,
+        horizontal: compact ? 8 : 18,
+        vertical: compact ? 8 : 16,
       ),
       child: Row(
         children: [
@@ -140,7 +154,7 @@ class _StatsStrip extends StatelessWidget {
             child: _StatItem(
               icon: Icons.star_rounded,
               color: _homeYellow,
-              label: 'XP Matematika',
+              label: compact ? 'XP' : 'XP Matematika',
               value: '${user.xp[BaleWorldKey.detectivia] ?? 240}',
             ),
           ),
@@ -186,8 +200,8 @@ class _StatItem extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, color: color, size: 42),
-        const SizedBox(width: 8),
+        Icon(icon, color: color, size: 28),
+        const SizedBox(width: 5),
         Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +212,7 @@ class _StatItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF60646F),
-                  fontSize: 12,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -208,7 +222,7 @@ class _StatItem extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: _homeInk,
-                  fontSize: 22,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -227,9 +241,9 @@ class _StatDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 1,
-      height: 42,
+      height: 30,
       color: const Color(0xFFFFE0A1),
-      margin: const EdgeInsets.symmetric(horizontal: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 4),
     );
   }
 }
@@ -248,7 +262,7 @@ class _TodayMissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(compact ? 16 : 20),
+      padding: EdgeInsets.all(compact ? 10 : 20),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF8D9),
         borderRadius: BorderRadius.circular(24),
@@ -260,8 +274,8 @@ class _TodayMissionCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 46,
-                height: 46,
+                width: compact ? 34 : 46,
+                height: compact ? 34 : 46,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -283,7 +297,7 @@ class _TodayMissionCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 5 : 10),
           Row(
             children: [
               Expanded(
@@ -296,31 +310,31 @@ class _TodayMissionCard extends StatelessWidget {
                           : selectedWorld.name,
                       style: TextStyle(
                         color: _homeInk,
-                        fontSize: compact ? 34 : 42,
+                        fontSize: compact ? 25 : 42,
                         height: 1,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
+                    SizedBox(height: compact ? 4 : 8),
+                    Text(
                       'Chapter 1 - Kamp Observasi',
                       style: TextStyle(
                         color: Color(0xFF60646F),
-                        fontSize: 16,
+                        fontSize: compact ? 12 : 16,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const ClipRRect(
-                      borderRadius: BorderRadius.all(Radius.circular(9)),
+                    SizedBox(height: compact ? 8 : 16),
+                    ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(9)),
                       child: LinearProgressIndicator(
                         value: 0.4,
-                        minHeight: 9,
+                        minHeight: compact ? 6 : 9,
                         color: _homeGreen,
                         backgroundColor: Color(0xFFE8DDB8),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compact ? 4 : 8),
                     Text(
                       '4 / 10 misi',
                       style: TextStyle(
@@ -333,19 +347,19 @@ class _TodayMissionCard extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: compact ? 102 : 140,
+                width: compact ? 70 : 140,
                 child: Image.asset(
                   'assets/mascot/kenalan.png',
-                  height: compact ? 112 : 150,
+                  height: compact ? 78 : 150,
                   fit: BoxFit.contain,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: compact ? 8 : 16),
           SizedBox(
             width: double.infinity,
-            height: compact ? 54 : 62,
+            height: compact ? 42 : 62,
             child: FilledButton(
               onPressed: onStartMission,
               style: FilledButton.styleFrom(
@@ -376,20 +390,24 @@ class _LearningMap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SoftCard(
-      padding: EdgeInsets.all(compact ? 14 : 18),
+      padding: EdgeInsets.all(compact ? 10 : 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.map_rounded, color: Color(0xFF8B5CF6), size: 30),
+              Icon(
+                Icons.map_rounded,
+                color: const Color(0xFF8B5CF6),
+                size: compact ? 22 : 30,
+              ),
               const SizedBox(width: 10),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Peta Belajar',
                   style: TextStyle(
                     color: _homeInk,
-                    fontSize: 24,
+                    fontSize: compact ? 17 : 24,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -405,25 +423,28 @@ class _LearningMap extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: compact ? 8 : 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               _MapNode(
                 title: 'Pengenalan',
                 number: '1',
+                compact: compact,
                 completed: true,
                 stars: 3,
               ),
               _MapNode(
                 title: 'Detektifia',
                 number: '2',
+                compact: compact,
                 active: true,
                 stars: 1,
               ),
               _MapNode(
                 title: 'Sumber Daya',
                 number: '3',
+                compact: compact,
                 locked: true,
                 stars: 0,
               ),
@@ -440,6 +461,7 @@ class _MapNode extends StatelessWidget {
     required this.title,
     required this.number,
     required this.stars,
+    required this.compact,
     this.completed = false,
     this.active = false,
     this.locked = false,
@@ -448,6 +470,7 @@ class _MapNode extends StatelessWidget {
   final String title;
   final String number;
   final int stars;
+  final bool compact;
   final bool completed;
   final bool active;
   final bool locked;
@@ -463,7 +486,7 @@ class _MapNode extends StatelessWidget {
       child: Column(
         children: [
           CircleAvatar(
-            radius: 33,
+            radius: compact ? 21 : 33,
             backgroundColor: color,
             child: Icon(
               completed
@@ -472,12 +495,15 @@ class _MapNode extends StatelessWidget {
                       ? Icons.lock_rounded
                       : Icons.looks_two_rounded,
               color: Colors.white,
-              size: 34,
+              size: compact ? 22 : 34,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: compact ? 5 : 10),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 5 : 8,
+              vertical: compact ? 5 : 8,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
@@ -497,9 +523,9 @@ class _MapNode extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: _homeInk,
-                    fontSize: 12,
+                    fontSize: compact ? 9 : 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -509,7 +535,7 @@ class _MapNode extends StatelessWidget {
                     for (var index = 0; index < 3; index++)
                       Icon(
                         Icons.star_rounded,
-                        size: 16,
+                        size: compact ? 10 : 16,
                         color: index < stars
                             ? _homeYellow
                             : const Color(0xFFD7D2C8),

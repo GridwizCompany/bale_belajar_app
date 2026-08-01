@@ -18,6 +18,7 @@ class TimelineBuilderTemplate extends StatefulWidget {
     this.onBack,
     this.onHint,
     this.onSkip,
+    this.skipLabel = 'Lewati untuk sekarang',
     super.key,
   });
 
@@ -28,6 +29,7 @@ class TimelineBuilderTemplate extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onHint;
   final VoidCallback? onSkip;
+  final String skipLabel;
 
   @override
   State<TimelineBuilderTemplate> createState() =>
@@ -106,6 +108,7 @@ class _TimelineBuilderTemplateState extends State<TimelineBuilderTemplate> {
               compact: compact,
               onHint: widget.onHint,
               onSkip: widget.onSkip,
+              skipLabel: widget.skipLabel,
             ),
           ],
         ),
@@ -907,11 +910,13 @@ class _TipsCard extends StatelessWidget {
 class _BottomActions extends StatelessWidget {
   const _BottomActions({
     required this.compact,
+    required this.skipLabel,
     this.onHint,
     this.onSkip,
   });
 
   final bool compact;
+  final String skipLabel;
   final VoidCallback? onHint;
   final VoidCallback? onSkip;
 
@@ -942,7 +947,7 @@ class _BottomActions extends StatelessWidget {
           child: TextButton.icon(
             onPressed: onSkip,
             label: Text(
-              'Lewati untuk sekarang',
+              skipLabel,
               style: TextStyle(
                 color: const Color(0xFF7D7A78),
                 fontSize: compact ? 11 : 18,

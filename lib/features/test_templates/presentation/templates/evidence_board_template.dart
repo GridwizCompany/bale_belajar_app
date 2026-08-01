@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../../../auth/presentation/analisis_hasil_page.dart';
+import '../../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../../domain/test_template_models.dart';
 import 'test_template_ui_helpers.dart';
 
@@ -18,6 +20,9 @@ class EvidenceBoardTemplate extends StatefulWidget {
     this.onBack,
     this.onHint,
     this.onSkip,
+    this.submitLabel = 'Periksa Jawaban',
+    this.allowEmptySubmit = false,
+    this.onSubmitAllAnswers,
     super.key,
   });
 
@@ -28,6 +33,9 @@ class EvidenceBoardTemplate extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onHint;
   final VoidCallback? onSkip;
+  final String submitLabel;
+  final bool allowEmptySubmit;
+  final VoidCallback? onSubmitAllAnswers;
 
   @override
   State<EvidenceBoardTemplate> createState() => _EvidenceBoardTemplateState();
@@ -101,7 +109,11 @@ class _EvidenceBoardTemplateState extends State<EvidenceBoardTemplate> {
         ? 0.0
         : (widget.currentQuestion / widget.totalQuestions).clamp(0.0, 1.0);
     final usedIds = _placements.keys.toSet();
-    final canSubmit = _placements.isNotEmpty;
+    final directPrototypeSubmit = widget.submitLabel == 'Submit All Answer';
+    final canSubmit = directPrototypeSubmit ||
+        widget.onSubmitAllAnswers != null ||
+        widget.allowEmptySubmit ||
+        _placements.isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3C6),
@@ -136,12 +148,17 @@ class _EvidenceBoardTemplateState extends State<EvidenceBoardTemplate> {
                   setState(() => _selectedEvidenceId = id),
               onPlaceEvidence: _placeEvidence,
               onRemoveEvidence: _removeEvidence,
+              submitLabel: widget.submitLabel,
               onCheckAnswer: canSubmit
-                  ? () => widget.onCheckAnswer(
-                        _placements.entries
-                            .map((entry) => '${entry.key}:${entry.value}')
-                            .toSet(),
-                      )
+                  ? directPrototypeSubmit
+                      ? _openPrototypeAnalysis
+                      : widget.onSubmitAllAnswers ??
+                          () => widget.onCheckAnswer(
+                                _placements.entries
+                                    .map((entry) =>
+                                        '${entry.key}:${entry.value}')
+                                    .toSet(),
+                              )
                   : null,
             ),
             SizedBox(height: compact ? 10 : 16),
@@ -165,6 +182,23 @@ class _EvidenceBoardTemplateState extends State<EvidenceBoardTemplate> {
 
   void _removeEvidence(String evidenceId) {
     setState(() => _placements.remove(evidenceId));
+  }
+
+  void _openPrototypeAnalysis() {
+    Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AnalisisHasilPage(
+          onBack: () => Navigator.of(context, rootNavigator: true).maybePop(),
+          onContinue: () {
+            Navigator.of(context, rootNavigator: true).pushReplacement(
+              MaterialPageRoute<void>(
+                builder: (_) => const BaleVerseDemoScreen(skipDemoLogin: true),
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
@@ -349,6 +383,7 @@ class _QuestionCard extends StatelessWidget {
     required this.onSelectEvidence,
     required this.onPlaceEvidence,
     required this.onRemoveEvidence,
+    required this.submitLabel,
     required this.onCheckAnswer,
   });
 
@@ -362,6 +397,7 @@ class _QuestionCard extends StatelessWidget {
   final ValueChanged<String> onSelectEvidence;
   final void Function(String categoryId, String evidenceId) onPlaceEvidence;
   final ValueChanged<String> onRemoveEvidence;
+  final String submitLabel;
   final VoidCallback? onCheckAnswer;
 
   @override
@@ -441,10 +477,26 @@ class _QuestionCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Periksa Jawaban'),
+                Text(submitLabel),
               ],
             ),
           ),
+          if (submitLabel == 'Submit All Answer') ...[
+            SizedBox(height: compact ? 8 : 12),
+            OutlinedButton(
+              onPressed: onCheckAnswer,
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size.fromHeight(compact ? 46 : 54),
+                foregroundColor: _ink,
+                side: const BorderSide(color: _yellow, width: 2),
+                textStyle: TextStyle(
+                  fontSize: compact ? 16 : 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              child: const Text('Preview Page Analisis'),
+            ),
+          ],
         ],
       ),
     );

@@ -2,23 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../../core/audio/audio_scope.dart';
 import '../../../core/audio/audio_types.dart';
-import '../../../theme/bale_theme.dart';
 import '../../auth/application/auth_controller.dart';
-import '../../auth/presentation/profile_screen.dart';
 import '../application/baleverse_progress_service.dart';
 import '../application/mission_engine.dart';
 import '../data/baleverse_dummy_data.dart';
 import '../domain/baleverse_models.dart';
 import '../state/mission_state_machine.dart' as machine;
+import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/learning_circle_screen.dart';
 import 'screens/login_demo_screen.dart';
 import 'screens/mentor_handoff_screen.dart';
+import 'screens/mission_hub_screen.dart';
 import 'screens/mission_screen.dart';
 import 'screens/reward_screen.dart';
 import 'screens/worlds_screen.dart';
 
-enum BaleTab { home, worlds, mission, circle, profile }
+enum BaleTab { home, worlds, mission, profile }
 
 class BaleVerseDemoScreen extends StatefulWidget {
   const BaleVerseDemoScreen({
@@ -173,7 +173,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab.index,
         onDestinationSelected: (index) => _goToTab(BaleTab.values[index]),
-        indicatorColor: BaleColors.success.withValues(alpha: 0.16),
+        indicatorColor: const Color(0xFFFFF3C6),
+        backgroundColor: Colors.white,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_rounded),
@@ -186,10 +187,6 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
           NavigationDestination(
             icon: Icon(Icons.flag_rounded),
             label: 'Misi',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.groups_rounded),
-            label: 'Lingkar',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_rounded),
@@ -220,26 +217,19 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       );
     }
 
-    if (_tab == BaleTab.circle) {
-      return LearningCircleScreen(
-        key: const ValueKey('circle'),
+    if (_tab == BaleTab.profile) {
+      return BaleProfilePage(
+        key: const ValueKey('profile'),
         progress: _progress,
-        onParentSupport: () {
-          setState(_progressService.markParentSupportSent);
-        },
-        onMentorReply: () {
-          setState(() {
-            _progressService.markMentorFeedbackReceived();
-            _state = machine.receiveMentorFeedback(_state);
-          });
-        },
+        onSignOut: widget.authController?.signOut,
       );
     }
 
-    if (_tab == BaleTab.profile && widget.authController != null) {
-      return ProfileScreen(
-        key: const ValueKey('profile'),
-        controller: widget.authController!,
+    if (_tab == BaleTab.mission && _state.step == MissionStep.dashboard) {
+      return MissionHubScreen(
+        key: const ValueKey('missionHub'),
+        progress: _progress,
+        onStartMission: _startMission,
       );
     }
 
@@ -267,7 +257,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
           onApprove: () {
             setState(() {
               _state = machine.requestMentor(_state);
-              _tab = BaleTab.circle;
+              _tab = BaleTab.mission;
             });
           },
         ),

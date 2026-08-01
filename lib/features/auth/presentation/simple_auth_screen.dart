@@ -10,9 +10,11 @@ import '../../../core/firebase/firebase_bootstrap.dart';
 import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
+import '../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../../test_templates/domain/test_template_models.dart';
 import '../../test_templates/presentation/templates/test_templates.dart';
 import '../application/auth_controller.dart';
+import 'analisis_hasil_page.dart';
 import 'onboarding_questions/daily_duration_question.dart';
 import 'onboarding_questions/grade_question.dart';
 import 'onboarding_questions/learning_format_question.dart';
@@ -41,6 +43,7 @@ enum AuthMode {
   studyTime,
   recommendation,
   placement,
+  analysis,
   account,
   login,
   code,
@@ -83,6 +86,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   DailyDuration? _dailyDuration;
   StudyTime? _studyTime;
   int _placementQuestionIndex = 0;
+  bool _openingAnalysis = false;
 
   @override
   void initState() {
@@ -127,6 +131,20 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_mode == AuthMode.analysis) {
+      return AnalisisHasilPage(
+        onBack: () {
+          setState(() {
+            _mode = AuthMode.placement;
+            _placementQuestionIndex = 13;
+            _openingAnalysis = false;
+          });
+          _syncAuthAudio(AuthMode.placement);
+        },
+        onContinue: _goToBaleVerseHome,
+      );
+    }
+
     final compact = _compactPhoneLayout(context);
     return Scaffold(
       backgroundColor: const Color(0xFFFFF3C6),
@@ -347,6 +365,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                 ),
                                                                 world:
                                                                     _learningWorld,
+                                                                onPreviewAnalysis:
+                                                                    _showAnalysis,
                                                               )
                                                             : _mode ==
                                                                     AuthMode
@@ -364,32 +384,64 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                         _previousPlacementQuestion,
                                                                     onNext:
                                                                         _nextPlacementQuestion,
+                                                                    onShowAnalysis:
+                                                                        _showAnalysis,
                                                                   )
-                                                                : _AuthStep(
-                                                                    key:
-                                                                        ValueKey(
-                                                                      _mode,
-                                                                    ),
-                                                                    controller:
-                                                                        widget
-                                                                            .controller,
-                                                                    flowStep:
-                                                                        _flowStep,
-                                                                    title:
-                                                                        _title,
-                                                                    helper:
-                                                                        _helper,
-                                                                    mascotPose:
-                                                                        _mascotPose,
-                                                                    onBack: widget
-                                                                            .onBackToLanding ??
-                                                                        () =>
-                                                                            _goTo(
-                                                                              AuthMode.welcome,
+                                                                : _mode ==
+                                                                        AuthMode
+                                                                            .analysis
+                                                                    ? AnalisisHasilPage(
+                                                                        key:
+                                                                            const ValueKey(
+                                                                          'analysis-page',
+                                                                        ),
+                                                                        onBack:
+                                                                            _previousPlacementQuestion,
+                                                                        onContinue:
+                                                                            () {
+                                                                          AudioScope
+                                                                              .maybeOf(
+                                                                            context,
+                                                                          )?.playSound(
+                                                                            SoundEffectId.audioLogo,
+                                                                          );
+                                                                          Navigator
+                                                                              .of(
+                                                                            context,
+                                                                          ).pushReplacement(
+                                                                            MaterialPageRoute<void>(
+                                                                              builder: (_) => BaleVerseDemoScreen(
+                                                                                skipDemoLogin: true,
+                                                                                authController: widget.controller,
+                                                                              ),
                                                                             ),
-                                                                    child:
-                                                                        _form(),
-                                                                  ),
+                                                                          );
+                                                                        },
+                                                                      )
+                                                                    : _AuthStep(
+                                                                        key:
+                                                                            ValueKey(
+                                                                          _mode,
+                                                                        ),
+                                                                        controller:
+                                                                            widget.controller,
+                                                                        flowStep:
+                                                                            _flowStep,
+                                                                        title:
+                                                                            _title,
+                                                                        helper:
+                                                                            _helper,
+                                                                        mascotPose:
+                                                                            _mascotPose,
+                                                                        onBack: widget
+                                                                                .onBackToLanding ??
+                                                                            () =>
+                                                                                _goTo(
+                                                                                  AuthMode.welcome,
+                                                                                ),
+                                                                        child:
+                                                                            _form(),
+                                                                      ),
                   ),
                 ),
               ),
@@ -529,6 +581,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => BeloPose.lompatKegirangan,
         AuthMode.recommendation => BeloPose.lompatKegirangan,
         AuthMode.placement => BeloPose.lompatKegirangan,
+        AuthMode.analysis => BeloPose.lompatKegirangan,
         AuthMode.account => BeloPose.lompatKegirangan,
         AuthMode.login => BeloPose.kedip,
         AuthMode.code => BeloPose.jempolOke,
@@ -546,6 +599,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => studyTimeQuestion.title,
         AuthMode.recommendation => 'Menyiapkan rekomendasi',
         AuthMode.placement => 'Cek Awal',
+        AuthMode.analysis => 'Analisis',
         AuthMode.account => 'Buat akunmu',
         AuthMode.login => 'Masuk lagi',
         AuthMode.code => 'Pakai kode siswa',
@@ -562,6 +616,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => 'Pilih waktu yang cocok.',
         AuthMode.recommendation => 'Sebentar, Bale sedang menyiapkan jalurmu.',
         AuthMode.placement => 'Mulai dari tes singkat sesuai dunia pilihanmu.',
+        AuthMode.analysis => 'Kami sedang menganalisis jawabanmu.',
         AuthMode.account => 'Satu langkah lagi sebelum misi pertamamu.',
         AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
         AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
@@ -577,6 +632,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => 'Sudah punya akun? Masuk',
         AuthMode.recommendation => '',
         AuthMode.placement => 'Sudah punya akun? Masuk',
+        AuthMode.analysis => '',
         AuthMode.account => 'Sudah punya akun? Masuk',
         AuthMode.login => 'Belum punya akun? Mulai belajar',
         AuthMode.code => 'Masuk pakai email',
@@ -593,6 +649,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => AuthMode.login,
         AuthMode.recommendation => AuthMode.login,
         AuthMode.placement => AuthMode.login,
+        AuthMode.analysis => AuthMode.login,
         AuthMode.account => AuthMode.login,
         AuthMode.login => AuthMode.register,
         AuthMode.code => AuthMode.login,
@@ -609,6 +666,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => Icons.arrow_forward_rounded,
         AuthMode.recommendation => Icons.auto_awesome_rounded,
         AuthMode.placement => Icons.quiz_rounded,
+        AuthMode.analysis => Icons.auto_graph_rounded,
         AuthMode.account => Icons.arrow_forward_rounded,
         AuthMode.login => Icons.login_rounded,
         AuthMode.code => Icons.qr_code_2_rounded,
@@ -625,6 +683,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime => 'Lihat rekomendasiku',
         AuthMode.recommendation => 'Menyiapkan',
         AuthMode.placement => 'Mulai Cek Awal',
+        AuthMode.analysis => 'Menganalisis',
         AuthMode.account => 'Buat Akun',
         AuthMode.login => 'Masuk',
         AuthMode.code => 'Masuk dengan Kode',
@@ -648,7 +707,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.duration => 6,
         AuthMode.studyTime ||
         AuthMode.recommendation ||
-        AuthMode.placement =>
+        AuthMode.placement ||
+        AuthMode.analysis =>
           7,
         AuthMode.account || AuthMode.login || AuthMode.code => 7,
       };
@@ -678,12 +738,34 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   void _nextPlacementQuestion() {
     final audio = AudioScope.maybeOf(context);
     if (_placementQuestionIndex >= 13) {
-      audio?.playSound(SoundEffectId.audioLogo);
-      _goTo(AuthMode.account);
+      audio?.playSound(SoundEffectId.pageTransition);
+      _showAnalysis();
       return;
     }
     audio?.playSound(SoundEffectId.pageTransition);
     setState(() => _placementQuestionIndex += 1);
+  }
+
+  void _showAnalysis() {
+    if (_openingAnalysis) return;
+    _openingAnalysis = true;
+    setState(() {
+      _mode = AuthMode.analysis;
+      _flowStep = 7;
+    });
+    _syncAuthAudio(AuthMode.analysis);
+  }
+
+  void _goToBaleVerseHome() {
+    AudioScope.maybeOf(context)?.playSound(SoundEffectId.audioLogo);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => BaleVerseDemoScreen(
+          skipDemoLogin: true,
+          authController: widget.controller,
+        ),
+      ),
+    );
   }
 
   void _previousPlacementQuestion() {
@@ -700,7 +782,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       if (!mounted) return;
       final audio = AudioScope.maybeOf(context);
       if (audio == null) return;
-      if (mode == AuthMode.placement) {
+      if (mode == AuthMode.placement || mode == AuthMode.analysis) {
         audio.playMusic(BackgroundMusicId.learning);
       } else {
         audio.stopMusic();
@@ -1789,9 +1871,14 @@ class _StudyTimeStep extends StatelessWidget {
 }
 
 class _RecommendationSplash extends StatelessWidget {
-  const _RecommendationSplash({required this.world, super.key});
+  const _RecommendationSplash({
+    required this.world,
+    required this.onPreviewAnalysis,
+    super.key,
+  });
 
   final LearningWorld? world;
+  final VoidCallback onPreviewAnalysis;
 
   @override
   Widget build(BuildContext context) {
@@ -1829,6 +1916,11 @@ class _RecommendationSplash extends StatelessWidget {
           dimension: 30,
           child: CircularProgressIndicator(strokeWidth: 3),
         ),
+        const SizedBox(height: 18),
+        TextButton(
+          onPressed: onPreviewAnalysis,
+          child: const Text('Cek UI Analisis'),
+        ),
       ],
     );
   }
@@ -1840,6 +1932,7 @@ class _PlacementTestFlow extends StatelessWidget {
     required this.currentIndex,
     required this.onBack,
     required this.onNext,
+    required this.onShowAnalysis,
     super.key,
   });
 
@@ -1847,10 +1940,20 @@ class _PlacementTestFlow extends StatelessWidget {
   final int currentIndex;
   final VoidCallback onBack;
   final VoidCallback onNext;
+  final VoidCallback onShowAnalysis;
 
   @override
   Widget build(BuildContext context) {
     final questions = _placementQuestionsFor(world);
+    if (currentIndex >= 13) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => onShowAnalysis());
+      return const ColoredBox(
+        color: Color(0xFFFFF3C6),
+        child: Center(
+          child: CircularProgressIndicator(color: _authPrimary),
+        ),
+      );
+    }
     final index = currentIndex.clamp(0, questions.length - 1);
     final question = questions[index];
     final totalQuestions = questions.length;
@@ -1970,6 +2073,7 @@ class _PlacementTestFlow extends StatelessWidget {
         10 => ImageHotspotTemplate(
             key: ValueKey(question.id),
             question: question,
+            onSkip: onNext,
             onCheckAnswer: (_) => onNext(),
           ),
         11 => VoiceResponseTemplate(
@@ -1977,17 +2081,23 @@ class _PlacementTestFlow extends StatelessWidget {
             question: question,
             onStartRecording: () {},
             onStopRecording: () {},
+            onSkip: onNext,
             onSubmitAnswer: (_) => onNext(),
           ),
         12 => TimelineBuilderTemplate(
             key: ValueKey(question.id),
             question: question,
-            onCheckAnswer: (_) => onNext(),
+            currentQuestion: 13,
+            totalQuestions: totalQuestions,
+            skipLabel: 'Lanjut ke Analisis Hasil',
+            onSkip: onShowAnalysis,
+            onCheckAnswer: (_) => onShowAnalysis(),
           ),
-        _ => EvidenceBoardTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            onCheckAnswer: (_) => onNext(),
+        _ => const ColoredBox(
+            color: Color(0xFFFFF3C6),
+            child: Center(
+              child: CircularProgressIndicator(color: _authPrimary),
+            ),
           ),
       },
     );

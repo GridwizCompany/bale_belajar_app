@@ -9,7 +9,7 @@ const _hasilMuted = Color(0xFF747985);
 
 bool _compactHasilLayout(BuildContext context) {
   final size = MediaQuery.sizeOf(context);
-  return size.shortestSide < 600 && size.height < 880;
+  return size.shortestSide < 600;
 }
 
 class AnalisisHasilPage extends StatefulWidget {
@@ -96,50 +96,48 @@ class _LoadingView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, compact ? 12 : 22, 20, 18),
+      padding: EdgeInsets.fromLTRB(16, compact ? 8 : 18, 16, 12),
       children: [
         _HasilHeader(
           title: 'Cek Awal - Analisis',
-          subtitle: 'Kami sedang menganalisis jawabanmu',
+          subtitle: 'Bale sedang membaca hasil cek awalmu.',
           onBack: onBack,
           compact: compact,
         ),
-        SizedBox(height: compact ? 18 : 28),
+        SizedBox(height: compact ? 10 : 22),
         const _HasilStepProgress(step: 2),
-        SizedBox(height: compact ? 24 : 36),
+        SizedBox(height: compact ? 14 : 28),
         Image.asset(
           'assets/mascot/analisis.png',
-          height: compact ? 260 : 360,
+          height: compact ? 170 : 300,
           fit: BoxFit.contain,
           semanticLabel: 'Bale sedang menganalisis jawaban cek awal',
         ),
-        SizedBox(height: compact ? 12 : 20),
+        SizedBox(height: compact ? 8 : 18),
         Text(
-          'Bale sedang menganalisis\njawabanmu...',
+          'Sebentar, Bale cek hasilmu...',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _hasilInk,
-            fontSize: compact ? 28 : 36,
+            fontSize: compact ? 24 : 34,
             height: 1.1,
             fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         Text(
-          'Tenang ya, sebentar lagi kami temukan\ntitik awal terbaik untukmu!',
+          'Kami siapkan level awal dan misi pertama yang paling pas.',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _hasilMuted,
-            fontSize: compact ? 15 : 18,
-            height: 1.35,
+            fontSize: compact ? 13 : 17,
+            height: 1.25,
             fontWeight: FontWeight.w800,
           ),
         ),
-        SizedBox(height: compact ? 20 : 28),
-        const _AnalysisTaskCard(),
-        SizedBox(height: compact ? 14 : 18),
-        const _TipsCard(),
-        SizedBox(height: compact ? 16 : 22),
+        SizedBox(height: compact ? 12 : 24),
+        _AnalysisTaskCard(compact: compact),
+        SizedBox(height: compact ? 10 : 16),
         const _SafeDataNote(),
       ],
     );
@@ -161,17 +159,17 @@ class _ResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      padding: EdgeInsets.fromLTRB(20, compact ? 12 : 22, 20, 18),
+      padding: EdgeInsets.fromLTRB(16, compact ? 8 : 18, 16, 12),
       children: [
         _HasilHeader(
           title: 'Cek Awal - Hasil',
-          subtitle: 'Rekomendasi awalmu sudah siap',
+          subtitle: 'Rekomendasi awalmu siap.',
           onBack: onBack,
           compact: compact,
         ),
-        SizedBox(height: compact ? 18 : 28),
+        SizedBox(height: compact ? 10 : 22),
         const _HasilStepProgress(step: 3),
-        SizedBox(height: compact ? 22 : 32),
+        SizedBox(height: compact ? 12 : 26),
         Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
@@ -179,18 +177,18 @@ class _ResultView extends StatelessWidget {
               flex: 5,
               child: Image.asset(
                 'assets/mascot/analisis.png',
-                height: compact ? 170 : 230,
+                height: compact ? 105 : 220,
                 fit: BoxFit.contain,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             Expanded(
               flex: 6,
               child: Container(
-                padding: EdgeInsets.all(compact ? 16 : 20),
+                padding: EdgeInsets.all(compact ? 12 : 20),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(28),
+                  borderRadius: BorderRadius.circular(22),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x12000000),
@@ -200,11 +198,11 @@ class _ResultView extends StatelessWidget {
                   ],
                 ),
                 child: Text(
-                  'Aku sudah menemukan titik awal belajar yang cocok buatmu.',
+                  'Aku sudah punya titik awal yang pas buatmu.',
                   style: TextStyle(
                     color: _hasilInk,
-                    fontSize: compact ? 15 : 18,
-                    height: 1.35,
+                    fontSize: compact ? 13 : 18,
+                    height: 1.25,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -212,12 +210,12 @@ class _ResultView extends StatelessWidget {
             ),
           ],
         ),
-        SizedBox(height: compact ? 16 : 22),
+        SizedBox(height: compact ? 10 : 22),
         Container(
-          padding: EdgeInsets.all(compact ? 18 : 24),
+          padding: EdgeInsets.all(compact ? 14 : 24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(22),
             boxShadow: const [
               BoxShadow(
                 color: Color(0x12000000),
@@ -230,42 +228,50 @@ class _ResultView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Titik awalmu sudah ditemukan!',
+                'Mulai dari sini',
                 style: TextStyle(
                   color: _hasilInk,
-                  fontSize: compact ? 25 : 32,
+                  fontSize: compact ? 23 : 32,
                   height: 1.08,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 16),
-              const _LevelCard(),
-              const SizedBox(height: 18),
-              const _ChipSection(
+              SizedBox(height: compact ? 10 : 16),
+              _LevelCard(compact: compact),
+              SizedBox(height: compact ? 12 : 18),
+              _ChipSection(
                 icon: Icons.verified_user_rounded,
-                title: 'Kekuatanmu',
+                title: 'Kamu sudah kuat di',
                 color: Color(0xFF4CAF50),
-                chips: ['Mengenali pola', 'Memahami gambar', 'Menyusun urutan'],
+                chips: compact
+                    ? const ['Pola', 'Gambar', 'Urutan']
+                    : const [
+                        'Mengenali pola',
+                        'Memahami gambar',
+                        'Menyusun urutan',
+                      ],
               ),
-              const Divider(height: 28),
-              const _ChipSection(
+              Divider(height: compact ? 18 : 28),
+              _ChipSection(
                 icon: Icons.track_changes_rounded,
-                title: 'Fokus berikutnya',
+                title: 'Latihan berikutnya',
                 color: _hasilPrimary,
-                chips: [
-                  'Menjelaskan alasan',
-                  'Memeriksa informasi',
-                  'Langkah bertahap',
-                ],
+                chips: compact
+                    ? const ['Alasan', 'Info', 'Langkah']
+                    : const [
+                        'Menjelaskan alasan',
+                        'Memeriksa informasi',
+                        'Langkah bertahap',
+                      ],
               ),
             ],
           ),
         ),
-        SizedBox(height: compact ? 14 : 18),
-        const _FirstMissionCard(),
-        SizedBox(height: compact ? 16 : 20),
+        SizedBox(height: compact ? 10 : 18),
+        _FirstMissionCard(compact: compact),
+        SizedBox(height: compact ? 10 : 20),
         SizedBox(
-          height: compact ? 58 : 68,
+          height: compact ? 50 : 68,
           child: FilledButton(
             onPressed: onContinue,
             style: FilledButton.styleFrom(
@@ -275,11 +281,11 @@ class _ResultView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
               ),
               textStyle: TextStyle(
-                fontSize: compact ? 20 : 24,
+                fontSize: compact ? 17 : 24,
                 fontWeight: FontWeight.w900,
               ),
             ),
-            child: const Text('Mulai Misi Pertama'),
+            child: const Text('Mulai Misi'),
           ),
         ),
       ],
@@ -313,11 +319,11 @@ class _HasilHeader extends StatelessWidget {
                 onTap: onBack,
                 borderRadius: BorderRadius.circular(18),
                 child: SizedBox.square(
-                  dimension: compact ? 52 : 60,
+                  dimension: compact ? 44 : 60,
                   child: const Icon(
                     Icons.arrow_back_rounded,
                     color: _hasilInk,
-                    size: 32,
+                    size: 30,
                   ),
                 ),
               ),
@@ -327,21 +333,21 @@ class _HasilHeader extends StatelessWidget {
               title,
               style: TextStyle(
                 color: _hasilInk,
-                fontSize: compact ? 20 : 24,
+                fontSize: compact ? 19 : 24,
                 fontWeight: FontWeight.w900,
               ),
             ),
             const Spacer(),
-            SizedBox(width: compact ? 52 : 60),
+            SizedBox(width: compact ? 44 : 60),
           ],
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: compact ? 4 : 8),
         Text(
           subtitle,
           textAlign: TextAlign.center,
           style: TextStyle(
             color: _hasilMuted,
-            fontSize: compact ? 14 : 17,
+            fontSize: compact ? 12 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -358,10 +364,12 @@ class _HasilStepProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Expanded(
+          flex: 3,
           child: _StepNode(
-            label: 'Jawaban\nDiterima',
+            label: 'Diterima',
             icon: Icons.check_rounded,
             active: true,
           ),
@@ -370,8 +378,9 @@ class _HasilStepProgress extends StatelessWidget {
           child: Container(height: 4, color: _hasilPrimary),
         ),
         Expanded(
+          flex: 3,
           child: _StepNode(
-            label: 'Menganalisis',
+            label: 'Analisis',
             number: '2',
             active: step >= 2,
           ),
@@ -383,8 +392,9 @@ class _HasilStepProgress extends StatelessWidget {
           ),
         ),
         Expanded(
+          flex: 3,
           child: _StepNode(
-            label: 'Rekomendasi\nSiap',
+            label: 'Siap',
             number: '3',
             active: step >= 3,
           ),
@@ -412,32 +422,32 @@ class _StepNode extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: active ? 54 : 46,
-          height: active ? 54 : 46,
+          width: active ? 42 : 36,
+          height: active ? 42 : 36,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: active ? _hasilPrimary : const Color(0xFFE9E6DF),
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 5),
+            border: Border.all(color: Colors.white, width: 4),
           ),
           child: icon != null
-              ? Icon(icon, color: Colors.white, size: 26)
+              ? Icon(icon, color: Colors.white, size: 22)
               : Text(
                   number ?? '',
                   style: TextStyle(
                     color: active ? Colors.white : const Color(0xFF8B8179),
-                    fontSize: 20,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 5),
         Text(
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: _hasilInk,
-            fontSize: 12,
+            fontSize: 11,
             height: 1.15,
             fontWeight: FontWeight.w900,
           ),
@@ -448,12 +458,15 @@ class _StepNode extends StatelessWidget {
 }
 
 class _AnalysisTaskCard extends StatelessWidget {
-  const _AnalysisTaskCard();
+  const _AnalysisTaskCard({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      padding:
+          EdgeInsets.fromLTRB(14, compact ? 12 : 16, 14, compact ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -465,28 +478,32 @@ class _AnalysisTaskCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Column(
+      child: Column(
         children: [
           _TaskRow(
             icon: Icons.assignment_turned_in_rounded,
-            title: 'Memeriksa jawabanmu',
-            subtitle: 'Semua jawaban sudah diterima dengan aman.',
+            title: 'Jawaban diterima',
+            subtitle: 'Semua data aman.',
             active: true,
+            compact: compact,
           ),
-          Divider(height: 22),
+          Divider(height: compact ? 14 : 22),
           _TaskRow(
             icon: Icons.psychology_rounded,
-            title: 'Menganalisis kemampuan',
-            subtitle: 'Bale sedang memetakan kekuatan dan fokus belajarmu.',
+            title: 'Mencari level awal',
+            subtitle: 'Bale memilih misi yang pas.',
             active: true,
+            compact: compact,
           ),
-          Divider(height: 22),
-          _TaskRow(
-            icon: Icons.track_changes_rounded,
-            title: 'Menyiapkan rekomendasi',
-            subtitle: 'Menentukan level dan misi terbaik untukmu.',
-            locked: true,
-          ),
+          if (!compact) ...[
+            const Divider(height: 22),
+            const _TaskRow(
+              icon: Icons.track_changes_rounded,
+              title: 'Menyiapkan rekomendasi',
+              subtitle: 'Menentukan level dan misi terbaik.',
+              locked: true,
+            ),
+          ],
         ],
       ),
     );
@@ -500,6 +517,7 @@ class _TaskRow extends StatelessWidget {
     required this.subtitle,
     this.active = false,
     this.locked = false,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -507,13 +525,14 @@ class _TaskRow extends StatelessWidget {
   final String subtitle;
   final bool active;
   final bool locked;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         CircleAvatar(
-          radius: 25,
+          radius: compact ? 21 : 25,
           backgroundColor:
               active ? const Color(0xFFFFF3C6) : const Color(0xFFEDEBE8),
           child: Icon(
@@ -521,7 +540,7 @@ class _TaskRow extends StatelessWidget {
             color: active ? _hasilPrimary : const Color(0xFF8B8179),
           ),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: compact ? 10 : 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,16 +549,16 @@ class _TaskRow extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: locked ? const Color(0xFF8B8179) : _hasilInk,
-                  fontSize: 17,
+                  fontSize: compact ? 15 : 17,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: compact ? 1 : 3),
               Text(
                 subtitle,
                 style: const TextStyle(
                   color: _hasilMuted,
-                  fontSize: 13,
+                  fontSize: 12,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
                 ),
@@ -548,7 +567,7 @@ class _TaskRow extends StatelessWidget {
           ),
         ),
         SizedBox.square(
-          dimension: 32,
+          dimension: compact ? 26 : 32,
           child: locked
               ? const Icon(Icons.lock_outline_rounded, color: Color(0xFF8B8179))
               : const CircularProgressIndicator(
@@ -557,39 +576,6 @@ class _TaskRow extends StatelessWidget {
                 ),
         ),
       ],
-    );
-  }
-}
-
-class _TipsCard extends StatelessWidget {
-  const _TipsCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E5),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFFFE2A4)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.lightbulb_outline_rounded, color: _hasilPrimary, size: 34),
-          SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              'Hasil ini akan membantumu mulai perjalanan belajar yang lebih seru dan tepat sasaran!',
-              style: TextStyle(
-                color: _hasilInk,
-                fontSize: 13,
-                height: 1.3,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -625,34 +611,40 @@ class _SafeDataNote extends StatelessWidget {
 }
 
 class _LevelCard extends StatelessWidget {
-  const _LevelCard();
+  const _LevelCard({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFBEE),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFFFE1A0)),
       ),
-      child: const Row(
+      child: Row(
         children: [
           CircleAvatar(
-            radius: 34,
+            radius: compact ? 25 : 34,
             backgroundColor: Colors.white,
-            child: Icon(Icons.star_rounded, color: _hasilPrimary, size: 46),
+            child: Icon(
+              Icons.star_rounded,
+              color: _hasilPrimary,
+              size: compact ? 34 : 46,
+            ),
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Level rekomendasi',
+                  'Level awal',
                   style: TextStyle(
                     color: _hasilInk,
-                    fontSize: 16,
+                    fontSize: compact ? 13 : 16,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -660,20 +652,21 @@ class _LevelCard extends StatelessWidget {
                   'Foundation 3',
                   style: TextStyle(
                     color: Color(0xFFEFA500),
-                    fontSize: 32,
+                    fontSize: compact ? 27 : 32,
                     height: 1.05,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                Text(
-                  'Cocok untuk tantangan dasar hingga menengah.',
-                  style: TextStyle(
-                    color: _hasilMuted,
-                    fontSize: 13,
-                    height: 1.25,
-                    fontWeight: FontWeight.w800,
+                if (!compact)
+                  const Text(
+                    'Cocok untuk tantangan dasar hingga menengah.',
+                    style: TextStyle(
+                      color: _hasilMuted,
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -703,19 +696,19 @@ class _ChipSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(width: 10),
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 8),
             Text(
               title,
               style: const TextStyle(
                 color: _hasilInk,
-                fontSize: 22,
+                fontSize: 17,
                 fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -723,7 +716,7 @@ class _ChipSection extends StatelessWidget {
             for (final chip in chips)
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(999),
@@ -733,7 +726,7 @@ class _ChipSection extends StatelessWidget {
                   chip,
                   style: const TextStyle(
                     color: _hasilInk,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -746,12 +739,14 @@ class _ChipSection extends StatelessWidget {
 }
 
 class _FirstMissionCard extends StatelessWidget {
-  const _FirstMissionCard();
+  const _FirstMissionCard({required this.compact});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(compact ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
@@ -763,14 +758,14 @@ class _FirstMissionCard extends StatelessWidget {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         children: [
           CircleAvatar(
-            radius: 34,
+            radius: compact ? 24 : 34,
             backgroundColor: Color(0xFFFFF4D7),
             child: Icon(Icons.event_note_rounded, color: _hasilPrimary),
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -779,7 +774,7 @@ class _FirstMissionCard extends StatelessWidget {
                   'Misi pertamamu',
                   style: TextStyle(
                     color: _hasilMuted,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -787,17 +782,17 @@ class _FirstMissionCard extends StatelessWidget {
                   'Misteri Jadwal yang Berubah',
                   style: TextStyle(
                     color: _hasilInk,
-                    fontSize: 19,
+                    fontSize: compact ? 16 : 19,
                     height: 1.15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                SizedBox(height: 6),
+                SizedBox(height: compact ? 3 : 6),
                 Text(
-                  '8 menit - 5 aktivitas - +30 XP',
+                  '8 menit - 5 aktivitas',
                   style: TextStyle(
                     color: _hasilInk,
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

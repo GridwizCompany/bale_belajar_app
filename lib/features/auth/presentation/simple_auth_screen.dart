@@ -992,7 +992,7 @@ class _LearningGoalStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1002,7 +1002,7 @@ class _LearningGoalStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1034,11 +1034,11 @@ class _LearningGoalStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1049,7 +1049,7 @@ class _LearningGoalStep extends StatelessWidget {
             children: [
               const Text('Lanjutkan'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1121,7 +1121,7 @@ class _LearningWorldStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1131,7 +1131,7 @@ class _LearningWorldStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1163,11 +1163,11 @@ class _LearningWorldStep extends StatelessWidget {
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1178,7 +1178,7 @@ class _LearningWorldStep extends StatelessWidget {
             children: [
               const Text('Lanjutkan'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1256,7 +1256,7 @@ class _GradeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1266,7 +1266,7 @@ class _GradeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1279,17 +1279,17 @@ class _GradeStep extends StatelessWidget {
             compact: compact,
             onTap: () => onSelected(option),
           ),
-          SizedBox(height: compact ? 7 : 8),
+          SizedBox(height: compact ? 10 : 11),
         ],
         SizedBox(height: compact ? 4 : 8),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1300,7 +1300,7 @@ class _GradeStep extends StatelessWidget {
             children: [
               const Text('Lanjutkan'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1372,7 +1372,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1382,7 +1382,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1395,17 +1395,17 @@ class _SelfReportedLevelStep extends StatelessWidget {
             compact: compact,
             onTap: () => onSelected(option.value),
           ),
-          SizedBox(height: compact ? 7 : 8),
+          SizedBox(height: compact ? 10 : 11),
         ],
         SizedBox(height: compact ? 4 : 8),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1416,7 +1416,7 @@ class _SelfReportedLevelStep extends StatelessWidget {
             children: [
               const Text('Lanjutkan'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1488,7 +1488,7 @@ class _LearningFormatStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1498,7 +1498,7 @@ class _LearningFormatStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1511,17 +1511,17 @@ class _LearningFormatStep extends StatelessWidget {
             compact: compact,
             onTap: () => onToggle(option.value),
           ),
-          SizedBox(height: compact ? 7 : 8),
+          SizedBox(height: compact ? 10 : 11),
         ],
         SizedBox(height: compact ? 4 : 8),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1536,7 +1536,7 @@ class _LearningFormatStep extends StatelessWidget {
                     : 'Lanjutkan (${selectedFormats.length}/3)',
               ),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1608,7 +1608,7 @@ class _DailyDurationStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1618,7 +1618,7 @@ class _DailyDurationStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1631,17 +1631,17 @@ class _DailyDurationStep extends StatelessWidget {
             compact: compact,
             onTap: () => onSelected(option.value),
           ),
-          SizedBox(height: compact ? 7 : 8),
+          SizedBox(height: compact ? 10 : 11),
         ],
         SizedBox(height: compact ? 4 : 8),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 38 : 46),
+            minimumSize: Size.fromHeight(compact ? 46 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1652,7 +1652,7 @@ class _DailyDurationStep extends StatelessWidget {
             children: [
               const Text('Lanjutkan'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -1724,7 +1724,7 @@ class _StudyTimeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 color: const Color(0xFF3B2318),
-                fontSize: compact ? 20 : 26,
+                fontSize: compact ? 23 : 30,
                 fontWeight: FontWeight.w900,
               ),
         ),
@@ -1734,7 +1734,7 @@ class _StudyTimeStep extends StatelessWidget {
           textAlign: TextAlign.center,
           style: TextStyle(
             color: const Color(0xFF747985),
-            fontSize: compact ? 11 : 14,
+            fontSize: compact ? 13 : 16,
             height: 1.25,
             fontWeight: FontWeight.w800,
           ),
@@ -1747,17 +1747,17 @@ class _StudyTimeStep extends StatelessWidget {
             compact: compact,
             onTap: () => onSelected(option.value),
           ),
-          SizedBox(height: compact ? 7 : 8),
+          SizedBox(height: compact ? 10 : 11),
         ],
         SizedBox(height: compact ? 4 : 8),
         FilledButton(
           onPressed: onContinue,
           style: FilledButton.styleFrom(
-            minimumSize: Size.fromHeight(compact ? 42 : 46),
+            minimumSize: Size.fromHeight(compact ? 50 : 54),
             backgroundColor: _authPrimary,
             foregroundColor: const Color(0xFF3B2318),
             textStyle: TextStyle(
-              fontSize: compact ? 14 : 16,
+              fontSize: compact ? 16 : 18,
               fontWeight: FontWeight.w900,
             ),
             elevation: 6,
@@ -1768,7 +1768,7 @@ class _StudyTimeStep extends StatelessWidget {
             children: [
               const Text('Lihat rekomendasiku'),
               const SizedBox(width: 8),
-              Icon(Icons.arrow_forward_rounded, size: compact ? 20 : 22),
+              Icon(Icons.arrow_forward_rounded, size: compact ? 23 : 25),
             ],
           ),
         ),
@@ -2389,7 +2389,7 @@ class _IntroMascotBubble extends StatelessWidget {
           flex: 9,
           child: Image.asset(
             'assets/mascot/kenalan.png',
-            height: compact ? 88 : 150,
+            height: compact ? 112 : 174,
             fit: BoxFit.contain,
             semanticLabel: 'Maskot Bale memperkenalkan diri',
           ),
@@ -2419,7 +2419,7 @@ class _SpeechBubble extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Container(
-          constraints: BoxConstraints(minHeight: compact ? 58 : 96),
+          constraints: BoxConstraints(minHeight: compact ? 76 : 112),
           padding: EdgeInsets.fromLTRB(
             compact ? 12 : 16,
             compact ? 12 : 16,
@@ -2502,7 +2502,7 @@ class _TypingTextState extends State<_TypingText> {
       visibleText,
       style: TextStyle(
         color: const Color(0xFF3B2318),
-        fontSize: widget.compact ? 10.5 : 13,
+        fontSize: widget.compact ? 13 : 16,
         height: 1.16,
         fontWeight: FontWeight.w900,
       ),
@@ -2534,12 +2534,12 @@ class _LearningGoalCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 66),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 8 : 9,
-            compact ? 8 : 10,
-            compact ? 8 : 9,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -2551,8 +2551,8 @@ class _LearningGoalCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 32 : 38,
-                height: compact ? 32 : 38,
+                width: compact ? 42 : 48,
+                height: compact ? 42 : 48,
                 decoration: BoxDecoration(
                   color: _goalColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2560,10 +2560,10 @@ class _LearningGoalCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _goalColor(option.value),
-                  size: compact ? 18 : 21,
+                  size: compact ? 23 : 26,
                 ),
               ),
-              SizedBox(width: compact ? 8 : 10),
+              SizedBox(width: compact ? 11 : 13),
               Expanded(
                 child: Text(
                   _shortGoalLabel(option.value),
@@ -2571,7 +2571,7 @@ class _LearningGoalCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: const Color(0xFF3B2318),
-                    fontSize: compact ? 11 : 13,
+                    fontSize: compact ? 14 : 16,
                     height: 1.12,
                     fontWeight: FontWeight.w900,
                   ),
@@ -2582,7 +2582,7 @@ class _LearningGoalCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 22,
+                size: compact ? 23 : 27,
               ),
             ],
           ),
@@ -2636,12 +2636,12 @@ class _LearningWorldCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 52 : 60),
+          constraints: BoxConstraints(minHeight: compact ? 62 : 70),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 8 : 9,
-            compact ? 8 : 10,
-            compact ? 8 : 9,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -2653,8 +2653,8 @@ class _LearningWorldCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _worldColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2662,10 +2662,10 @@ class _LearningWorldCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.explore_rounded,
                   color: _worldColor(option.value),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
-              SizedBox(width: compact ? 8 : 10),
+              SizedBox(width: compact ? 11 : 13),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2677,7 +2677,7 @@ class _LearningWorldCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11 : 14,
+                        fontSize: compact ? 13 : 16,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2703,7 +2703,7 @@ class _LearningWorldCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 22,
+                size: compact ? 23 : 27,
               ),
             ],
           ),
@@ -2764,12 +2764,12 @@ class _GradeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 58),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 68),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 7 : 8,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
             compact ? 10 : 12,
-            compact ? 7 : 8,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -2781,8 +2781,8 @@ class _GradeCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _gradeColor(grade).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2790,7 +2790,7 @@ class _GradeCard extends StatelessWidget {
                 child: Icon(
                   _gradeIcon(grade),
                   color: _gradeColor(grade),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2805,7 +2805,7 @@ class _GradeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11.5 : 15,
+                        fontSize: compact ? 14 : 18,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2831,7 +2831,7 @@ class _GradeCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 24,
+                size: compact ? 23 : 28,
               ),
             ],
           ),
@@ -2913,12 +2913,12 @@ class _SelfReportedLevelCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 66),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 7 : 8,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
             compact ? 10 : 12,
-            compact ? 7 : 8,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -2930,8 +2930,8 @@ class _SelfReportedLevelCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _levelColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -2939,7 +2939,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _levelColor(option.value),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -2954,7 +2954,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11.5 : 15,
+                        fontSize: compact ? 14 : 18,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -2980,7 +2980,7 @@ class _SelfReportedLevelCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 24,
+                size: compact ? 23 : 28,
               ),
             ],
           ),
@@ -3041,12 +3041,12 @@ class _LearningFormatCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 66),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 7 : 8,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
             compact ? 10 : 12,
-            compact ? 7 : 8,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -3058,8 +3058,8 @@ class _LearningFormatCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _formatColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -3067,7 +3067,7 @@ class _LearningFormatCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.auto_awesome_rounded,
                   color: _formatColor(option.value),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -3082,7 +3082,7 @@ class _LearningFormatCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11.5 : 15,
+                        fontSize: compact ? 14 : 18,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -3108,7 +3108,7 @@ class _LearningFormatCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 24,
+                size: compact ? 23 : 28,
               ),
             ],
           ),
@@ -3172,12 +3172,12 @@ class _DailyDurationCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 66),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 7 : 8,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
             compact ? 10 : 12,
-            compact ? 7 : 8,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -3189,8 +3189,8 @@ class _DailyDurationCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _durationColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -3198,7 +3198,7 @@ class _DailyDurationCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.timer_rounded,
                   color: _durationColor(option.value),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -3213,7 +3213,7 @@ class _DailyDurationCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11.5 : 15,
+                        fontSize: compact ? 14 : 18,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -3239,7 +3239,7 @@ class _DailyDurationCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 24,
+                size: compact ? 23 : 28,
               ),
             ],
           ),
@@ -3300,12 +3300,12 @@ class _StudyTimeCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Container(
-          constraints: BoxConstraints(minHeight: compact ? 40 : 56),
+          constraints: BoxConstraints(minHeight: compact ? 52 : 66),
           padding: EdgeInsets.fromLTRB(
-            compact ? 8 : 10,
-            compact ? 7 : 8,
+            compact ? 11 : 13,
+            compact ? 10 : 11,
             compact ? 10 : 12,
-            compact ? 7 : 8,
+            compact ? 10 : 11,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(compact ? 16 : 18),
@@ -3317,8 +3317,8 @@ class _StudyTimeCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: compact ? 28 : 40,
-                height: compact ? 28 : 40,
+                width: compact ? 38 : 48,
+                height: compact ? 38 : 48,
                 decoration: BoxDecoration(
                   color: _timeColor(option.value).withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(compact ? 12 : 14),
@@ -3326,7 +3326,7 @@ class _StudyTimeCard extends StatelessWidget {
                 child: Icon(
                   option.icon ?? Icons.schedule_rounded,
                   color: _timeColor(option.value),
-                  size: compact ? 16 : 22,
+                  size: compact ? 22 : 27,
                 ),
               ),
               SizedBox(width: compact ? 10 : 12),
@@ -3341,7 +3341,7 @@ class _StudyTimeCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: const Color(0xFF3B2318),
-                        fontSize: compact ? 11.5 : 15,
+                        fontSize: compact ? 14 : 18,
                         height: 1.1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -3367,7 +3367,7 @@ class _StudyTimeCard extends StatelessWidget {
                     ? Icons.check_circle_rounded
                     : Icons.chevron_right_rounded,
                 color: selected ? _authPrimary : const Color(0xFF30333A),
-                size: compact ? 18 : 24,
+                size: compact ? 23 : 28,
               ),
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../quests/presentation/quest_screen.dart';
 import '../../data/baleverse_dummy_data.dart';
 import '../../domain/baleverse_models.dart';
 
@@ -39,7 +40,21 @@ class WorldsScreen extends StatelessWidget {
                 selected: world['key'] == selectedBackendWorld,
                 compact: compact,
                 onTap: () {
-                  final key = _worldKeyFromBackend(world['key'] as String?);
+                  final backendKey = world['key'] as String?;
+                  // Scientia (dan dunia baru lain yang belum punya alur
+                  // MissionQuestionScreen lama) pakai engine Quest generik
+                  // yang baru, bukan machine.selectWorld/onSelectWorld.
+                  if (backendKey != null &&
+                      _worldKeyFromBackend(backendKey) == null) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            QuestScreen(worldKey: backendKey.toLowerCase()),
+                      ),
+                    );
+                    return;
+                  }
+                  final key = _worldKeyFromBackend(backendKey);
                   if (key != null) onSelectWorld(key);
                 },
               ),

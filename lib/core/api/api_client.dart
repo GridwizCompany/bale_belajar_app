@@ -18,9 +18,14 @@ class ApiClient {
   ApiClient({
     http.Client? httpClient,
     TokenProvider? tokenProvider,
+    // Default ke backend production (lihat NEXT_PUBLIC_API_URL di
+    // BALE_BELAJAR_PROFILE/deploy/deploy.sh). Untuk dev lokal, override
+    // lewat --dart-define=BALE_API_URL=http://<IP-LAN>:4000/api/v1 - dunia
+    // Scientia/engine Quest baru cuma ada di DB lokal sampai backend ini
+    // di-deploy ulang dengan perubahan sesi ini.
     this.baseUrl = const String.fromEnvironment(
       'BALE_API_URL',
-      defaultValue: 'http://localhost:4000/api/v1',
+      defaultValue: 'https://api.balebelajar.com/api/v1',
     ),
   })  : _httpClient = httpClient ?? http.Client(),
         _tokenProvider = tokenProvider;

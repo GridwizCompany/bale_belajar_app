@@ -6,6 +6,7 @@ import '../../auth/application/auth_controller.dart';
 import '../application/baleverse_progress_service.dart';
 import '../application/mission_engine.dart';
 import '../data/baleverse_dummy_data.dart';
+import '../data/worlds_repository.dart';
 import '../domain/baleverse_models.dart';
 import '../state/mission_state_machine.dart' as machine;
 import 'screens/bale_profile_page.dart';
@@ -39,6 +40,7 @@ class BaleVerseDemoScreen extends StatefulWidget {
 class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   final BaleVerseProgressService _progressService = BaleVerseProgressService();
   final MissionEngine _missionEngine = const MissionEngine();
+  final WorldsRepository _worldsRepository = WorldsRepository();
   late machine.BaleVerseState _state;
   BaleTab _tab = BaleTab.home;
   String? _selectedOptionId;
@@ -81,8 +83,27 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       final data = await authController.authService.getPrototypeBaleVerse(
         studentProfileId: studentProfileId,
       );
+      final merged = Map<String, dynamic>.from(data);
+      await _mergeRealWorlds(merged);
       if (!mounted) return;
-      setState(() => _backendData = data);
+      setState(() => _backendData = merged);
+    } catch (_) {}
+  }
+
+  /// Tambahkan Dunia sungguhan (mis. Scientia) dari `GET /student/worlds`
+  /// ke daftar dunia yang sudah ada di blob prototype - dunia yang sudah
+  /// ada di blob prototype (Numeria/KodeX/Detectivia) TIDAK ditimpa, supaya
+  /// tampilan kartu dunia lama yang lebih kaya (exampleMission, dst) tetap
+  /// utuh. Kegagalan di sini tidak boleh menggagalkan _loadBackendData.
+  Future<void> _mergeRealWorlds(Map<String, dynamic> merged) async {
+    try {
+      final realWorlds = await _worldsRepository.fetchWorlds();
+      final existingWorlds =
+          (merged['worlds'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final existingKeys = existingWorlds.map((w) => w['key']).toSet();
+      final newWorlds =
+          realWorlds.where((w) => !existingKeys.contains(w['key']));
+      merged['worlds'] = [...existingWorlds, ...newWorlds];
     } catch (_) {}
   }
 

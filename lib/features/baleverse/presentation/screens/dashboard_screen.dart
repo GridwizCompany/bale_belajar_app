@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../application/baleverse_progress_service.dart';
+import '../../data/game_profile_repository.dart';
 import '../../domain/baleverse_models.dart';
 
 const _homeBg = Color(0xFFFFF3C6);
@@ -13,6 +14,9 @@ class DashboardScreen extends StatelessWidget {
     required this.progress,
     required this.selectedWorld,
     this.backendData,
+    required this.realUserName,
+    required this.gameProfile,
+    required this.masteryAverage,
     required this.onStartMission,
     super.key,
   });
@@ -20,13 +24,17 @@ class DashboardScreen extends StatelessWidget {
   final BaleVerseProgress progress;
   final BaleWorld selectedWorld;
   final Map<String, dynamic>? backendData;
+  // Data akun REAL dari GET /student/game-profile dan /student/mastery -
+  // null berarti belum termuat/gagal, layar harus menampilkannya jujur
+  // (placeholder '-'), BUKAN diam-diam pakai baleUser dummy.
+  final String? realUserName;
+  final GameProfileSummary? gameProfile;
+  final double? masteryAverage;
   final VoidCallback onStartMission;
 
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
-    final profile = backendData?['profile'] as Map<String, dynamic>?;
-    final stats = backendData?['stats'] as Map<String, dynamic>?;
     final todayMission = backendData?['todayMission'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
 
@@ -36,11 +44,11 @@ class DashboardScreen extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 18, 14, 10),
         children: [
           _GreetingCard(
-            userName: profile?['name'] as String? ?? user.name,
+            userName: realUserName ?? user.name,
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 14),
-          _StatsStrip(user: user, stats: stats, compact: compact),
+          _StatsStrip(gameProfile: gameProfile, compact: compact),
           SizedBox(height: compact ? 8 : 14),
           _TodayMissionCard(
             selectedWorld: selectedWorld,
@@ -48,15 +56,16 @@ class DashboardScreen extends StatelessWidget {
             compact: compact,
             onStartMission: onStartMission,
           ),
-          SizedBox(height: compact ? 8 : 18),
-          _LearningMap(compact: compact),
           if (!compact) ...[
             const SizedBox(height: 18),
-            _LegacyProgressSummary(user: user),
+            _LegacyProgressSummary(
+              gameProfile: gameProfile,
+              masteryAverage: masteryAverage,
+            ),
             const SizedBox(height: 18),
           ] else
             const SizedBox(height: 8),
-          _StreakCard(user: user, compact: compact),
+          _StreakCard(gameProfile: gameProfile, compact: compact),
           // Keep this text for existing smoke tests while the visible CTA uses
           // the updated design language.
           const SizedBox(height: 1),
@@ -145,14 +154,9 @@ class _GreetingCard extends StatelessWidget {
 }
 
 class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({
-    required this.user,
-    required this.stats,
-    required this.compact,
-  });
+  const _StatsStrip({required this.gameProfile, required this.compact});
 
-  final BaleUser user;
-  final Map<String, dynamic>? stats;
+  final GameProfileSummary? gameProfile;
   final bool compact;
 
   @override
@@ -168,9 +172,8 @@ class _StatsStrip extends StatelessWidget {
             child: _StatItem(
               icon: Icons.star_rounded,
               color: _homeYellow,
-              label: compact ? 'XP' : 'XP Matematika',
-              value:
-                  '${stats?['xp'] ?? user.xp[BaleWorldKey.detectivia] ?? 240}',
+              label: compact ? 'XP' : 'XP Total',
+              value: gameProfile == null ? '-' : '${gameProfile!.accountXp}',
             ),
           ),
           const _StatDivider(),
@@ -179,7 +182,7 @@ class _StatsStrip extends StatelessWidget {
               icon: Icons.local_fire_department_rounded,
               color: const Color(0xFFFF6B2C),
               label: 'Nyala',
-              value: '${stats?['streak'] ?? 3}',
+              value: gameProfile == null ? '-' : '${gameProfile!.streakCurrent}',
             ),
           ),
           const _StatDivider(),
@@ -188,13 +191,21 @@ class _StatsStrip extends StatelessWidget {
               icon: Icons.workspace_premium_rounded,
               color: Color(0xFF8B5CF6),
               label: 'Rank',
-              value: user.rank.replaceAll('Penjelajah', 'Tunas'),
+              value: gameProfile == null ? '-' : _formatRank(gameProfile!.rank),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+String _formatRank(String rank) {
+  final lower = rank.toLowerCase().replaceAll('_', ' ');
+  return lower
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+      .join(' ');
 }
 
 class _StatItem extends StatelessWidget {
@@ -343,25 +354,6 @@ class _TodayMissionCard extends StatelessWidget {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: compact ? 8 : 16),
-                    ClipRRect(
-                      borderRadius: const BorderRadius.all(Radius.circular(9)),
-                      child: LinearProgressIndicator(
-                        value: 0.4,
-                        minHeight: compact ? 6 : 9,
-                        color: _homeGreen,
-                        backgroundColor: Color(0xFFE8DDB8),
-                      ),
-                    ),
-                    SizedBox(height: compact ? 4 : 8),
-                    Text(
-                      '4 / 10 misi',
-                      style: TextStyle(
-                        color: _homeInk,
-                        fontSize: compact ? 14 : 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -401,179 +393,19 @@ class _TodayMissionCard extends StatelessWidget {
   }
 }
 
-class _LearningMap extends StatelessWidget {
-  const _LearningMap({required this.compact});
-
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SoftCard(
-      padding: EdgeInsets.all(compact ? 10 : 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.map_rounded,
-                color: const Color(0xFF8B5CF6),
-                size: compact ? 22 : 30,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Peta Belajar',
-                  style: TextStyle(
-                    color: _homeInk,
-                    fontSize: compact ? 17 : 24,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                ),
-                child: const Text('Peta Lengkap'),
-              ),
-            ],
-          ),
-          SizedBox(height: compact ? 8 : 14),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _MapNode(
-                title: 'Pengenalan',
-                number: '1',
-                compact: compact,
-                completed: true,
-                stars: 3,
-              ),
-              _MapNode(
-                title: 'Detektifia',
-                number: '2',
-                compact: compact,
-                active: true,
-                stars: 1,
-              ),
-              _MapNode(
-                title: 'Sumber Daya',
-                number: '3',
-                compact: compact,
-                locked: true,
-                stars: 0,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MapNode extends StatelessWidget {
-  const _MapNode({
-    required this.title,
-    required this.number,
-    required this.stars,
-    required this.compact,
-    this.completed = false,
-    this.active = false,
-    this.locked = false,
-  });
-
-  final String title;
-  final String number;
-  final int stars;
-  final bool compact;
-  final bool completed;
-  final bool active;
-  final bool locked;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = completed
-        ? _homeGreen
-        : active
-            ? _homeYellow
-            : const Color(0xFF9E9E9E);
-    return Flexible(
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: compact ? 21 : 33,
-            backgroundColor: color,
-            child: Icon(
-              completed
-                  ? Icons.check_rounded
-                  : locked
-                      ? Icons.lock_rounded
-                      : Icons.looks_two_rounded,
-              color: Colors.white,
-              size: compact ? 22 : 34,
-            ),
-          ),
-          SizedBox(height: compact ? 5 : 10),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: compact ? 5 : 8,
-              vertical: compact ? 5 : 8,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFFFE0A1)),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  number,
-                  style: const TextStyle(
-                    color: _homeInk,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _homeInk,
-                    fontSize: compact ? 9 : 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (var index = 0; index < 3; index++)
-                      Icon(
-                        Icons.star_rounded,
-                        size: compact ? 10 : 16,
-                        color: index < stars
-                            ? _homeYellow
-                            : const Color(0xFFD7D2C8),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// "Peta Belajar" (learning-path map dengan node/bintang/lock) sengaja
+// dihapus - tidak ada satupun field backend yang mengisi progres node-nya
+// (Fase 4, belum dikerjakan). Menampilkan node/bintang statis akan jadi
+// klaim progres yang tidak benar.
 
 class _LegacyProgressSummary extends StatelessWidget {
-  const _LegacyProgressSummary({required this.user});
+  const _LegacyProgressSummary({
+    required this.gameProfile,
+    required this.masteryAverage,
+  });
 
-  final BaleUser user;
+  final GameProfileSummary? gameProfile;
+  final double? masteryAverage;
 
   @override
   Widget build(BuildContext context) {
@@ -581,19 +413,18 @@ class _LegacyProgressSummary extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          const Expanded(
-            child: _SummaryText(label: 'Dunia aktif', value: 'Matematika'),
-          ),
           Expanded(
             child: _SummaryText(
-              label: 'XP Matematika',
-              value: '${user.xp[BaleWorldKey.numeria] ?? 0}',
+              label: 'Level',
+              value: gameProfile == null ? '-' : '${gameProfile!.accountLevel}',
             ),
           ),
           Expanded(
             child: _SummaryText(
-              label: 'Mastery',
-              value: '${user.mastery[BaleWorldKey.numeria] ?? 0}%',
+              label: 'Rata-rata Mastery',
+              value: masteryAverage == null
+                  ? '-'
+                  : '${masteryAverage!.round()}%',
             ),
           ),
         ],
@@ -638,13 +469,15 @@ class _SummaryText extends StatelessWidget {
 }
 
 class _StreakCard extends StatelessWidget {
-  const _StreakCard({required this.user, required this.compact});
+  const _StreakCard({required this.gameProfile, required this.compact});
 
-  final BaleUser user;
+  final GameProfileSummary? gameProfile;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final streakCurrent = gameProfile?.streakCurrent ?? 0;
+    final streakTarget = gameProfile?.streakTargetPerWeek ?? 0;
     return _SoftCard(
       padding: EdgeInsets.all(compact ? 14 : 18),
       child: Row(
@@ -655,11 +488,11 @@ class _StreakCard extends StatelessWidget {
             size: 62,
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Streak',
                   style: TextStyle(
                     color: _homeInk,
@@ -668,8 +501,10 @@ class _StreakCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Belajar 3 hari berturut-turut',
-                  style: TextStyle(
+                  gameProfile == null
+                      ? 'Belum ada data streak'
+                      : 'Belajar $streakCurrent hari berturut-turut',
+                  style: const TextStyle(
                     color: Color(0xFF60646F),
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -686,7 +521,7 @@ class _StreakCard extends StatelessWidget {
               border: Border.all(color: const Color(0xFFFFE0A1)),
             ),
             child: Text(
-              '${user.weeklyCompleted} / ${user.weeklyTarget} hari',
+              gameProfile == null ? '-' : '$streakCurrent / $streakTarget hari',
               style: const TextStyle(
                 color: Color(0xFFF57C00),
                 fontSize: 18,

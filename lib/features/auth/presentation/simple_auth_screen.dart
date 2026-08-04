@@ -89,6 +89,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   String? _prototypeStudentProfileId;
   String? _prototypePlacementAttemptId;
   List<TemplateQuestion>? _backendPlacementQuestions;
+  // Kalau backend gagal, tampilkan error/retry - JANGAN diam-diam pakai
+  // soal dummy (lihat _PlacementTestFlow.build()).
+  bool _placementLoadFailed = false;
 
   @override
   void initState() {
@@ -395,6 +398,11 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                         _showAnalysis,
                                                                     onQuestionCompleted:
                                                                         _completePrototypePlacementQuestion,
+                                                                    loadFailed:
+                                                                        _placementLoadFailed,
+                                                                    onRetry:
+                                                                        () => unawaited(
+                                                                            _ensurePrototypePlacementAttempt()),
                                                                   )
                                                                 : _mode ==
                                                                         AuthMode
@@ -729,6 +737,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         _placementQuestionIndex = 0;
         _prototypePlacementAttemptId = null;
         _backendPlacementQuestions = null;
+        _placementLoadFailed = false;
       }
     });
     _syncAuthAudio(mode);
@@ -797,9 +806,13 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   Future<void> _ensurePrototypePlacementAttempt() async {
     if (_prototypePlacementAttemptId != null) return;
+    if (mounted) setState(() => _placementLoadFailed = false);
     await _ensurePrototypeSession();
     final studentProfileId = _prototypeStudentProfileId;
-    if (studentProfileId == null) return;
+    if (studentProfileId == null) {
+      if (mounted) setState(() => _placementLoadFailed = true);
+      return;
+    }
     try {
       _prototypePlacementAttemptId =
           await widget.controller.authService.startPrototypePlacement(
@@ -815,7 +828,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         _backendPlacementQuestions =
             questionJson.map(_templateQuestionFromJson).toList(growable: false);
       });
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _placementLoadFailed = true);
+    }
   }
 
   Future<void> _savePrototypePlacementAnswer(
@@ -860,6 +875,16 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     try {
       await widget.controller.authService.submitPrototypePlacement(attemptId);
     } catch (_) {}
+  }
+
+  Future<void> _saveRealOnboardingAnswers() async {
+    final answers = _onboardingPayload();
+    try {
+      await widget.controller.authService.saveOnboardingAnswers(answers);
+      await widget.controller.authService.finishOnboarding(answers);
+    } catch (_) {
+      // Best-effort - lihat komentar di titik pemanggilan (_submit()).
+    }
   }
 
   Map<String, dynamic> _onboardingPayload() {
@@ -978,6 +1003,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         password: _password.text,
         gradeLevel: _grade,
       );
+      // Akun berhasil dibuat (baru punya JWT sekarang) - kirim jawaban
+      // 7 pertanyaan onboarding yang sudah terkumpul selama flow ini ke
+      // backend REAL yang authenticated, bukan cuma modul prototype.
+      // Best-effort: kegagalan di sini tidak boleh memblokir alur signup,
+      // OnboardingScreen (real, lewat AuthGate) tetap akan muncul.
+      if (widget.controller.errorMessage == null) {
+        unawaited(_saveRealOnboardingAnswers());
+      }
     } else if (_mode == AuthMode.code) {
       await widget.controller.loginWithCode(_code.text);
     }
@@ -2176,6 +2209,8 @@ class _PlacementTestFlow extends StatelessWidget {
     required this.onNext,
     required this.onShowAnalysis,
     required this.onQuestionCompleted,
+    required this.loadFailed,
+    required this.onRetry,
     super.key,
   });
 
@@ -2190,11 +2225,27 @@ class _PlacementTestFlow extends StatelessWidget {
     Object? answer, {
     required bool skipped,
   }) onQuestionCompleted;
+  // Backend gagal memuat soal - tampilkan error/retry, JANGAN diam-diam
+  // pakai soal dummy (dulu ada fallback `_placementQuestionsFor`, sudah
+  // dihapus).
+  final bool loadFailed;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final questions = this.questions ?? _placementQuestionsFor(world);
-    if (currentIndex >= 13) {
+    final questions = this.questions;
+    if (questions == null) {
+      if (loadFailed) {
+        return _PlacementLoadError(onBack: onBack, onRetry: onRetry);
+      }
+      return const ColoredBox(
+        color: Color(0xFFFFF3C6),
+        child: Center(
+          child: CircularProgressIndicator(color: _authPrimary),
+        ),
+      );
+    }
+    if (currentIndex >= questions.length) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onShowAnalysis());
       return const ColoredBox(
         color: Color(0xFFFFF3C6),
@@ -2206,6 +2257,7 @@ class _PlacementTestFlow extends StatelessWidget {
     final index = currentIndex.clamp(0, questions.length - 1);
     final question = questions[index];
     final totalQuestions = questions.length;
+    final currentQuestion = index + 1;
 
     void skipCurrent() {
       onQuestionCompleted(question, null, skipped: true);
@@ -2214,7 +2266,7 @@ class _PlacementTestFlow extends StatelessWidget {
 
     void answerCurrent(Object? answer) {
       onQuestionCompleted(question, answer, skipped: false);
-      if (index >= 12) {
+      if (index >= totalQuestions - 1) {
         onShowAnalysis();
       } else {
         onNext();
@@ -2237,74 +2289,80 @@ class _PlacementTestFlow extends StatelessWidget {
           ),
         );
       },
-      child: switch (index) {
-        0 => SingleChoiceTemplate(
+      // Dispatch berdasarkan question.questionType (bukan posisi index) -
+      // dulu ada bug di sini: switch(index) 0-12 cocok kebetulan dengan
+      // urutan data dummy, tapi bisa salah render tipe kalau backend
+      // mengembalikan soal dengan tipe/urutan berbeda. evidenceBoard juga
+      // baru ditambahkan di sini - sebelumnya tidak pernah bisa dirender
+      // sama sekali karena switch(index) cuma sampai 12.
+      child: switch (question.questionType) {
+        QuestionType.singleChoice => SingleChoiceTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 1,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        1 => MultipleSelectTemplate(
+        QuestionType.multipleSelect => MultipleSelectTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 2,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        2 => BinaryChoiceTemplate(
+        QuestionType.binaryChoice => BinaryChoiceTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 3,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        3 => ShortTextTemplate(
+        QuestionType.shortText => ShortTextTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 4,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        4 => MatchingTemplate(
+        QuestionType.matching => MatchingTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 5,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        5 => OrderingTemplate(
+        QuestionType.ordering => OrderingTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 6,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        6 => ImageChoiceTemplate(
+        QuestionType.imageChoice => ImageChoiceTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 7,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        7 => AudioChoiceTemplate(
+        QuestionType.audioChoice => AudioChoiceTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 8,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onPlay: () {},
             onPause: () {},
@@ -2312,322 +2370,106 @@ class _PlacementTestFlow extends StatelessWidget {
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        8 => LongTextTemplate(
+        QuestionType.longText => LongTextTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 9,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             onBack: onBack,
             onSkip: skipCurrent,
             onSubmitAnswer: answerCurrent,
           ),
-        9 => CodeInputTemplate(
+        QuestionType.codeInput => CodeInputTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 10,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
-            readingText:
-                'Di sebuah desa, warga berinisiatif membuat tempat sampah organik dan anorganik di setiap rumah. Mereka juga rutin membersihkan lingkungan setiap minggu. Kini, desa tersebut menjadi bersih, sehat, dan nyaman untuk ditinggali.',
             onBack: onBack,
             onSkip: skipCurrent,
             onBookmark: () {},
             onCheckAnswer: answerCurrent,
           ),
-        10 => ImageHotspotTemplate(
+        QuestionType.imageHotspot => ImageHotspotTemplate(
             key: ValueKey(question.id),
             question: question,
+            currentQuestion: currentQuestion,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
             onSkip: skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
-        11 => VoiceResponseTemplate(
+        QuestionType.voiceResponse => VoiceResponseTemplate(
             key: ValueKey(question.id),
             question: question,
+            currentQuestion: currentQuestion,
+            totalQuestions: totalQuestions,
             onStartRecording: () {},
             onStopRecording: () {},
+            onBack: onBack,
             onSkip: skipCurrent,
             onSubmitAnswer: answerCurrent,
           ),
-        12 => TimelineBuilderTemplate(
+        QuestionType.timelineBuilder => TimelineBuilderTemplate(
             key: ValueKey(question.id),
             question: question,
-            currentQuestion: 13,
+            currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
             skipLabel: 'Lanjut ke Analisis Hasil',
+            onBack: onBack,
             onSkip: () {
               onQuestionCompleted(question, null, skipped: true);
               onShowAnalysis();
             },
             onCheckAnswer: answerCurrent,
           ),
-        _ => const ColoredBox(
-            color: Color(0xFFFFF3C6),
-            child: Center(
-              child: CircularProgressIndicator(color: _authPrimary),
-            ),
+        QuestionType.evidenceBoard => EvidenceBoardTemplate(
+            key: ValueKey(question.id),
+            question: question,
+            currentQuestion: currentQuestion,
+            totalQuestions: totalQuestions,
+            onBack: onBack,
+            onSkip: skipCurrent,
+            onCheckAnswer: answerCurrent,
           ),
       },
     );
   }
 }
 
-List<TemplateQuestion> _placementQuestionsFor(LearningWorld? world) {
-  final worldName = _worldName(world);
-  return [
-    const TemplateQuestion(
-      id: 'placement-single-choice',
-      questionType: QuestionType.singleChoice,
-      prompt: 'Jika 3x + 5 = 20, berapa nilai x?',
-      options: [
-        TemplateOption(id: 'a', label: '3'),
-        TemplateOption(id: 'b', label: '4'),
-        TemplateOption(id: 'c', label: '5'),
-        TemplateOption(id: 'd', label: '6'),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-multiple-select',
-      questionType: QuestionType.multipleSelect,
-      prompt: 'Manakah yang termasuk bilangan genap?',
-      instruction: 'Pilih semua jawaban yang sesuai.',
-      scoringConfig: MultipleSelectScoring.allCorrect,
-      options: [
-        TemplateOption(id: 'a', label: '3'),
-        TemplateOption(id: 'b', label: '4'),
-        TemplateOption(id: 'c', label: '6'),
-        TemplateOption(id: 'd', label: '9'),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-binary-choice',
-      questionType: QuestionType.binaryChoice,
-      prompt: 'Semua bilangan genap pasti habis dibagi 2.',
-      instruction: 'Pernyataan berikut ini, benar atau salah?',
-    ),
-    const TemplateQuestion(
-      id: 'placement-short-text',
-      questionType: QuestionType.shortText,
-      prompt: 'Berapa hasil dari 72 ÷ 8?',
-      instruction: 'Tulis jawaban berupa angka saja.',
-      responseConfig: ResponseConfig(
-        inputMode: TextInputMode.numeric,
-        maxLength: 3,
+class _PlacementLoadError extends StatelessWidget {
+  const _PlacementLoadError({required this.onBack, required this.onRetry});
+
+  final VoidCallback onBack;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFFFFF3C6),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.wifi_off_rounded, color: _authPrimary, size: 48),
+              const SizedBox(height: 16),
+              const Text(
+                'Gagal memuat soal tes penempatan. Periksa koneksimu lalu coba lagi.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(onPressed: onRetry, child: const Text('Coba Lagi')),
+              TextButton(onPressed: onBack, child: const Text('Kembali')),
+            ],
+          ),
+        ),
       ),
-    ),
-    const TemplateQuestion(
-      id: 'placement-matching',
-      questionType: QuestionType.matching,
-      prompt: 'Pasangkan istilah di kiri dengan pengertiannya di kanan!',
-      instruction: 'Tarik jawaban dari kanan ke kotak di kiri.',
-      matchingPairs: [
-        MatchingPair(
-          leftId: 'variable',
-          leftLabel: 'Variable',
-          rightId: 'variable-def',
-          rightLabel: 'Tempat menyimpan data yang nilainya dapat berubah.',
-        ),
-        MatchingPair(
-          leftId: 'algorithm',
-          leftLabel: 'Algorithm',
-          rightId: 'algorithm-def',
-          rightLabel: 'Urutan langkah-langkah untuk menyelesaikan masalah.',
-        ),
-        MatchingPair(
-          leftId: 'loop',
-          leftLabel: 'Loop',
-          rightId: 'loop-def',
-          rightLabel:
-              'Struktur perulangan yang menjalankan blok kode berulang.',
-        ),
-        MatchingPair(
-          leftId: 'function',
-          leftLabel: 'Function',
-          rightId: 'function-def',
-          rightLabel: 'Blok kode yang dapat digunakan kembali.',
-        ),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-ordering',
-      questionType: QuestionType.ordering,
-      prompt:
-          'Susun langkah-langkah fotosintesis pada tumbuhan berikut dengan benar!',
-      instruction: 'Tekan dan geser untuk mengurutkan.',
-      orderingItems: [
-        OrderingItem(
-          id: 'sunlight',
-          label: 'Cahaya matahari diserap oleh klorofil.',
-        ),
-        OrderingItem(
-          id: 'co2',
-          label: 'Karbon dioksida masuk melalui stomata daun.',
-        ),
-        OrderingItem(
-          id: 'glucose',
-          label: 'Terbentuk glukosa sebagai makanan tumbuhan.',
-        ),
-        OrderingItem(
-          id: 'water',
-          label: 'Air diserap oleh akar dan diangkut ke daun.',
-        ),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-image-choice',
-      questionType: QuestionType.imageChoice,
-      prompt:
-          'Grafik berikut menunjukkan jumlah curah hujan di kota X selama 6 bulan.',
-      instruction: 'Bulan manakah yang memiliki curah hujan tertinggi?',
-      options: [
-        TemplateOption(id: 'jan', label: 'Januari'),
-        TemplateOption(id: 'mar', label: 'Maret'),
-        TemplateOption(id: 'may', label: 'Mei'),
-        TemplateOption(id: 'jun', label: 'Juni'),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-multiple-choice',
-      questionType: QuestionType.audioChoice,
-      prompt: 'Manakah dari pernyataan berikut yang merupakan opini?',
-      instruction: 'Pilih jawaban yang paling tepat.',
-      options: [
-        TemplateOption(id: 'a', label: 'Bandung terletak di Jawa Barat.'),
-        TemplateOption(id: 'b', label: 'Makanan ini rasanya enak sekali!'),
-        TemplateOption(id: 'c', label: 'Ibu kota Indonesia adalah Jakarta.'),
-        TemplateOption(
-          id: 'd',
-          label: 'Air terjun Curug Ngebul berada di Bogor.',
-        ),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-sorting',
-      questionType: QuestionType.longText,
-      prompt: 'Urutkan kalimat berikut menjadi sebuah paragraf yang padu.',
-      instruction: 'Tarik dan letakkan untuk mengurutkan.',
-      orderingItems: [
-        OrderingItem(
-          id: 'start',
-          label: 'Suatu hari, Raka ingin menanam pohon di halaman rumahnya.',
-        ),
-        OrderingItem(
-          id: 'plant',
-          label: 'Ia mengambil bibit, menggali tanah, lalu menanamnya.',
-        ),
-        OrderingItem(
-          id: 'water',
-          label: 'Raka menyirami pohon itu setiap pagi dan sore.',
-        ),
-        OrderingItem(
-          id: 'grow',
-          label: 'Bulan demi bulan berlalu, pohon itu tumbuh semakin besar.',
-        ),
-        OrderingItem(
-          id: 'happy',
-          label: 'Raka merasa senang karena pohon itu memberi keteduhan.',
-        ),
-      ],
-    ),
-    TemplateQuestion(
-      id: 'placement-insight',
-      questionType: QuestionType.codeInput,
-      prompt:
-          'Manakah pernyataan yang menunjukkan kesimpulan terbaik dari bacaan berikut?',
-      instruction:
-          'Tes terakhir ini membantu Bale mengunci rekomendasi awal untuk $worldName.',
-      options: const [
-        TemplateOption(
-            id: 'a', label: 'Tempat sampah di setiap rumah harus besar.'),
-        TemplateOption(
-          id: 'b',
-          label: 'Kebersihan lingkungan terwujud karena kerja sama warga.',
-        ),
-        TemplateOption(
-          id: 'c',
-          label: 'Desa menjadi sehat karena warganya rajin berolahraga.',
-        ),
-        TemplateOption(
-          id: 'd',
-          label: 'Tempat sampah organik lebih penting daripada anorganik.',
-        ),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-image-hotspot',
-      questionType: QuestionType.imageHotspot,
-      prompt: 'Pilih bagian gambar yang menunjukkan sumber cahaya.',
-      instruction: 'Tekan titik yang menurutmu paling tepat.',
-      hotspotAreas: [
-        HotspotArea(id: 'sun', label: 'Matahari', x: 0.78, y: 0.22),
-        HotspotArea(id: 'leaf', label: 'Daun', x: 0.42, y: 0.52),
-        HotspotArea(id: 'root', label: 'Akar', x: 0.48, y: 0.82),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-voice-response',
-      questionType: QuestionType.voiceResponse,
-      prompt: 'Jelaskan dengan suaramu: apa itu kerja sama?',
-      instruction:
-          'Jawab singkat dengan contoh sederhana. Kamu bisa edit transkrip sebelum mengirim.',
-    ),
-    const TemplateQuestion(
-      id: 'placement-timeline-builder',
-      questionType: QuestionType.timelineBuilder,
-      prompt: 'Susun urutan kegiatan proyek kelas berikut.',
-      instruction: 'Tarik peristiwa dari awal sampai akhir.',
-      timelineItems: [
-        TimelineItem(
-          id: 'plan',
-          timeLabel: 'Awal',
-          label: 'Membuat rencana tugas kelompok.',
-        ),
-        TimelineItem(
-          id: 'research',
-          timeLabel: 'Setelah itu',
-          label: 'Mengumpulkan informasi dari buku dan internet.',
-        ),
-        TimelineItem(
-          id: 'create',
-          timeLabel: 'Berikutnya',
-          label: 'Menyusun poster dan latihan presentasi.',
-        ),
-        TimelineItem(
-          id: 'present',
-          timeLabel: 'Akhir',
-          label: 'Mempresentasikan hasil di depan kelas.',
-        ),
-      ],
-    ),
-    const TemplateQuestion(
-      id: 'placement-evidence-board',
-      questionType: QuestionType.evidenceBoard,
-      prompt:
-          'Pilih bukti yang mendukung kesimpulan: desa menjadi bersih karena warga bekerja sama.',
-      instruction: 'Pilih semua bukti yang paling relevan.',
-      evidenceItems: [
-        EvidenceItem(
-          id: 'weekly-cleaning',
-          category: 'Kegiatan',
-          label: 'Warga rutin membersihkan lingkungan setiap minggu.',
-        ),
-        EvidenceItem(
-          id: 'trash-bin',
-          category: 'Fasilitas',
-          label: 'Setiap rumah memiliki tempat sampah organik dan anorganik.',
-        ),
-        EvidenceItem(
-          id: 'weather',
-          category: 'Detail tambahan',
-          label: 'Cuaca desa sering cerah saat pagi hari.',
-        ),
-        EvidenceItem(
-          id: 'cooperation',
-          category: 'Kerja sama',
-          label: 'Warga berinisiatif menjaga kebersihan bersama.',
-        ),
-      ],
-    ),
-  ];
+    );
+  }
 }
+
 
 class _CircleBackButton extends StatelessWidget {
   const _CircleBackButton({required this.onPressed});

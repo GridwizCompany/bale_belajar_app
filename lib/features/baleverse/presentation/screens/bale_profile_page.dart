@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../application/baleverse_progress_service.dart';
-import '../../domain/baleverse_models.dart';
+import '../../data/game_profile_repository.dart';
 
 const _profileBg = Color(0xFFFFF3C6);
 const _profileInk = Color(0xFF3B2318);
@@ -11,34 +11,44 @@ const _profileGreen = Color(0xFF4CAF50);
 class BaleProfilePage extends StatelessWidget {
   const BaleProfilePage({
     required this.progress,
-    this.backendData,
+    required this.realUserName,
+    required this.gameProfile,
+    required this.masteryAverage,
     this.onSignOut,
     super.key,
   });
 
   final BaleVerseProgress progress;
-  final Map<String, dynamic>? backendData;
+  // Data akun REAL dari GET /student/game-profile dan /student/mastery -
+  // null berarti belum termuat/gagal, ditampilkan jujur sebagai '-',
+  // BUKAN diam-diam pakai baleUser dummy atau blob prototype.
+  final String? realUserName;
+  final GameProfileSummary? gameProfile;
+  final double? masteryAverage;
   final VoidCallback? onSignOut;
 
   @override
   Widget build(BuildContext context) {
     final user = progress.user;
-    final profile = backendData?['profile'] as Map<String, dynamic>?;
-    final stats = backendData?['stats'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _profileBg,
       child: ListView(
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
-          _ProfileHeader(user: user, profile: profile, compact: compact),
+          _ProfileHeader(
+            fallbackName: user.name,
+            realUserName: realUserName,
+            gameProfile: gameProfile,
+            compact: compact,
+          ),
           SizedBox(height: compact ? 8 : 16),
-          _ProfileProgress(user: user, stats: stats, compact: compact),
+          _ProfileProgress(gameProfile: gameProfile, compact: compact),
           SizedBox(height: compact ? 8 : 14),
           _ProfileMenuTile(
             icon: Icons.school_rounded,
             title: 'Jalur belajar',
-            subtitle: 'Foundation 3 - Detektifia',
+            subtitle: 'Atur jalur belajarmu',
             color: _profileYellow,
             compact: compact,
             onTap: () {},
@@ -46,7 +56,7 @@ class BaleProfilePage extends StatelessWidget {
           _ProfileMenuTile(
             icon: Icons.notifications_rounded,
             title: 'Pengingat belajar',
-            subtitle: 'Sore hari, 10 menit',
+            subtitle: 'Atur pengingat belajar',
             color: _profileGreen,
             compact: compact,
             onTap: () {},
@@ -54,7 +64,7 @@ class BaleProfilePage extends StatelessWidget {
           _ProfileMenuTile(
             icon: Icons.verified_user_rounded,
             title: 'Data & keamanan',
-            subtitle: 'Data belajar tersimpan aman',
+            subtitle: 'Kelola keamanan akun',
             color: const Color(0xFF0E3A5F),
             compact: compact,
             onTap: () {},
@@ -75,13 +85,15 @@ class BaleProfilePage extends StatelessWidget {
 
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
-    required this.user,
-    required this.profile,
+    required this.fallbackName,
+    required this.realUserName,
+    required this.gameProfile,
     required this.compact,
   });
 
-  final BaleUser user;
-  final Map<String, dynamic>? profile;
+  final String fallbackName;
+  final String? realUserName;
+  final GameProfileSummary? gameProfile;
   final bool compact;
 
   @override
@@ -116,7 +128,7 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  profile?['name'] as String? ?? user.name,
+                  realUserName ?? fallbackName,
                   style: TextStyle(
                     color: _profileInk,
                     fontSize: compact ? 25 : 38,
@@ -125,30 +137,15 @@ class _ProfileHeader extends StatelessWidget {
                 ),
                 SizedBox(height: compact ? 3 : 6),
                 Text(
-                  '${profile?['rank'] ?? user.rank} - Level ${profile?['level'] ?? user.level}',
+                  gameProfile == null
+                      ? '-'
+                      : '${_formatRank(gameProfile!.rank)} - Level ${gameProfile!.accountLevel}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Color(0xFF60646F),
                     fontSize: compact ? 12 : 15,
                     fontWeight: FontWeight.w900,
-                  ),
-                ),
-                SizedBox(height: compact ? 6 : 10),
-                Container(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 10, vertical: compact ? 5 : 7),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E5),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFFFE0A1)),
-                  ),
-                  child: Text(
-                    _formatFoundation(profile?['foundation'] as String?),
-                    style: const TextStyle(
-                      color: _profileYellow,
-                      fontWeight: FontWeight.w900,
-                    ),
                   ),
                 ),
               ],
@@ -160,29 +157,23 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-String _formatFoundation(String? value) {
-  if (value == null || value.isEmpty) return 'Foundation 3';
-  return value
-      .toLowerCase()
-      .split('_')
-      .map((word) =>
-          word.isEmpty ? word : '${word[0].toUpperCase()}${word.substring(1)}')
+String _formatRank(String rank) {
+  final lower = rank.toLowerCase().replaceAll('_', ' ');
+  return lower
+      .split(' ')
+      .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
       .join(' ');
 }
 
 class _ProfileProgress extends StatelessWidget {
-  const _ProfileProgress({
-    required this.user,
-    required this.stats,
-    required this.compact,
-  });
+  const _ProfileProgress({required this.gameProfile, required this.compact});
 
-  final BaleUser user;
-  final Map<String, dynamic>? stats;
+  final GameProfileSummary? gameProfile;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
+    final profile = gameProfile;
     return Container(
       padding: EdgeInsets.all(compact ? 12 : 18),
       decoration: BoxDecoration(
@@ -202,19 +193,22 @@ class _ProfileProgress extends StatelessWidget {
           ),
           SizedBox(height: compact ? 8 : 14),
           _ProgressRow(
-            label: 'XP Detectivia',
-            value: '${stats?['xp'] ?? user.xp[BaleWorldKey.detectivia] ?? 0}',
-            progress: 0.62,
+            label: 'Menuju Level Berikutnya',
+            value: profile == null
+                ? '-'
+                : '${profile.xpIntoCurrentLevel}/${profile.xpRequiredForNextLevel} XP',
+            progress: profile?.levelProgress ?? 0,
             color: _profileYellow,
           ),
           SizedBox(height: compact ? 8 : 12),
           _ProgressRow(
-            label: 'Target mingguan',
-            value:
-                '${stats?['weeklyCompleted'] ?? user.weeklyCompleted}/${stats?['weeklyTarget'] ?? user.weeklyTarget} hari',
-            progress:
-                ((stats?['weeklyCompleted'] ?? user.weeklyCompleted) as num) /
-                    ((stats?['weeklyTarget'] ?? user.weeklyTarget) as num),
+            label: 'Nyala belajar mingguan',
+            value: profile == null
+                ? '-'
+                : '${profile.streakCurrent}/${profile.streakTargetPerWeek} hari',
+            progress: profile == null || profile.streakTargetPerWeek == 0
+                ? 0
+                : profile.streakCurrent / profile.streakTargetPerWeek,
             color: _profileGreen,
           ),
         ],

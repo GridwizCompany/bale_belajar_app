@@ -6,6 +6,8 @@ import '../../auth/application/auth_controller.dart';
 import '../application/baleverse_progress_service.dart';
 import '../application/mission_engine.dart';
 import '../data/baleverse_dummy_data.dart';
+import '../data/game_profile_repository.dart';
+import '../data/mastery_repository.dart';
 import '../data/worlds_repository.dart';
 import '../domain/baleverse_models.dart';
 import '../state/mission_state_machine.dart' as machine;
@@ -41,6 +43,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   final BaleVerseProgressService _progressService = BaleVerseProgressService();
   final MissionEngine _missionEngine = const MissionEngine();
   final WorldsRepository _worldsRepository = WorldsRepository();
+  final GameProfileRepository _gameProfileRepository = GameProfileRepository();
+  final MasteryRepository _masteryRepository = MasteryRepository();
   late machine.BaleVerseState _state;
   BaleTab _tab = BaleTab.home;
   String? _selectedOptionId;
@@ -52,6 +56,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   };
   BackgroundMusicId? _lastRequestedMusic;
   Map<String, dynamic>? _backendData;
+  List<Map<String, dynamic>> _realWorlds = [];
+  GameProfileSummary? _gameProfile;
+  double? _masteryAverage;
 
   BaleVerseProgress get _progress => _progressService.snapshot;
 
@@ -75,7 +82,24 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     if (mounted) setState(() {});
   }
 
+  /// Blob prototype (`_backendData`, dipakai `todayMission`/`missions` di
+  /// MissionHub - belum masuk scope Fase 1) dan data akun REAL (worlds,
+  /// game profile, mastery - lihat game_profile_repository.dart/
+  /// mastery_repository.dart) dimuat sepenuhnya independen satu sama lain.
+  /// Kegagalan salah satunya tidak boleh menggagalkan yang lain, dan
+  /// TIDAK ADA fallback ke dummy data di sini - kalau gagal, field terkait
+  /// tetap null dan layar wajib menampilkannya dengan jujur (placeholder
+  /// '-', bukan diam-diam pakai baleUser).
   Future<void> _loadBackendData() async {
+    await Future.wait([
+      _loadPrototypeBlob(),
+      _loadRealWorlds(),
+      _loadGameProfile(),
+      _loadMastery(),
+    ]);
+  }
+
+  Future<void> _loadPrototypeBlob() async {
     final studentProfileId = widget.prototypeStudentProfileId;
     final authController = widget.authController;
     if (studentProfileId == null || authController == null) return;
@@ -83,27 +107,34 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       final data = await authController.authService.getPrototypeBaleVerse(
         studentProfileId: studentProfileId,
       );
-      final merged = Map<String, dynamic>.from(data);
-      await _mergeRealWorlds(merged);
       if (!mounted) return;
-      setState(() => _backendData = merged);
+      setState(() => _backendData = Map<String, dynamic>.from(data));
     } catch (_) {}
   }
 
-  /// Tambahkan Dunia sungguhan (mis. Scientia) dari `GET /student/worlds`
-  /// ke daftar dunia yang sudah ada di blob prototype - dunia yang sudah
-  /// ada di blob prototype (Numeria/KodeX/Detectivia) TIDAK ditimpa, supaya
-  /// tampilan kartu dunia lama yang lebih kaya (exampleMission, dst) tetap
-  /// utuh. Kegagalan di sini tidak boleh menggagalkan _loadBackendData.
-  Future<void> _mergeRealWorlds(Map<String, dynamic> merged) async {
+  Future<void> _loadRealWorlds() async {
     try {
-      final realWorlds = await _worldsRepository.fetchWorlds();
-      final existingWorlds =
-          (merged['worlds'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      final existingKeys = existingWorlds.map((w) => w['key']).toSet();
-      final newWorlds =
-          realWorlds.where((w) => !existingKeys.contains(w['key']));
-      merged['worlds'] = [...existingWorlds, ...newWorlds];
+      final worlds = await _worldsRepository.fetchWorlds();
+      if (!mounted) return;
+      setState(() => _realWorlds = worlds);
+    } catch (_) {}
+  }
+
+  Future<void> _loadGameProfile() async {
+    try {
+      final profile = await _gameProfileRepository.fetchGameProfile();
+      if (!mounted) return;
+      setState(() => _gameProfile = profile);
+    } catch (_) {}
+  }
+
+  Future<void> _loadMastery() async {
+    try {
+      final competencies = await _masteryRepository.fetchGrowthMap(
+        worldKey: _selectedWorld.key.name,
+      );
+      if (!mounted) return;
+      setState(() => _masteryAverage = averageMasteryScore(competencies));
     } catch (_) {}
   }
 
@@ -255,6 +286,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         progress: _progress,
         selectedWorld: _selectedWorld,
         backendData: _backendData,
+        realUserName: widget.authController?.user?.name,
+        gameProfile: _gameProfile,
+        masteryAverage: _masteryAverage,
         onStartMission: _startMission,
       );
     }
@@ -263,7 +297,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return WorldsScreen(
         key: const ValueKey('worlds'),
         selectedWorld: _selectedWorld,
-        backendData: _backendData,
+        realWorlds: _realWorlds,
         onSelectWorld: (world) {
           _update(machine.selectWorld(_state, world));
         },
@@ -274,7 +308,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return BaleProfilePage(
         key: const ValueKey('profile'),
         progress: _progress,
-        backendData: _backendData,
+        realUserName: widget.authController?.user?.name,
+        gameProfile: _gameProfile,
+        masteryAverage: _masteryAverage,
         onSignOut: widget.authController?.signOut,
       );
     }

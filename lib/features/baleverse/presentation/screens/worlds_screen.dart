@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../quests/presentation/quest_screen.dart';
-import '../../data/baleverse_dummy_data.dart';
 import '../../domain/baleverse_models.dart';
 
 const _worldBg = Color(0xFFFFF3C6);
@@ -11,21 +10,22 @@ const _worldYellow = Color(0xFFF4B400);
 class WorldsScreen extends StatelessWidget {
   const WorldsScreen({
     required this.selectedWorld,
-    this.backendData,
+    required this.realWorlds,
     required this.onSelectWorld,
     super.key,
   });
 
   final BaleWorld selectedWorld;
-  final Map<String, dynamic>? backendData;
+  // Selalu dari GET /student/worlds (lihat WorldsRepository) - tidak ada
+  // fallback dummy. Kosong berarti belum termuat/gagal, tampilkan loading,
+  // bukan daftar dunia karangan.
+  final List<Map<String, dynamic>> realWorlds;
   final ValueChanged<BaleWorldKey> onSelectWorld;
 
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).height < 900;
-    final backendWorlds =
-        (backendData?['worlds'] as List?)?.cast<Map<String, dynamic>>();
-    final selectedBackendWorld = backendData?['selectedWorld'] as String?;
+    final selectedKeyUpper = selectedWorld.key.name.toUpperCase();
     return Container(
       color: _worldBg,
       child: ListView(
@@ -33,11 +33,18 @@ class WorldsScreen extends StatelessWidget {
         children: [
           _WorldHeader(compact: compact),
           SizedBox(height: compact ? 8 : 16),
-          if (backendWorlds != null)
-            for (final world in backendWorlds) ...[
+          if (realWorlds.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(color: _worldYellow),
+              ),
+            )
+          else
+            for (final world in realWorlds) ...[
               _BackendWorldCard(
                 world: world,
-                selected: world['key'] == selectedBackendWorld,
+                selected: world['key'] == selectedKeyUpper,
                 compact: compact,
                 onTap: () {
                   final backendKey = world['key'] as String?;
@@ -57,16 +64,6 @@ class WorldsScreen extends StatelessWidget {
                   final key = _worldKeyFromBackend(backendKey);
                   if (key != null) onSelectWorld(key);
                 },
-              ),
-              SizedBox(height: compact ? 8 : 12),
-            ]
-          else
-            for (final world in baleWorlds) ...[
-              _WorldCard(
-                world: world,
-                selected: world.key == selectedWorld.key,
-                compact: compact,
-                onTap: () => onSelectWorld(world.key),
               ),
               SizedBox(height: compact ? 8 : 12),
             ],
@@ -267,132 +264,6 @@ class _WorldHeader extends StatelessWidget {
   }
 }
 
-class _WorldCard extends StatelessWidget {
-  const _WorldCard({
-    required this.world,
-    required this.selected,
-    required this.compact,
-    required this.onTap,
-  });
-
-  final BaleWorld world;
-  final bool selected;
-  final bool compact;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final details = switch (world.key) {
-      BaleWorldKey.numeria => (
-          icon: Icons.calculate_rounded,
-          mission: 'Misi contoh: Pecahkan pola angka.',
-          description: 'Latih matematika lewat teka-teki ringan.'
-        ),
-      BaleWorldKey.kodex => (
-          icon: Icons.code_rounded,
-          mission: 'Misi contoh: Susun langkah algoritma.',
-          description: 'Belajar logika komputer tanpa terasa berat.'
-        ),
-      BaleWorldKey.detectivia => (
-          icon: Icons.search_rounded,
-          mission: 'Misi contoh: Cari bukti yang paling kuat.',
-          description: 'Amati petunjuk dan pecahkan kasus.'
-        ),
-    };
-
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(22),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Container(
-          padding: EdgeInsets.all(compact ? 10 : 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(
-              color: selected ? _worldYellow : const Color(0xFFFFE0A1),
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: compact ? 46 : 64,
-                height: compact ? 46 : 64,
-                decoration: BoxDecoration(
-                  color: world.color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(compact ? 14 : 18),
-                ),
-                child: Icon(details.icon,
-                    color: world.color, size: compact ? 25 : 34),
-              ),
-              SizedBox(width: compact ? 10 : 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            world.name,
-                            style: const TextStyle(
-                              color: _worldInk,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        if (selected)
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: _worldYellow,
-                          ),
-                      ],
-                    ),
-                    Text(
-                      world.subject,
-                      style: TextStyle(
-                        color: Color(0xFF60646F),
-                        fontSize: compact ? 12 : 14,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: compact ? 3 : 8),
-                    Text(
-                      details.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Color(0xFF60646F),
-                        fontSize: compact ? 11 : 13,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: compact ? 3 : 8),
-                    Text(
-                      details.mission,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _worldInk,
-                        fontSize: compact ? 11 : 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _ComingSoonWorldCard extends StatelessWidget {
   const _ComingSoonWorldCard({required this.compact});
 
@@ -413,7 +284,7 @@ class _ComingSoonWorldCard extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Dunia Bahasa dan Sains sedang disiapkan.',
+              'Dunia Bahasa segera hadir.',
               style: TextStyle(
                 color: _worldInk,
                 fontSize: 16,

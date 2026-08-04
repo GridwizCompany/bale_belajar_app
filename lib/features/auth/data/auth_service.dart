@@ -66,6 +66,19 @@ class AuthService {
     return me();
   }
 
+  /// Simpan jawaban 7 pertanyaan onboarding ke backend REAL yang
+  /// authenticated (`PUT /student/onboarding/answers`) - beda dari
+  /// `savePrototypeOnboarding` di bawah yang menulis ke modul prototype
+  /// tanpa auth. Field payload-nya (learningGoal/learningWorld/dst) sudah
+  /// cocok persis dengan `SaveOnboardingDto` di backend.
+  Future<void> saveOnboardingAnswers(Map<String, dynamic> answers) async {
+    await apiClient.put('/student/onboarding/answers', body: answers);
+  }
+
+  Future<void> finishOnboarding(Map<String, dynamic> answers) async {
+    await apiClient.post('/student/onboarding/complete', body: answers);
+  }
+
   Future<void> logout() async {
     try {
       await apiClient.post('/auth/logout');

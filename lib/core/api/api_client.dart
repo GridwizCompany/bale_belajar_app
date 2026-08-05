@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 typedef TokenProvider = Future<String?> Function();
@@ -69,11 +71,30 @@ class ApiClient {
       if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
 
-    final response = await _httpClient.send(
-      http.Request(method, uri)
-        ..headers.addAll(headers)
-        ..body = body == null ? '' : jsonEncode(body),
-    );
+    late final http.StreamedResponse response;
+    try {
+      response = await _httpClient.send(
+        http.Request(method, uri)
+          ..headers.addAll(headers)
+          ..body = body == null ? '' : jsonEncode(body),
+      );
+    } on SocketException catch (error) {
+      throw BaleApiException(
+        kDebugMode
+            ? 'Tidak bisa terhubung ke server (${error.message}).'
+            : 'Tidak bisa terhubung ke server. Periksa koneksi internet.',
+      );
+    } on HandshakeException catch (_) {
+      throw const BaleApiException(
+        'Koneksi aman ke server gagal. Periksa tanggal perangkat dan sertifikat server.',
+      );
+    } on http.ClientException catch (error) {
+      throw BaleApiException(
+        kDebugMode
+            ? 'Tidak bisa menghubungi API: ${error.message}'
+            : 'Tidak bisa terhubung ke server. Periksa koneksi internet.',
+      );
+    }
     final text = await response.stream.bytesToString();
     final decoded = text.isEmpty ? null : jsonDecode(text);
 

@@ -975,7 +975,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
           attemptId: attemptId,
           questionId: question.id,
           questionType: question.questionType.payload,
-          answer: {'value': answer?.toString()},
+          answer: _placementAnswerPayload(question, answer),
         );
         return;
       }
@@ -984,7 +984,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         attemptId: attemptId,
         questionId: question.id,
         questionType: question.questionType.payload,
-        answer: {'value': answer?.toString()},
+        answer: _placementAnswerPayload(question, answer),
       );
     } catch (_) {}
   }
@@ -1042,6 +1042,20 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         'studyTime': _studyTime?.name,
       },
     };
+  }
+
+  Map<String, dynamic> _placementAnswerPayload(
+    TemplateQuestion question,
+    Object? answer,
+  ) {
+    final value = answer?.toString();
+    if (question.questionType == QuestionType.singleChoice ||
+        question.questionType == QuestionType.binaryChoice ||
+        question.questionType == QuestionType.imageChoice ||
+        question.questionType == QuestionType.audioChoice) {
+      return {'selectedOptionId': value};
+    }
+    return {'value': value};
   }
 
   void _goToBaleVerseHome() {

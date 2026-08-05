@@ -25,6 +25,7 @@ class AuthUser {
     this.studentProfileId,
     this.gradeLevel,
     this.careerPath,
+    this.onboardingCompleted = false,
   });
 
   final String id;
@@ -36,9 +37,11 @@ class AuthUser {
   final String? studentProfileId;
   final int? gradeLevel;
   final CareerPath? careerPath;
+  final bool onboardingCompleted;
 
   bool get hasStudentProfile => studentProfileId != null;
-  bool get hasCompletedOnboarding => gradeLevel != null && careerPath != null;
+  bool get hasCompletedOnboarding =>
+      onboardingCompleted || (gradeLevel != null && careerPath != null);
 
   AuthUser copyWith({
     String? name,
@@ -55,6 +58,7 @@ class AuthUser {
       studentProfileId: studentProfileId,
       gradeLevel: gradeLevel ?? this.gradeLevel,
       careerPath: careerPath ?? this.careerPath,
+      onboardingCompleted: onboardingCompleted,
     );
   }
 
@@ -72,6 +76,10 @@ class AuthUser {
       studentProfileId: (profile?['id'] ?? json['studentProfileId']) as String?,
       gradeLevel: profile?['gradeLevel'] as int?,
       careerPath: _careerPathFromJson(profile?['careerPath'] as String?),
+      onboardingCompleted:
+          json['hasCompletedOnboarding'] as bool? ??
+              ((profile?['onboarding'] as Map<String, dynamic>?)?['completedAt'] !=
+                  null),
     );
   }
 

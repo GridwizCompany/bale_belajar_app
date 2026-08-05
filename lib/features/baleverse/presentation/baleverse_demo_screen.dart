@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../core/api/api_client.dart';
 import '../../../core/audio/audio_scope.dart';
 import '../../../core/audio/audio_types.dart';
 import '../../auth/application/auth_controller.dart';
@@ -100,11 +101,18 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
                 );
       if (data == null || !mounted) return;
       setState(() => _backendData = Map<String, dynamic>.from(data));
+    } on BaleApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _backendData = null;
+        _backendError = error.message;
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _backendData = null;
-        _backendError = 'Data BaleVerse belum bisa dimuat.';
+        _backendError =
+            'Data BaleVerse belum bisa dimuat. Periksa koneksi lalu coba lagi.';
       });
     }
   }

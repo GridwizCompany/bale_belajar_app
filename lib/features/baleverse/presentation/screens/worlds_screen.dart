@@ -10,12 +10,14 @@ const _worldYellow = Color(0xFFF4B400);
 class WorldsScreen extends StatelessWidget {
   const WorldsScreen({
     required this.selectedWorld,
+    required this.selectedBackendWorldKey,
     required this.realWorlds,
     required this.onSelectWorld,
     super.key,
   });
 
   final BaleWorld selectedWorld;
+  final String selectedBackendWorldKey;
   // Selalu dari GET /student/worlds (lihat WorldsRepository) - tidak ada
   // fallback dummy. Kosong berarti belum termuat/gagal, tampilkan loading,
   // bukan daftar dunia karangan.
@@ -25,7 +27,9 @@ class WorldsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).height < 900;
-    final selectedKeyUpper = selectedWorld.key.name.toUpperCase();
+    final selectedKeyUpper = selectedBackendWorldKey.isEmpty
+        ? selectedWorld.key.name.toUpperCase()
+        : selectedBackendWorldKey.toUpperCase();
     return Container(
       color: _worldBg,
       child: ListView(

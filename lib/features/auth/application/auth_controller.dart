@@ -48,7 +48,7 @@ class AuthController extends ChangeNotifier {
     required String name,
     required String email,
     required String password,
-    required int gradeLevel,
+    int? gradeLevel,
   }) {
     return _run(() async {
       final session = await authService.registerStudent(

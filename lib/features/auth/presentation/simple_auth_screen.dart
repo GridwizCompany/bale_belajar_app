@@ -15,6 +15,7 @@ import '../../test_templates/domain/test_template_models.dart';
 import '../../test_templates/presentation/templates/test_templates.dart';
 import '../application/auth_controller.dart';
 import 'analisis_hasil_page.dart';
+import 'auth_account_page.dart';
 import 'onboarding_questions/daily_duration_question.dart';
 import 'onboarding_questions/grade_question.dart';
 import 'onboarding_questions/learning_format_question.dart';
@@ -55,6 +56,7 @@ class SimpleAuthScreen extends StatefulWidget {
     this.initialMode = AuthMode.welcome,
     this.onBackToLanding,
     this.onLoginRequested,
+    this.onAuthenticatedFlowLockChanged,
     super.key,
   });
 
@@ -62,6 +64,7 @@ class SimpleAuthScreen extends StatefulWidget {
   final AuthMode initialMode;
   final VoidCallback? onBackToLanding;
   final VoidCallback? onLoginRequested;
+  final ValueChanged<bool>? onAuthenticatedFlowLockChanged;
 
   @override
   State<SimpleAuthScreen> createState() => _SimpleAuthScreenState();
@@ -92,6 +95,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   // Kalau backend gagal, tampilkan error/retry - JANGAN diam-diam pakai
   // soal dummy (lihat _PlacementTestFlow.build()).
   bool _placementLoadFailed = false;
+  bool _continuePlacementAfterAuth = false;
+
+  bool get _prototypeFallbackAllowed =>
+      !kReleaseMode && widget.controller.user == null;
 
   @override
   void initState() {
@@ -129,11 +136,22 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     _mode = widget.initialMode == AuthMode.login
         ? AuthMode.welcome
         : widget.initialMode;
-    _flowStep = widget.initialMode == AuthMode.welcome ? 1 : 2;
+    _flowStep = widget.initialMode == AuthMode.world
+        ? 2
+        : widget.initialMode == AuthMode.grade
+            ? 3
+            : widget.initialMode == AuthMode.level
+                ? 4
+                : widget.initialMode == AuthMode.format
+                    ? 5
+                    : widget.initialMode == AuthMode.duration
+                        ? 6
+                        : 1;
     _googleBusy = false;
     _showPassword = false;
     _prototypePlacementAttemptId = null;
-    if (widget.initialMode == AuthMode.register) {
+    if (widget.initialMode == AuthMode.register &&
+        widget.controller.user == null) {
       unawaited(_ensurePrototypeSession());
     }
   }
@@ -145,11 +163,55 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         onBack: () {
           setState(() {
             _mode = AuthMode.placement;
-            _placementQuestionIndex = 12;
+            _placementQuestionIndex =
+                ((_backendPlacementQuestions?.length ?? 13) - 1).clamp(0, 999);
           });
           _syncAuthAudio(AuthMode.placement);
         },
         onContinue: _goToBaleVerseHome,
+      );
+    }
+
+    if (_mode == AuthMode.account ||
+        _mode == AuthMode.login ||
+        _mode == AuthMode.code) {
+      return AuthAccountPage(
+        key: ValueKey('auth-account-${_mode.name}'),
+        controller: widget.controller,
+        initialMode: switch (_mode) {
+          AuthMode.account => AuthAccountMode.register,
+          AuthMode.code => AuthAccountMode.code,
+          _ => AuthAccountMode.login,
+        },
+        initialName: _name.text,
+        initialGrade: _normalizedGrade,
+        keepFlowAfterAuth: _continuePlacementAfterAuth,
+        onAuthFlowLockChanged: widget.onAuthenticatedFlowLockChanged,
+        onBack: () {
+          if (_continuePlacementAfterAuth) {
+            setState(() {
+              _continuePlacementAfterAuth = false;
+              _mode = AuthMode.studyTime;
+              _flowStep = 7;
+            });
+            _syncAuthAudio(AuthMode.studyTime);
+            return;
+          }
+          final onBackToLanding = widget.onBackToLanding;
+          if (onBackToLanding != null) {
+            onBackToLanding();
+            return;
+          }
+          setState(() => _mode = AuthMode.welcome);
+        },
+        onAuthenticated: () async {
+          if (_continuePlacementAfterAuth) {
+            await _continueAuthenticatedPlacementFlow();
+            return;
+          }
+          await _saveRealOnboardingAnswers();
+          await widget.controller.initialize();
+        },
       );
     }
 
@@ -400,8 +462,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                         _completePrototypePlacementQuestion,
                                                                     loadFailed:
                                                                         _placementLoadFailed,
-                                                                    onRetry:
-                                                                        () => unawaited(
+                                                                    onRetry: () =>
+                                                                        unawaited(
                                                                             _ensurePrototypePlacementAttempt()),
                                                                   )
                                                                 : _mode ==
@@ -415,26 +477,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                                                                         onBack:
                                                                             _previousPlacementQuestion,
                                                                         onContinue:
-                                                                            () {
-                                                                          AudioScope
-                                                                              .maybeOf(
-                                                                            context,
-                                                                          )?.playSound(
-                                                                            SoundEffectId.audioLogo,
-                                                                          );
-                                                                          Navigator
-                                                                              .of(
-                                                                            context,
-                                                                          ).pushReplacement(
-                                                                            MaterialPageRoute<void>(
-                                                                              builder: (_) => BaleVerseDemoScreen(
-                                                                                skipDemoLogin: true,
-                                                                                authController: widget.controller,
-                                                                                prototypeStudentProfileId: _prototypeStudentProfileId,
-                                                                              ),
-                                                                            ),
-                                                                          );
-                                                                        },
+                                                                            _goToBaleVerseHome,
                                                                       )
                                                                     : _AuthStep(
                                                                         key:
@@ -538,13 +581,16 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
               if (_mode == AuthMode.account) ...[
                 const SizedBox(height: 12),
                 DropdownButtonFormField<int>(
-                  initialValue: _grade,
+                  initialValue: _normalizedGrade,
                   decoration: const InputDecoration(
                     labelText: 'Kelas',
                     prefixIcon: Icon(Icons.school_rounded),
                     border: OutlineInputBorder(),
                   ),
                   items: const [
+                    DropdownMenuItem(value: 7, child: Text('Kelas 7')),
+                    DropdownMenuItem(value: 8, child: Text('Kelas 8')),
+                    DropdownMenuItem(value: 9, child: Text('Kelas 9')),
                     DropdownMenuItem(value: 10, child: Text('Kelas 10')),
                     DropdownMenuItem(value: 11, child: Text('Kelas 11')),
                     DropdownMenuItem(value: 12, child: Text('Kelas 12')),
@@ -606,6 +652,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.welcome => BeloPose.jatuhCinta,
       };
 
+  int get _normalizedGrade {
+    if (_grade >= 7 && _grade <= 12) return _grade;
+    final selectedGrade = _gradeChoice?.gradeLevel;
+    if (selectedGrade != null && selectedGrade >= 7 && selectedGrade <= 12) {
+      return selectedGrade;
+    }
+    return 10;
+  }
+
   String get _title => switch (_mode) {
         AuthMode.welcome => 'BaleBelajar',
         AuthMode.register => learningGoalQuestion.title,
@@ -618,7 +673,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.recommendation => 'Menyiapkan rekomendasi',
         AuthMode.placement => 'Cek Awal',
         AuthMode.analysis => 'Analisis',
-        AuthMode.account => 'Buat akunmu',
+        AuthMode.account => 'Simpan progresmu',
         AuthMode.login => 'Masuk lagi',
         AuthMode.code => 'Pakai kode siswa',
       };
@@ -635,7 +690,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.recommendation => 'Sebentar, Bale sedang menyiapkan jalurmu.',
         AuthMode.placement => 'Mulai dari tes singkat sesuai dunia pilihanmu.',
         AuthMode.analysis => 'Kami sedang menganalisis jawabanmu.',
-        AuthMode.account => 'Satu langkah lagi sebelum misi pertamamu.',
+        AuthMode.account =>
+          'Masuk dulu supaya hasil cek awal tersimpan ke akunmu.',
         AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
         AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
       };
@@ -685,7 +741,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.recommendation => Icons.auto_awesome_rounded,
         AuthMode.placement => Icons.quiz_rounded,
         AuthMode.analysis => Icons.auto_graph_rounded,
-        AuthMode.account => Icons.arrow_forward_rounded,
+        AuthMode.account => Icons.person_add_alt_1_rounded,
         AuthMode.login => Icons.login_rounded,
         AuthMode.code => Icons.qr_code_2_rounded,
         AuthMode.welcome => Icons.play_arrow_rounded,
@@ -702,19 +758,27 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.recommendation => 'Menyiapkan',
         AuthMode.placement => 'Mulai Cek Awal',
         AuthMode.analysis => 'Menganalisis',
-        AuthMode.account => 'Buat Akun',
+        AuthMode.account => 'Buat Akun dan Lanjut Tes',
         AuthMode.login => 'Masuk',
         AuthMode.code => 'Masuk dengan Kode',
         AuthMode.welcome => 'Mulai',
       };
 
   void _goTo(AuthMode mode) {
-    if (mode == AuthMode.login && widget.onLoginRequested != null) {
+    if (mode == AuthMode.login &&
+        widget.onLoginRequested != null &&
+        _mode == AuthMode.welcome) {
       widget.onLoginRequested!();
       return;
     }
     if (mode == AuthMode.register) {
-      unawaited(_ensurePrototypeSession());
+      if (widget.controller.user == null) {
+        unawaited(_ensurePrototypeSession());
+      }
+    }
+    if (mode == AuthMode.placement && widget.controller.user == null) {
+      _continuePlacementAfterAuth = true;
+      mode = AuthMode.account;
     }
     setState(() {
       _mode = mode;
@@ -751,19 +815,37 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     });
     Future<void>.delayed(const Duration(seconds: 3), () {
       if (mounted && _mode == AuthMode.recommendation) {
-        setState(() {
-          _mode = AuthMode.placement;
-          _placementQuestionIndex = 0;
-        });
-        unawaited(_ensurePrototypePlacementAttempt());
-        _syncAuthAudio(AuthMode.placement);
+        if (widget.controller.user == null) {
+          _continuePlacementAfterAuth = true;
+          setState(() {
+            _mode = AuthMode.account;
+            _flowStep = 7;
+          });
+          _syncAuthAudio(AuthMode.account);
+          return;
+        }
+        _startPlacement();
       }
     });
   }
 
+  void _startPlacement() {
+    setState(() {
+      _mode = AuthMode.placement;
+      _flowStep = 7;
+      _placementQuestionIndex = 0;
+      _prototypePlacementAttemptId = null;
+      _backendPlacementQuestions = null;
+      _placementLoadFailed = false;
+    });
+    unawaited(_ensurePrototypePlacementAttempt());
+    _syncAuthAudio(AuthMode.placement);
+  }
+
   void _nextPlacementQuestion() {
     final audio = AudioScope.maybeOf(context);
-    if (_placementQuestionIndex >= 12) {
+    final lastIndex = (_backendPlacementQuestions?.length ?? 13) - 1;
+    if (_placementQuestionIndex >= lastIndex) {
       audio?.playSound(SoundEffectId.pageTransition);
       _showAnalysis();
       return;
@@ -773,7 +855,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   void _showAnalysis() {
-    unawaited(_submitPrototypePlacement());
+    unawaited(_submitPlacementAttempt());
     setState(() {
       _mode = AuthMode.analysis;
       _flowStep = 7;
@@ -782,6 +864,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   Future<void> _ensurePrototypeSession() async {
+    if (!_prototypeFallbackAllowed) return;
     if (_prototypeStudentProfileId != null) return;
     try {
       _prototypeStudentProfileId =
@@ -792,6 +875,11 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   Future<void> _completePrototypeOnboarding() async {
+    if (widget.controller.user != null) {
+      await _saveRealOnboardingAnswers();
+      return;
+    }
+    if (!_prototypeFallbackAllowed) return;
     await _ensurePrototypeSession();
     final studentProfileId = _prototypeStudentProfileId;
     if (studentProfileId == null) return;
@@ -807,6 +895,29 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   Future<void> _ensurePrototypePlacementAttempt() async {
     if (_prototypePlacementAttemptId != null) return;
     if (mounted) setState(() => _placementLoadFailed = false);
+    if (widget.controller.user != null) {
+      try {
+        _prototypePlacementAttemptId =
+            await widget.controller.authService.startPlacement(
+          worldKey: _learningWorldPayload(_learningWorld),
+        );
+        final questionJson =
+            await widget.controller.authService.getPlacementQuestions();
+        if (!mounted) return;
+        setState(() {
+          _backendPlacementQuestions = questionJson
+              .map(_templateQuestionFromJson)
+              .toList(growable: false);
+        });
+      } catch (_) {
+        if (mounted) setState(() => _placementLoadFailed = true);
+      }
+      return;
+    }
+    if (!_prototypeFallbackAllowed) {
+      if (mounted) setState(() => _placementLoadFailed = true);
+      return;
+    }
     await _ensurePrototypeSession();
     final studentProfileId = _prototypeStudentProfileId;
     if (studentProfileId == null) {
@@ -843,6 +954,15 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     if (attemptId == null) return;
     try {
       if (skipped) {
+        if (widget.controller.user != null) {
+          await widget.controller.authService.skipPlacementAnswer(
+            attemptId: attemptId,
+            questionId: question.id,
+            questionType: question.questionType.payload,
+          );
+          return;
+        }
+        if (!_prototypeFallbackAllowed) return;
         await widget.controller.authService.skipPrototypePlacementAnswer(
           attemptId: attemptId,
           questionId: question.id,
@@ -850,6 +970,16 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         );
         return;
       }
+      if (widget.controller.user != null) {
+        await widget.controller.authService.savePlacementAnswer(
+          attemptId: attemptId,
+          questionId: question.id,
+          questionType: question.questionType.payload,
+          answer: {'value': answer?.toString()},
+        );
+        return;
+      }
+      if (!_prototypeFallbackAllowed) return;
       await widget.controller.authService.savePrototypePlacementAnswer(
         attemptId: attemptId,
         questionId: question.id,
@@ -868,11 +998,16 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         _savePrototypePlacementAnswer(question, answer, skipped: skipped));
   }
 
-  Future<void> _submitPrototypePlacement() async {
+  Future<void> _submitPlacementAttempt() async {
     await _ensurePrototypePlacementAttempt();
     final attemptId = _prototypePlacementAttemptId;
     if (attemptId == null) return;
     try {
+      if (widget.controller.user != null) {
+        await widget.controller.authService.submitPlacement(attemptId);
+        return;
+      }
+      if (!_prototypeFallbackAllowed) return;
       await widget.controller.authService.submitPrototypePlacement(attemptId);
     } catch (_) {}
   }
@@ -911,6 +1046,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
 
   void _goToBaleVerseHome() {
     AudioScope.maybeOf(context)?.playSound(SoundEffectId.audioLogo);
+    widget.onAuthenticatedFlowLockChanged?.call(false);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => BaleVerseDemoScreen(
@@ -962,6 +1098,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       return;
     }
 
+    final shouldContinuePlacement = _shouldContinuePlacementAfterAuth;
+    if (shouldContinuePlacement) {
+      widget.onAuthenticatedFlowLockChanged?.call(true);
+    }
     setState(() => _googleBusy = true);
     try {
       final provider = GoogleAuthProvider();
@@ -974,11 +1114,17 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         return;
       }
       await widget.controller.loginWithGoogleToken(idToken);
+      if (_shouldContinuePlacementAfterAuth) {
+        await _continueAuthenticatedPlacementFlow();
+      }
     } on FirebaseAuthException catch (error) {
       widget.controller.setError(_googleError(error));
     } catch (_) {
       widget.controller.setError('Login Google gagal. Coba lagi.');
     } finally {
+      if (shouldContinuePlacement && widget.controller.errorMessage != null) {
+        widget.onAuthenticatedFlowLockChanged?.call(false);
+      }
       if (mounted) setState(() => _googleBusy = false);
     }
   }
@@ -994,6 +1140,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       return;
     }
     FocusScope.of(context).unfocus();
+    final shouldContinuePlacement = _shouldContinuePlacementAfterAuth;
+    if (shouldContinuePlacement) {
+      widget.onAuthenticatedFlowLockChanged?.call(true);
+    }
     if (_mode == AuthMode.login) {
       await widget.controller.loginWithEmail(_email.text, _password.text);
     } else if (_mode == AuthMode.account) {
@@ -1001,19 +1151,43 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         name: _name.text,
         email: _email.text,
         password: _password.text,
-        gradeLevel: _grade,
+        gradeLevel: _normalizedGrade,
       );
       // Akun berhasil dibuat (baru punya JWT sekarang) - kirim jawaban
       // 7 pertanyaan onboarding yang sudah terkumpul selama flow ini ke
       // backend REAL yang authenticated, bukan cuma modul prototype.
       // Best-effort: kegagalan di sini tidak boleh memblokir alur signup,
       // OnboardingScreen (real, lewat AuthGate) tetap akan muncul.
-      if (widget.controller.errorMessage == null) {
-        unawaited(_saveRealOnboardingAnswers());
+      if (widget.controller.errorMessage == null && !shouldContinuePlacement) {
+        await _saveRealOnboardingAnswers();
+        await widget.controller.initialize();
       }
     } else if (_mode == AuthMode.code) {
       await widget.controller.loginWithCode(_code.text);
     }
+    if (shouldContinuePlacement) {
+      await _continueAuthenticatedPlacementFlow();
+    }
+  }
+
+  bool get _shouldContinuePlacementAfterAuth =>
+      _continuePlacementAfterAuth &&
+      (_mode == AuthMode.account ||
+          _mode == AuthMode.login ||
+          _mode == AuthMode.code);
+
+  Future<void> _continueAuthenticatedPlacementFlow() async {
+    if (widget.controller.errorMessage != null ||
+        widget.controller.user == null ||
+        !mounted) {
+      widget.onAuthenticatedFlowLockChanged?.call(false);
+      return;
+    }
+    await _saveRealOnboardingAnswers();
+    await widget.controller.initialize();
+    if (!mounted) return;
+    _continuePlacementAfterAuth = false;
+    _startPlacement();
   }
 
   String? _required(String? value) {
@@ -1231,6 +1405,14 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
         label: item['label'] as String,
         timeLabel: item['timeLabel'] as String?,
         description: item['description'] as String?,
+      );
+    }).toList(growable: false),
+    evidenceItems: _jsonList(json['evidenceItems']).map((item) {
+      return EvidenceItem(
+        id: item['id'] as String,
+        label: item['label'] as String,
+        description: item['description'] as String?,
+        category: item['category'] as String?,
       );
     }).toList(growable: false),
     codeConfig: json['codeConfig'] is Map<String, dynamic>
@@ -2258,6 +2440,7 @@ class _PlacementTestFlow extends StatelessWidget {
     final question = questions[index];
     final totalQuestions = questions.length;
     final currentQuestion = index + 1;
+    final isLastQuestion = index >= totalQuestions - 1;
 
     void skipCurrent() {
       onQuestionCompleted(question, null, skipped: true);
@@ -2266,7 +2449,7 @@ class _PlacementTestFlow extends StatelessWidget {
 
     void answerCurrent(Object? answer) {
       onQuestionCompleted(question, answer, skipped: false);
-      if (index >= totalQuestions - 1) {
+      if (isLastQuestion) {
         onShowAnalysis();
       } else {
         onNext();
@@ -2414,12 +2597,14 @@ class _PlacementTestFlow extends StatelessWidget {
             question: question,
             currentQuestion: currentQuestion,
             totalQuestions: totalQuestions,
-            skipLabel: 'Lanjut ke Analisis Hasil',
+            skipLabel: isLastQuestion ? 'Lanjut ke Analisis Hasil' : 'Lewati',
             onBack: onBack,
-            onSkip: () {
-              onQuestionCompleted(question, null, skipped: true);
-              onShowAnalysis();
-            },
+            onSkip: isLastQuestion
+                ? () {
+                    onQuestionCompleted(question, null, skipped: true);
+                    onShowAnalysis();
+                  }
+                : skipCurrent,
             onCheckAnswer: answerCurrent,
           ),
         QuestionType.evidenceBoard => EvidenceBoardTemplate(
@@ -2469,7 +2654,6 @@ class _PlacementLoadError extends StatelessWidget {
     );
   }
 }
-
 
 class _CircleBackButton extends StatelessWidget {
   const _CircleBackButton({required this.onPressed});

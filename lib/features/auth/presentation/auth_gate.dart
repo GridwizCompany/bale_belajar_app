@@ -6,8 +6,8 @@ import '../../../theme/bale_theme.dart';
 import '../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_service.dart';
-import 'onboarding_screen.dart';
 import 'signed_out_flow.dart';
+import 'simple_auth_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({this.controller, super.key});
@@ -21,6 +21,7 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   late final AuthController _controller;
   bool _splashDone = false;
+  bool _keepSignedOutFlow = false;
 
   @override
   void initState() {
@@ -50,13 +51,31 @@ class _AuthGateState extends State<AuthGate> {
           if (!_splashDone || _controller.status == AuthStatus.checking) {
             return const BaleSplashScreen();
           }
+          if (_keepSignedOutFlow &&
+              (_controller.status == AuthStatus.onboarding ||
+                  _controller.status == AuthStatus.signedIn)) {
+            return SignedOutFlow(
+              key: const ValueKey('signed-out-onboarding'),
+              controller: _controller,
+              onAuthenticatedFlowLockChanged: (locked) {
+                if (mounted) setState(() => _keepSignedOutFlow = locked);
+              },
+            );
+          }
           return switch (_controller.status) {
             AuthStatus.checking => const BaleSplashScreen(),
             AuthStatus.signedOut => SignedOutFlow(
                 key: const ValueKey('signed-out-onboarding'),
                 controller: _controller,
+                onAuthenticatedFlowLockChanged: (locked) {
+                  if (mounted) setState(() => _keepSignedOutFlow = locked);
+                },
               ),
-            AuthStatus.onboarding => OnboardingScreen(controller: _controller),
+            AuthStatus.onboarding => SimpleAuthScreen(
+                key: const ValueKey('real-seven-question-onboarding'),
+                controller: _controller,
+                initialMode: AuthMode.register,
+              ),
             AuthStatus.signedIn => BaleVerseDemoScreen(
                 skipDemoLogin: true,
                 authController: _controller,

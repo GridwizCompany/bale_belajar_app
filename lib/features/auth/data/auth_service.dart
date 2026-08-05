@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/token_store.dart';
 import '../domain/auth_models.dart';
@@ -23,13 +25,13 @@ class AuthService {
     required String name,
     required String email,
     required String password,
-    required int gradeLevel,
+    int? gradeLevel,
   }) async {
     final data = await apiClient.post('/auth/register', body: {
       'name': name.trim(),
       'email': email.trim(),
       'password': password,
-      'gradeLevel': gradeLevel,
+      if (gradeLevel != null) 'gradeLevel': gradeLevel,
     });
     return _persist(AuthSession.fromJson(data as Map<String, dynamic>));
   }
@@ -88,6 +90,7 @@ class AuthService {
   }
 
   Future<String> startPrototypeSession() async {
+    _assertPrototypeAllowed();
     final data = await apiClient.post('/prototype/student/session');
     final json = data as Map<String, dynamic>;
     return json['studentProfileId'] as String;
@@ -98,6 +101,7 @@ class AuthService {
     required Map<String, dynamic> answers,
     bool complete = false,
   }) async {
+    _assertPrototypeAllowed();
     if (complete) {
       await apiClient.post(
         '/prototype/student/$studentProfileId/onboarding/complete',
@@ -115,6 +119,7 @@ class AuthService {
     required String studentProfileId,
     String? worldKey,
   }) async {
+    _assertPrototypeAllowed();
     final suffix = worldKey == null ? '' : '?worldKey=$worldKey';
     final data = await apiClient.post(
       '/prototype/student/$studentProfileId/placement/start$suffix',
@@ -123,9 +128,21 @@ class AuthService {
     return json['attemptId'] as String;
   }
 
+  Future<String> startPlacement({String? worldKey}) async {
+    final data = await apiClient.post(
+      '/student/placement/start',
+      body: {
+        if (worldKey != null) 'worldKey': worldKey,
+      },
+    );
+    final json = data as Map<String, dynamic>;
+    return ((json['attempt'] as Map<String, dynamic>)['id']) as String;
+  }
+
   Future<List<Map<String, dynamic>>> getPrototypePlacementQuestions({
     required String studentProfileId,
   }) async {
+    _assertPrototypeAllowed();
     final data = await apiClient.get(
       '/prototype/student/$studentProfileId/placement/questions',
     );
@@ -133,13 +150,57 @@ class AuthService {
     return (json['questions'] as List<dynamic>).cast<Map<String, dynamic>>();
   }
 
+  Future<List<Map<String, dynamic>>> getPlacementQuestions() async {
+    final data = await apiClient.get('/student/placement/questions');
+    final json = data as Map<String, dynamic>;
+    return (json['questions'] as List<dynamic>).cast<Map<String, dynamic>>();
+  }
+
   Future<Map<String, dynamic>> getPrototypeBaleVerse({
     required String studentProfileId,
   }) async {
+    _assertPrototypeAllowed();
     final data = await apiClient.get(
       '/prototype/student/$studentProfileId/baleverse',
     );
     return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getBaleVerse() async {
+    final data = await apiClient.get('/student/baleverse');
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> savePlacementAnswer({
+    required String attemptId,
+    required String questionId,
+    required String questionType,
+    required Map<String, dynamic> answer,
+    bool skipped = false,
+  }) async {
+    await apiClient.put(
+      '/student/placement/$attemptId/answers/$questionId',
+      body: {
+        'questionType': questionType,
+        'answer': answer,
+        'isSkipped': skipped,
+        'clientAnsweredAt': DateTime.now().toIso8601String(),
+      },
+    );
+  }
+
+  Future<void> skipPlacementAnswer({
+    required String attemptId,
+    required String questionId,
+    required String questionType,
+  }) async {
+    await apiClient.post(
+      '/student/placement/$attemptId/skip/$questionId?questionType=$questionType',
+    );
+  }
+
+  Future<void> submitPlacement(String attemptId) async {
+    await apiClient.post('/student/placement/$attemptId/submit');
   }
 
   Future<void> savePrototypePlacementAnswer({
@@ -149,6 +210,7 @@ class AuthService {
     required Map<String, dynamic> answer,
     bool skipped = false,
   }) async {
+    _assertPrototypeAllowed();
     await apiClient.put(
       '/prototype/student/placement/$attemptId/answers/$questionId',
       body: {
@@ -165,13 +227,21 @@ class AuthService {
     required String questionId,
     required String questionType,
   }) async {
+    _assertPrototypeAllowed();
     await apiClient.post(
       '/prototype/student/placement/$attemptId/skip/$questionId?questionType=$questionType',
     );
   }
 
   Future<void> submitPrototypePlacement(String attemptId) async {
+    _assertPrototypeAllowed();
     await apiClient.post('/prototype/student/placement/$attemptId/submit');
+  }
+
+  void _assertPrototypeAllowed() {
+    if (kReleaseMode) {
+      throw UnsupportedError('Prototype endpoints are disabled in release.');
+    }
   }
 
   Future<AuthSession> _persist(AuthSession session) async {

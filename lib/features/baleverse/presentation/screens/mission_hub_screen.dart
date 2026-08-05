@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../application/baleverse_progress_service.dart';
-import '../../data/baleverse_dummy_data.dart';
-
 const _missionBg = Color(0xFFFFF3C6);
 const _missionInk = Color(0xFF3B2318);
 const _missionYellow = Color(0xFFF4B400);
@@ -10,13 +7,11 @@ const _missionGreen = Color(0xFF4CAF50);
 
 class MissionHubScreen extends StatelessWidget {
   const MissionHubScreen({
-    required this.progress,
     this.backendData,
     required this.onStartMission,
     super.key,
   });
 
-  final BaleVerseProgress progress;
   final Map<String, dynamic>? backendData;
   final VoidCallback onStartMission;
 
@@ -25,10 +20,12 @@ class MissionHubScreen extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).height < 900;
     final missions =
         (backendData?['missions'] as List?)?.cast<Map<String, dynamic>>();
+    final todayMission = backendData?['todayMission'] as Map<String, dynamic>?;
     final activeMission = missions?.cast<Map<String, dynamic>?>().firstWhere(
-          (mission) => mission?['active'] == true,
-          orElse: () => null,
-        );
+              (mission) => mission?['active'] == true,
+              orElse: () => null,
+            ) ??
+        todayMission;
     final otherMissions =
         missions?.where((mission) => mission['active'] != true).toList();
     return Container(
@@ -44,7 +41,14 @@ class MissionHubScreen extends StatelessWidget {
             onStartMission: onStartMission,
           ),
           SizedBox(height: compact ? 8 : 14),
-          if (otherMissions != null)
+          if (backendData == null)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: CircularProgressIndicator(color: _missionYellow),
+              ),
+            )
+          else if (otherMissions != null && otherMissions.isNotEmpty)
             for (final mission in otherMissions.take(compact ? 1 : 2))
               _MissionListTile(
                 icon: Icons.visibility_rounded,
@@ -55,26 +59,16 @@ class MissionHubScreen extends StatelessWidget {
                 unlocked: true,
                 compact: compact,
               )
-          else ...[
+          else
             _MissionListTile(
-              icon: Icons.visibility_rounded,
-              title: 'Latihan Observasi',
-              subtitle: 'Kenali petunjuk penting dari gambar.',
-              meta: '6 menit',
-              color: Color(0xFF4CAF50),
-              unlocked: true,
+              icon: Icons.info_rounded,
+              title: 'Misi lain belum tersedia',
+              subtitle: 'Backend belum mengirim daftar misi tambahan.',
+              meta: '-',
+              color: const Color(0xFF8B8179),
+              unlocked: false,
               compact: compact,
             ),
-            _MissionListTile(
-              icon: Icons.timeline_rounded,
-              title: 'Urutan Kejadian',
-              subtitle: 'Susun cerita dari awal sampai akhir.',
-              meta: '8 menit',
-              color: Color(0xFFF4B400),
-              unlocked: true,
-              compact: compact,
-            ),
-          ],
           if (!compact)
             _MissionListTile(
               icon: Icons.lock_rounded,
@@ -185,7 +179,7 @@ class _ActiveMissionCard extends StatelessWidget {
           ),
           SizedBox(height: compact ? 4 : 8),
           Text(
-            mission?['title'] as String? ?? numeriaMission.title,
+            mission?['title'] as String? ?? 'Misi belum tersedia',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -197,7 +191,8 @@ class _ActiveMissionCard extends StatelessWidget {
           ),
           SizedBox(height: compact ? 4 : 8),
           Text(
-            mission?['description'] as String? ?? numeriaMission.goal,
+            mission?['description'] as String? ??
+                'Data misi sedang dimuat dari backend.',
             maxLines: compact ? 2 : 3,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -212,13 +207,12 @@ class _ActiveMissionCard extends StatelessWidget {
             children: [
               _MissionBadge(
                 icon: Icons.schedule_rounded,
-                label:
-                    '${mission?['durationMinutes'] ?? numeriaMission.estimatedMinutes} menit',
+                label: '${mission?['durationMinutes'] ?? '-'} menit',
               ),
               const SizedBox(width: 8),
               _MissionBadge(
                 icon: Icons.star_rounded,
-                label: '+${mission?['rewardXp'] ?? numeriaMission.rewardXp} XP',
+                label: '+${mission?['rewardXp'] ?? '-'} XP',
               ),
             ],
           ),

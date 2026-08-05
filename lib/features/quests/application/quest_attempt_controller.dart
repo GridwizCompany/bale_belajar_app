@@ -22,6 +22,7 @@ class QuestAttemptController extends ChangeNotifier {
 
   QuestLoadStatus status = QuestLoadStatus.loading;
   String? errorMessage;
+  bool isSavingAnswer = false;
   QuestSummary? quest;
   String? _attemptId;
   int currentIndex = 0;
@@ -56,30 +57,41 @@ class QuestAttemptController extends ChangeNotifier {
   Future<void> answerCurrentAndAdvance(Map<String, dynamic> payload) async {
     final question = currentQuestion;
     answers[question.id as String] = payload;
+    isSavingAnswer = true;
+    errorMessage = null;
     notifyListeners();
 
     final attemptId = _attemptId;
     if (attemptId != null) {
+      var saved = false;
       try {
         await _repository.saveAnswer(
           attemptId: attemptId,
           questionId: question.id as String,
           payload: payload,
         );
+        saved = true;
       } catch (_) {
-        // Autosave best-effort: coba sekali lagi, kalau tetap gagal jawaban
-        // tetap ada di `answers` lokal (ditampilkan ke siswa), tapi tidak
-        // akan ikut ternilai server sampai berhasil ter-PUT.
         try {
           await _repository.saveAnswer(
             attemptId: attemptId,
             questionId: question.id as String,
             payload: payload,
           );
-        } catch (_) {}
+          saved = true;
+        } catch (error) {
+          errorMessage =
+              'Jawaban belum tersimpan. Cek koneksi lalu tekan tombol jawab lagi.';
+        }
+      }
+      if (!saved) {
+        isSavingAnswer = false;
+        notifyListeners();
+        return;
       }
     }
 
+    isSavingAnswer = false;
     if (isLastQuestion) {
       await submit();
     } else {
@@ -97,7 +109,8 @@ class QuestAttemptController extends ChangeNotifier {
       result = await _repository.submitAttempt(attemptId);
       status = QuestLoadStatus.submitted;
     } catch (error) {
-      errorMessage = error.toString();
+      errorMessage =
+          'Jawaban tersimpan, tapi submit belum berhasil. Coba kirim lagi.';
       status = QuestLoadStatus.ready;
     }
     notifyListeners();

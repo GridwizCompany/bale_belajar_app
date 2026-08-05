@@ -1,24 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../core/audio/audio_scope.dart';
 import '../../../core/audio/audio_types.dart';
 import '../../auth/application/auth_controller.dart';
-import '../application/baleverse_progress_service.dart';
-import '../application/mission_engine.dart';
-import '../data/baleverse_dummy_data.dart';
+import '../../quests/presentation/quest_screen.dart';
 import '../data/game_profile_repository.dart';
 import '../data/mastery_repository.dart';
 import '../data/worlds_repository.dart';
 import '../domain/baleverse_models.dart';
-import '../state/mission_state_machine.dart' as machine;
 import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/learning_circle_screen.dart';
-import 'screens/login_demo_screen.dart';
-import 'screens/mentor_handoff_screen.dart';
 import 'screens/mission_hub_screen.dart';
-import 'screens/mission_screen.dart';
-import 'screens/reward_screen.dart';
 import 'screens/worlds_screen.dart';
 
 enum BaleTab { home, worlds, mission, profile }
@@ -40,76 +33,80 @@ class BaleVerseDemoScreen extends StatefulWidget {
 }
 
 class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
-  final BaleVerseProgressService _progressService = BaleVerseProgressService();
-  final MissionEngine _missionEngine = const MissionEngine();
   final WorldsRepository _worldsRepository = WorldsRepository();
   final GameProfileRepository _gameProfileRepository = GameProfileRepository();
   final MasteryRepository _masteryRepository = MasteryRepository();
-  late machine.BaleVerseState _state;
+
   BaleTab _tab = BaleTab.home;
-  String? _selectedOptionId;
-  String? _feedback;
-  bool _mistakeMarked = false;
-  String _teachBackText = '';
-  final Set<String> _mentorShare = {
-    ...humanHelpRecommendation.shareableContext,
-  };
   BackgroundMusicId? _lastRequestedMusic;
   Map<String, dynamic>? _backendData;
   List<Map<String, dynamic>> _realWorlds = [];
   GameProfileSummary? _gameProfile;
   double? _masteryAverage;
+  bool _backendLoading = true;
+  String? _backendError;
 
-  BaleVerseProgress get _progress => _progressService.snapshot;
+  String get _selectedBackendWorldKey {
+    final direct = _backendData?['selectedWorld'] as String?;
+    final missionWorld = (_backendData?['todayMission']
+        as Map<String, dynamic>?)?['worldKey'] as String?;
+    final key = (direct ?? missionWorld ?? 'scientia').trim();
+    return key.isEmpty ? 'scientia' : key.toLowerCase();
+  }
+
+  BaleWorld get _selectedWorld => BaleWorld(
+        key: BaleWorldKey.detectivia,
+        name: _worldDisplayName(_selectedBackendWorldKey),
+        subject: _worldSubject(_selectedBackendWorldKey),
+        characterClass: _worldDisplayName(_selectedBackendWorldKey),
+        color: const Color(0xFFF4B400),
+        mastery: (_masteryAverage ?? 0).round(),
+      );
 
   @override
   void initState() {
     super.initState();
-    _state = widget.skipDemoLogin
-        ? const machine.BaleVerseState(step: MissionStep.dashboard)
-        : const machine.BaleVerseState();
-    _progressService.addListener(_onProgressChanged);
     _loadBackendData();
   }
 
-  @override
-  void dispose() {
-    _progressService.removeListener(_onProgressChanged);
-    super.dispose();
-  }
-
-  void _onProgressChanged() {
-    if (mounted) setState(() {});
-  }
-
-  /// Blob prototype (`_backendData`, dipakai `todayMission`/`missions` di
-  /// MissionHub - belum masuk scope Fase 1) dan data akun REAL (worlds,
-  /// game profile, mastery - lihat game_profile_repository.dart/
-  /// mastery_repository.dart) dimuat sepenuhnya independen satu sama lain.
-  /// Kegagalan salah satunya tidak boleh menggagalkan yang lain, dan
-  /// TIDAK ADA fallback ke dummy data di sini - kalau gagal, field terkait
-  /// tetap null dan layar wajib menampilkannya dengan jujur (placeholder
-  /// '-', bukan diam-diam pakai baleUser).
   Future<void> _loadBackendData() async {
+    if (mounted) {
+      setState(() {
+        _backendLoading = true;
+        _backendError = null;
+      });
+    }
+    await _loadPrototypeBlob();
     await Future.wait([
-      _loadPrototypeBlob(),
       _loadRealWorlds(),
       _loadGameProfile(),
       _loadMastery(),
     ]);
+    if (mounted) {
+      setState(() => _backendLoading = false);
+    }
   }
 
   Future<void> _loadPrototypeBlob() async {
-    final studentProfileId = widget.prototypeStudentProfileId;
     final authController = widget.authController;
-    if (studentProfileId == null || authController == null) return;
+    if (authController == null) return;
     try {
-      final data = await authController.authService.getPrototypeBaleVerse(
-        studentProfileId: studentProfileId,
-      );
-      if (!mounted) return;
+      final data = authController.user != null
+          ? await authController.authService.getBaleVerse()
+          : kReleaseMode || widget.prototypeStudentProfileId == null
+              ? null
+              : await authController.authService.getPrototypeBaleVerse(
+                  studentProfileId: widget.prototypeStudentProfileId!,
+                );
+      if (data == null || !mounted) return;
       setState(() => _backendData = Map<String, dynamic>.from(data));
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _backendData = null;
+        _backendError = 'Data BaleVerse belum bisa dimuat.';
+      });
+    }
   }
 
   Future<void> _loadRealWorlds() async {
@@ -118,6 +115,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       if (!mounted) return;
       setState(() => _realWorlds = worlds);
     } catch (_) {}
+    if (!mounted) return;
+    if (_realWorlds.isEmpty) {
+      setState(() => _backendError ??= 'Daftar dunia belum bisa dimuat.');
+    }
   }
 
   Future<void> _loadGameProfile() async {
@@ -131,20 +132,11 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   Future<void> _loadMastery() async {
     try {
       final competencies = await _masteryRepository.fetchGrowthMap(
-        worldKey: _selectedWorld.key.name,
+        worldKey: _selectedBackendWorldKey,
       );
       if (!mounted) return;
       setState(() => _masteryAverage = averageMasteryScore(competencies));
     } catch (_) {}
-  }
-
-  BaleWorld get _selectedWorld {
-    return baleWorlds.firstWhere((world) => world.key == _state.selectedWorld);
-  }
-
-  void _update(machine.BaleVerseState next) {
-    setState(() => _state = next);
-    _syncMusic();
   }
 
   void _goToTab(BaleTab tab) {
@@ -155,43 +147,27 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   void _startMission() {
-    final audio = AudioScope.maybeOf(context);
-    audio?.playSound(SoundEffectId.pageTransition);
-    setState(() {
-      _tab = BaleTab.mission;
-      _state = machine.startMission(_state);
-    });
-    _syncMusic();
-  }
-
-  void _checkAnswer() {
-    final previousWrongAttempts = _state.wrongAttempts;
-    final evaluation = _missionEngine.evaluate(
-      state: _state,
-      selectedOptionId: _selectedOptionId,
-      mistakeMarked: _mistakeMarked,
-      teachBackText: _teachBackText,
-    );
-    final audio = AudioScope.maybeOf(context);
-    setState(() {
-      _feedback = evaluation.feedback;
-      _state = evaluation.state;
-      if (evaluation.shouldApplyReward) {
-        _progressService.applyMissionReward(numeriaMission);
-      }
-      if (_state.activityType != MissionActivityType.multipleChoice) {
-        _selectedOptionId = null;
-      }
-    });
-    if (evaluation.shouldApplyReward) {
-      audio?.playSound(SoundEffectId.xpReward);
-    } else if (evaluation.state.wrongAttempts > previousWrongAttempts) {
-      audio?.handleIncorrectAnswer(
-        attemptId: 'mission-${evaluation.state.wrongAttempts}',
-        wrongAttemptCount: evaluation.state.wrongAttempts,
-      );
+    final backendWorldKey = _selectedBackendWorldKey;
+    if (backendWorldKey.isNotEmpty) {
+      AudioScope.maybeOf(context)?.playSound(SoundEffectId.pageTransition);
+      Navigator.of(context)
+          .push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => QuestScreen(worldKey: backendWorldKey),
+        ),
+      )
+          .then((completed) {
+        if (!mounted || completed != true) return;
+        _loadBackendData();
+      });
+      return;
     }
-    _syncMusic();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Misi belum siap dari backend. Coba muat ulang.'),
+      ),
+    );
   }
 
   @override
@@ -218,7 +194,6 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   BackgroundMusicId? get _targetMusic {
-    if (_state.step == MissionStep.login) return null;
     if (_tab == BaleTab.profile) return null;
     if (_tab == BaleTab.mission) return BackgroundMusicId.learning;
     return BackgroundMusicId.home;
@@ -226,12 +201,6 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_state.step == MissionStep.login) {
-      return LoginDemoScreen(
-        onLogin: () => _update(machine.login(_state)),
-      );
-    }
-
     return Scaffold(
       body: SafeArea(
         child: AnimatedSwitcher(
@@ -268,9 +237,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   Widget _buildBody() {
-    if (widget.prototypeStudentProfileId != null &&
+    if ((widget.prototypeStudentProfileId != null ||
+            widget.authController?.user != null) &&
         _backendData == null &&
-        _state.step == MissionStep.dashboard) {
+        _backendLoading) {
       return const ColoredBox(
         key: ValueKey('baleverse-backend-loading'),
         color: Color(0xFFFFF3C6),
@@ -280,10 +250,20 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       );
     }
 
+    if ((widget.prototypeStudentProfileId != null ||
+            widget.authController?.user != null) &&
+        _backendData == null &&
+        _backendError != null) {
+      return _BaleVerseErrorScreen(
+        key: const ValueKey('baleverse-backend-error'),
+        message: _backendError!,
+        onRetry: _loadBackendData,
+      );
+    }
+
     if (_tab == BaleTab.home) {
       return DashboardScreen(
         key: const ValueKey('dashboard'),
-        progress: _progress,
         selectedWorld: _selectedWorld,
         backendData: _backendData,
         realUserName: widget.authController?.user?.name,
@@ -297,17 +277,16 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       return WorldsScreen(
         key: const ValueKey('worlds'),
         selectedWorld: _selectedWorld,
+        selectedBackendWorldKey: _selectedBackendWorldKey,
         realWorlds: _realWorlds,
-        onSelectWorld: (world) {
-          _update(machine.selectWorld(_state, world));
-        },
+        onSelectWorld: (_) {},
       );
     }
 
     if (_tab == BaleTab.profile) {
       return BaleProfilePage(
         key: const ValueKey('profile'),
-        progress: _progress,
+        backendData: _backendData,
         realUserName: widget.authController?.user?.name,
         gameProfile: _gameProfile,
         masteryAverage: _masteryAverage,
@@ -315,117 +294,108 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       );
     }
 
-    if (_tab == BaleTab.mission && _state.step == MissionStep.dashboard) {
-      return MissionHubScreen(
-        key: const ValueKey('missionHub'),
-        progress: _progress,
-        backendData: _backendData,
-        onStartMission: _startMission,
-      );
-    }
-
-    return switch (_state.step) {
-      MissionStep.missionIntro => MissionIntroScreen(
-          key: const ValueKey('missionIntro'),
-          onStart: () {
-            AudioScope.maybeOf(context)
-                ?.playSound(SoundEffectId.pageTransition);
-            _update(machine.beginQuestion(_state));
-          },
-        ),
-      MissionStep.humanHelp => MentorHandoffScreen(
-          key: const ValueKey('handoff'),
-          selectedItems: _mentorShare,
-          onToggle: (item) {
-            setState(() {
-              if (_mentorShare.contains(item)) {
-                _mentorShare.remove(item);
-              } else {
-                _mentorShare.add(item);
-              }
-            });
-          },
-          onApprove: () {
-            setState(() {
-              _state = machine.requestMentor(_state);
-              _tab = BaleTab.mission;
-            });
-          },
-        ),
-      MissionStep.waitingMentor ||
-      MissionStep.mentorResponded =>
-        LearningCircleScreen(
-          key: const ValueKey('missionCircle'),
-          progress: _progress,
-          onParentSupport: () {
-            setState(_progressService.markParentSupportSent);
-          },
-          onMentorReply: () {
-            setState(() {
-              _progressService.markMentorFeedbackReceived();
-              _state = machine.receiveMentorFeedback(_state);
-            });
-          },
-          onTryAgain: _progress.mentorFeedbackReceived
-              ? () {
-                  AudioScope.maybeOf(context)
-                      ?.playSound(SoundEffectId.encouragement);
-                  setState(() {
-                    _feedback = null;
-                    _selectedOptionId = null;
-                    _mistakeMarked = false;
-                    _teachBackText = '';
-                    _state = _state.copyWith(
-                      step: MissionStep.question,
-                      wrongAttempts: 1,
-                    );
-                  });
-                }
-              : null,
-        ),
-      MissionStep.reward => RewardScreen(
-          key: const ValueKey('reward'),
-          progress: _progress,
-          onBackToDashboard: () {
-            AudioScope.maybeOf(context)
-                ?.playSound(SoundEffectId.pageTransition);
-            setState(() {
-              _feedback = null;
-              _selectedOptionId = null;
-              _mistakeMarked = false;
-              _teachBackText = '';
-              _tab = BaleTab.home;
-              _state = _state.copyWith(
-                step: MissionStep.dashboard,
-                wrongAttempts: 0,
-              );
-            });
-            _syncMusic();
-          },
-        ),
-      _ => MissionQuestionScreen(
-          key: const ValueKey('question'),
-          step: _state.step,
-          activityType: _state.activityType,
-          wrongAttempts: _state.wrongAttempts,
-          selectedOptionId: _selectedOptionId,
-          mistakeMarked: _mistakeMarked,
-          teachBackText: _teachBackText,
-          feedback: _feedback,
-          onSelectOption: (id) => setState(() => _selectedOptionId = id),
-          onMarkMistake: () => setState(() => _mistakeMarked = true),
-          onTeachBackChanged: (value) => setState(() => _teachBackText = value),
-          onCheck: _canCheckMission ? _checkAnswer : null,
-        ),
-    };
+    return MissionHubScreen(
+      key: const ValueKey('missionHub'),
+      backendData: _backendData,
+      onStartMission: _startMission,
+    );
   }
+}
 
-  bool get _canCheckMission {
-    return _missionEngine.canEvaluate(
-      state: _state,
-      selectedOptionId: _selectedOptionId,
-      mistakeMarked: _mistakeMarked,
-      teachBackText: _teachBackText,
+String _worldDisplayName(String key) => switch (key.toLowerCase()) {
+      'numeria' => 'Numeria',
+      'kodex' => 'KodeX',
+      'detectivia' => 'Detectivia',
+      'scientia' => 'Scientia',
+      _ => key.isEmpty ? 'Dunia Belajar' : key,
+    };
+
+String _worldSubject(String key) => switch (key.toLowerCase()) {
+      'numeria' => 'Matematika',
+      'kodex' => 'Informatika',
+      'detectivia' => 'Observasi dan Analisis Bukti',
+      'scientia' => 'Sains',
+      _ => 'Belajar',
+    };
+
+class _BaleVerseErrorScreen extends StatelessWidget {
+  const _BaleVerseErrorScreen({
+    required this.message,
+    required this.onRetry,
+    super.key,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: const Color(0xFFFFF3C6),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  'assets/mascot/splash.png',
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Data belum siap',
+                  style: TextStyle(
+                    color: Color(0xFF3B2318),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF60646F),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton(
+                    onPressed: onRetry,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFF4B400),
+                      foregroundColor: const Color(0xFF3B2318),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Coba Lagi'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

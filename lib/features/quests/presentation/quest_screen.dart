@@ -68,16 +68,116 @@ class _QuestScreenState extends State<QuestScreen> {
         return _QuestRewardScreen(
           questTitle: _controller.quest?.title ?? 'Quest',
           result: _controller.result!,
-          onDone: () => Navigator.of(context).pop(),
+          onDone: () => Navigator.of(context).pop(true),
         );
       case QuestLoadStatus.ready:
-        return QuestQuestionView(
-          question: _controller.currentQuestion,
-          currentQuestion: _controller.currentIndex + 1,
-          totalQuestions: _controller.totalQuestions,
-          onAnswered: _controller.answerCurrentAndAdvance,
+        return Stack(
+          children: [
+            QuestQuestionView(
+              question: _controller.currentQuestion,
+              currentQuestion: _controller.currentIndex + 1,
+              totalQuestions: _controller.totalQuestions,
+              onAnswered: _controller.answerCurrentAndAdvance,
+            ),
+            if (_controller.errorMessage != null)
+              Positioned(
+                left: 16,
+                right: 16,
+                top: MediaQuery.paddingOf(context).top + 12,
+                child: _QuestErrorBanner(message: _controller.errorMessage!),
+              ),
+            if (_controller.isSavingAnswer)
+              const Positioned.fill(
+                child: _QuestSavingOverlay(),
+              ),
+          ],
         );
     }
+  }
+}
+
+class _QuestErrorBanner extends StatelessWidget {
+  const _QuestErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFF6B6B), width: 1.3),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x18000000),
+              blurRadius: 16,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.wifi_off_rounded, color: Color(0xFFFF6B6B)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(
+                  color: _questInk,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _QuestSavingOverlay extends StatelessWidget {
+  const _QuestSavingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: Color(0x33000000),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: _questYellow,
+                ),
+              ),
+              SizedBox(width: 12),
+              Text(
+                'Menyimpan jawaban...',
+                style: TextStyle(
+                  color: _questInk,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -120,7 +220,8 @@ class _QuestMessageScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   FilledButton(
                     onPressed: onRetry,
-                    style: FilledButton.styleFrom(backgroundColor: _questYellow),
+                    style:
+                        FilledButton.styleFrom(backgroundColor: _questYellow),
                     child: const Text('Coba Lagi'),
                   ),
                 ],
@@ -151,7 +252,8 @@ class _QuestRewardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendingReview = result.questions.where((q) => q.isPendingReview).length;
+    final pendingReview =
+        result.questions.where((q) => q.isPendingReview).length;
 
     return Scaffold(
       backgroundColor: _questBg,
@@ -161,7 +263,8 @@ class _QuestRewardScreen extends StatelessWidget {
           child: Column(
             children: [
               const SizedBox(height: 12),
-              const Icon(Icons.emoji_events_rounded, color: _questYellow, size: 72),
+              const Icon(Icons.emoji_events_rounded,
+                  color: _questYellow, size: 72),
               const SizedBox(height: 12),
               Text(
                 'Quest Selesai!',
@@ -205,7 +308,8 @@ class _QuestRewardScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'Naik level! 🎉',
-                  style: TextStyle(color: _questInk, fontWeight: FontWeight.w900),
+                  style:
+                      TextStyle(color: _questInk, fontWeight: FontWeight.w900),
                 ),
               ],
               if (pendingReview > 0) ...[
@@ -220,7 +324,8 @@ class _QuestRewardScreen extends StatelessWidget {
                   child: Text(
                     '$pendingReview jawaban menunggu review mentor - belum masuk skor otomatis.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFF60646F), fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                        color: Color(0xFF60646F), fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -233,7 +338,8 @@ class _QuestRewardScreen extends StatelessWidget {
                   style: FilledButton.styleFrom(
                     backgroundColor: _questGreen,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text('Selesai'),
                 ),
@@ -247,7 +353,8 @@ class _QuestRewardScreen extends StatelessWidget {
 }
 
 class _RewardStat extends StatelessWidget {
-  const _RewardStat({required this.label, required this.value, required this.color});
+  const _RewardStat(
+      {required this.label, required this.value, required this.color});
 
   final String label;
   final String value;
@@ -264,9 +371,13 @@ class _RewardStat extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text(value, style: TextStyle(color: color, fontSize: 26, fontWeight: FontWeight.w900)),
+          Text(value,
+              style: TextStyle(
+                  color: color, fontSize: 26, fontWeight: FontWeight.w900)),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Color(0xFF60646F), fontWeight: FontWeight.w800)),
+          Text(label,
+              style: const TextStyle(
+                  color: Color(0xFF60646F), fontWeight: FontWeight.w800)),
         ],
       ),
     );

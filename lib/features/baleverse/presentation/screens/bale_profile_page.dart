@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../application/baleverse_progress_service.dart';
 import '../../data/game_profile_repository.dart';
 
 const _profileBg = Color(0xFFFFF3C6);
@@ -10,7 +9,7 @@ const _profileGreen = Color(0xFF4CAF50);
 
 class BaleProfilePage extends StatelessWidget {
   const BaleProfilePage({
-    required this.progress,
+    this.backendData,
     required this.realUserName,
     required this.gameProfile,
     required this.masteryAverage,
@@ -18,7 +17,7 @@ class BaleProfilePage extends StatelessWidget {
     super.key,
   });
 
-  final BaleVerseProgress progress;
+  final Map<String, dynamic>? backendData;
   // Data akun REAL dari GET /student/game-profile dan /student/mastery -
   // null berarti belum termuat/gagal, ditampilkan jujur sebagai '-',
   // BUKAN diam-diam pakai baleUser dummy atau blob prototype.
@@ -29,7 +28,8 @@ class BaleProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = progress.user;
+    final backendProfile = backendData?['profile'] as Map<String, dynamic>?;
+    final backendStats = backendData?['stats'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
     return Container(
       color: _profileBg,
@@ -37,13 +37,18 @@ class BaleProfilePage extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 22, 14, 10),
         children: [
           _ProfileHeader(
-            fallbackName: user.name,
+            fallbackName: 'Pengguna',
+            backendProfile: backendProfile,
             realUserName: realUserName,
             gameProfile: gameProfile,
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 16),
-          _ProfileProgress(gameProfile: gameProfile, compact: compact),
+          _ProfileProgress(
+            gameProfile: gameProfile,
+            backendStats: backendStats,
+            compact: compact,
+          ),
           SizedBox(height: compact ? 8 : 14),
           _ProfileMenuTile(
             icon: Icons.school_rounded,
@@ -86,12 +91,14 @@ class BaleProfilePage extends StatelessWidget {
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.fallbackName,
+    required this.backendProfile,
     required this.realUserName,
     required this.gameProfile,
     required this.compact,
   });
 
   final String fallbackName;
+  final Map<String, dynamic>? backendProfile;
   final String? realUserName;
   final GameProfileSummary? gameProfile;
   final bool compact;
@@ -128,7 +135,9 @@ class _ProfileHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  realUserName ?? fallbackName,
+                  backendProfile?['name'] as String? ??
+                      realUserName ??
+                      fallbackName,
                   style: TextStyle(
                     color: _profileInk,
                     fontSize: compact ? 25 : 38,
@@ -138,7 +147,7 @@ class _ProfileHeader extends StatelessWidget {
                 SizedBox(height: compact ? 3 : 6),
                 Text(
                   gameProfile == null
-                      ? '-'
+                      ? (backendProfile?['foundation'] as String? ?? '-')
                       : '${_formatRank(gameProfile!.rank)} - Level ${gameProfile!.accountLevel}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -166,9 +175,14 @@ String _formatRank(String rank) {
 }
 
 class _ProfileProgress extends StatelessWidget {
-  const _ProfileProgress({required this.gameProfile, required this.compact});
+  const _ProfileProgress({
+    required this.gameProfile,
+    required this.backendStats,
+    required this.compact,
+  });
 
   final GameProfileSummary? gameProfile;
+  final Map<String, dynamic>? backendStats;
   final bool compact;
 
   @override
@@ -194,18 +208,22 @@ class _ProfileProgress extends StatelessWidget {
           SizedBox(height: compact ? 8 : 14),
           _ProgressRow(
             label: 'Menuju Level Berikutnya',
-            value: profile == null
-                ? '-'
-                : '${profile.xpIntoCurrentLevel}/${profile.xpRequiredForNextLevel} XP',
+            value: backendStats?['xp'] != null
+                ? '${backendStats!['xp']} XP'
+                : profile == null
+                    ? '-'
+                    : '${profile.xpIntoCurrentLevel}/${profile.xpRequiredForNextLevel} XP',
             progress: profile?.levelProgress ?? 0,
             color: _profileYellow,
           ),
           SizedBox(height: compact ? 8 : 12),
           _ProgressRow(
             label: 'Nyala belajar mingguan',
-            value: profile == null
-                ? '-'
-                : '${profile.streakCurrent}/${profile.streakTargetPerWeek} hari',
+            value: backendStats?['weeklyCompleted'] != null
+                ? '${backendStats!['weeklyCompleted']}/${backendStats!['weeklyTarget'] ?? 3} hari'
+                : profile == null
+                    ? '-'
+                    : '${profile.streakCurrent}/${profile.streakTargetPerWeek} hari',
             progress: profile == null || profile.streakTargetPerWeek == 0
                 ? 0
                 : profile.streakCurrent / profile.streakTargetPerWeek,

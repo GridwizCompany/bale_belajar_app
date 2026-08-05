@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../application/baleverse_progress_service.dart';
 import '../../data/game_profile_repository.dart';
 import '../../domain/baleverse_models.dart';
 
@@ -11,7 +10,6 @@ const _homeGreen = Color(0xFF4CAF50);
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({
-    required this.progress,
     required this.selectedWorld,
     this.backendData,
     required this.realUserName,
@@ -21,7 +19,6 @@ class DashboardScreen extends StatelessWidget {
     super.key,
   });
 
-  final BaleVerseProgress progress;
   final BaleWorld selectedWorld;
   final Map<String, dynamic>? backendData;
   // Data akun REAL dari GET /student/game-profile dan /student/mastery -
@@ -34,7 +31,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = progress.user;
+    final backendProfile = backendData?['profile'] as Map<String, dynamic>?;
+    final backendStats = backendData?['stats'] as Map<String, dynamic>?;
     final todayMission = backendData?['todayMission'] as Map<String, dynamic>?;
     final compact = MediaQuery.sizeOf(context).height < 900;
 
@@ -44,11 +42,17 @@ class DashboardScreen extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(14, compact ? 10 : 18, 14, 10),
         children: [
           _GreetingCard(
-            userName: realUserName ?? user.name,
+            userName: backendProfile?['name'] as String? ??
+                realUserName ??
+                'Pengguna',
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 14),
-          _StatsStrip(gameProfile: gameProfile, compact: compact),
+          _StatsStrip(
+            gameProfile: gameProfile,
+            backendStats: backendStats,
+            compact: compact,
+          ),
           SizedBox(height: compact ? 8 : 14),
           _TodayMissionCard(
             selectedWorld: selectedWorld,
@@ -154,9 +158,14 @@ class _GreetingCard extends StatelessWidget {
 }
 
 class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.gameProfile, required this.compact});
+  const _StatsStrip({
+    required this.gameProfile,
+    required this.backendStats,
+    required this.compact,
+  });
 
   final GameProfileSummary? gameProfile;
+  final Map<String, dynamic>? backendStats;
   final bool compact;
 
   @override
@@ -173,7 +182,11 @@ class _StatsStrip extends StatelessWidget {
               icon: Icons.star_rounded,
               color: _homeYellow,
               label: compact ? 'XP' : 'XP Total',
-              value: gameProfile == null ? '-' : '${gameProfile!.accountXp}',
+              value: backendStats?['xp'] != null
+                  ? '${backendStats!['xp']}'
+                  : gameProfile == null
+                      ? '-'
+                      : '${gameProfile!.accountXp}',
             ),
           ),
           const _StatDivider(),
@@ -182,7 +195,11 @@ class _StatsStrip extends StatelessWidget {
               icon: Icons.local_fire_department_rounded,
               color: const Color(0xFFFF6B2C),
               label: 'Nyala',
-              value: gameProfile == null ? '-' : '${gameProfile!.streakCurrent}',
+              value: backendStats?['streak'] != null
+                  ? '${backendStats!['streak']}'
+                  : gameProfile == null
+                      ? '-'
+                      : '${gameProfile!.streakCurrent}',
             ),
           ),
           const _StatDivider(),
@@ -333,9 +350,7 @@ class _TodayMissionCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      selectedWorld.key == BaleWorldKey.detectivia
-                          ? (mission?['title'] as String? ?? 'Detektifia')
-                          : selectedWorld.name,
+                      mission?['title'] as String? ?? 'Misi belum tersedia',
                       style: TextStyle(
                         color: _homeInk,
                         fontSize: compact ? 25 : 42,
@@ -346,7 +361,7 @@ class _TodayMissionCard extends StatelessWidget {
                     SizedBox(height: compact ? 4 : 8),
                     Text(
                       mission?['durationMinutes'] == null
-                          ? 'Chapter 1 - Kamp Observasi'
+                          ? 'Menunggu data dari backend'
                           : '${mission?['durationMinutes']} menit • ${mission?['activityCount'] ?? 5} aktivitas',
                       style: TextStyle(
                         color: Color(0xFF60646F),
@@ -422,9 +437,8 @@ class _LegacyProgressSummary extends StatelessWidget {
           Expanded(
             child: _SummaryText(
               label: 'Rata-rata Mastery',
-              value: masteryAverage == null
-                  ? '-'
-                  : '${masteryAverage!.round()}%',
+              value:
+                  masteryAverage == null ? '-' : '${masteryAverage!.round()}%',
             ),
           ),
         ],

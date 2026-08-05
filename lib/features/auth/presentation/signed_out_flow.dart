@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../application/auth_controller.dart';
-import 'auth_login_screen.dart';
+import 'auth_account_page.dart';
 import 'auth_onboarding_landing_screen.dart';
 import 'simple_auth_screen.dart';
 
 class SignedOutFlow extends StatefulWidget {
-  const SignedOutFlow({required this.controller, super.key});
+  const SignedOutFlow({
+    required this.controller,
+    this.onAuthenticatedFlowLockChanged,
+    super.key,
+  });
 
   final AuthController controller;
+  final ValueChanged<bool>? onAuthenticatedFlowLockChanged;
 
   @override
   State<SignedOutFlow> createState() => _SignedOutFlowState();
@@ -56,12 +61,14 @@ class _SignedOutFlowState extends State<SignedOutFlow> {
                   setState(() => _formMode = AuthMode.login),
             )
           : _formMode == AuthMode.login
-              ? AuthLoginScreen(
+              ? AuthAccountPage(
                   key: const ValueKey('auth-login-direct'),
                   controller: widget.controller,
+                  initialMode: AuthAccountMode.login,
                   onBack: () => setState(() => _formMode = null),
-                  onRegister: () =>
-                      setState(() => _formMode = AuthMode.register),
+                  onAuthenticated: () async {},
+                  onAuthFlowLockChanged:
+                      widget.onAuthenticatedFlowLockChanged,
                 )
               : SimpleAuthScreen(
                   key: ValueKey('auth-form-${_formMode!.name}'),
@@ -70,6 +77,8 @@ class _SignedOutFlowState extends State<SignedOutFlow> {
                   onBackToLanding: () => setState(() => _formMode = null),
                   onLoginRequested: () =>
                       setState(() => _formMode = AuthMode.login),
+                  onAuthenticatedFlowLockChanged:
+                      widget.onAuthenticatedFlowLockChanged,
                 ),
     );
   }

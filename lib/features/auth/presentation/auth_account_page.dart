@@ -366,6 +366,7 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
     _lockFlowIfNeeded();
+    final isRegistering = _mode == AuthAccountMode.register;
     if (_mode == AuthAccountMode.login) {
       await widget.controller.loginWithEmail(_email.text, _password.text);
     } else if (_mode == AuthAccountMode.register) {
@@ -378,8 +379,79 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
     } else {
       await widget.controller.loginWithCode(_code.text);
     }
+    if (isRegistering &&
+        widget.controller.errorMessage == null &&
+        widget.controller.user != null &&
+        mounted) {
+      await _showRegisterSuccessDialog();
+    }
     await _finishAuthIfSuccessful();
     _unlockFlowOnError();
+  }
+
+  Future<void> _showRegisterSuccessDialog() {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+          backgroundColor: Colors.white,
+          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 112,
+                height: 136,
+                child: Image.asset(
+                  'assets/mascot/splash.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Akun berhasil dibuat',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: BaleColors.ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Progres belajarmu sudah tersimpan. Sekarang lanjut ke cek awal.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF7A8796),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: BaleColors.warning,
+                  foregroundColor: BaleColors.ink,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                child: const Text('LANJUT'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _lockFlowIfNeeded() {

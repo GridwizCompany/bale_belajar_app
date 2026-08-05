@@ -15,20 +15,21 @@ class BaleApiException implements Exception {
 }
 
 class ApiClient {
+  static const _configuredBaseUrl = String.fromEnvironment('BALE_API_URL');
+  static const _productionBaseUrl = 'https://api.balebelajar.com/api/v1';
+
   ApiClient({
     http.Client? httpClient,
     TokenProvider? tokenProvider,
-    // Default ke backend production (lihat NEXT_PUBLIC_API_URL di
-    // BALE_BELAJAR_PROFILE/deploy/deploy.sh). Untuk dev lokal, override
-    // lewat --dart-define=BALE_API_URL=http://<IP-LAN>:4000/api/v1 - dunia
-    // Scientia/engine Quest baru cuma ada di DB lokal sampai backend ini
-    // di-deploy ulang dengan perubahan sesi ini.
-    this.baseUrl = const String.fromEnvironment(
-      'BALE_API_URL',
-      defaultValue: 'https://api.balebelajar.com/api/v1',
-    ),
+    String? baseUrl,
   })  : _httpClient = httpClient ?? http.Client(),
-        _tokenProvider = tokenProvider;
+        _tokenProvider = tokenProvider,
+        baseUrl = baseUrl ?? _defaultBaseUrl;
+
+  static String get _defaultBaseUrl {
+    if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    return _productionBaseUrl;
+  }
 
   final http.Client _httpClient;
   final TokenProvider? _tokenProvider;

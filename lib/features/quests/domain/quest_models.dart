@@ -148,8 +148,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
   final options = (json['options'] as List?)
           ?.cast<Map<String, dynamic>>()
           .map((o) => TemplateOption(
-                id: o['id'] as String,
-                label: o['label'] as String? ?? '',
+                id: _jsonText(o, ['id', 'optionId', 'key'], fallback: ''),
+                label: _jsonText(o, ['label', 'text', 'title', 'name']),
                 imageUrl: o['imageUrl'] as String?,
                 description: o['description'] as String?,
               ))
@@ -162,22 +162,22 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
   final matchingPairs = List.generate(
     pairCount,
     (i) => MatchingPair(
-      leftId: left[i]['id'] as String,
-      leftLabel: left[i]['label'] as String? ?? '',
-      rightId: right[i]['id'] as String,
-      rightLabel: right[i]['label'] as String? ?? '',
+      leftId: _jsonText(left[i], ['id', 'leftId'], fallback: '$i'),
+      leftLabel: _jsonText(left[i], ['label', 'leftLabel', 'text', 'title']),
+      rightId: _jsonText(right[i], ['id', 'rightId'], fallback: '$i'),
+      rightLabel: _jsonText(right[i], ['label', 'rightLabel', 'text', 'title']),
     ),
   );
 
   final items = (json['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
   final orderingItems = type == QuestionType.ordering
-      ? items.map((i) => OrderingItem(id: i['id'] as String, label: i['label'] as String? ?? '')).toList()
+      ? items.map(_orderingItemFromJson).toList()
       : const <OrderingItem>[];
   final timelineItems = type == QuestionType.timelineBuilder
       ? items
           .map((i) => TimelineItem(
-                id: i['id'] as String,
-                label: i['label'] as String? ?? '',
+                id: _jsonText(i, ['id', 'itemId'], fallback: ''),
+                label: _jsonText(i, ['label', 'text', 'title', 'name', 'description']),
                 timeLabel: i['timeLabel'] as String?,
                 description: i['description'] as String?,
               ))
@@ -187,8 +187,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
   final hotspotAreas = (json['hotspotAreas'] as List?)
           ?.cast<Map<String, dynamic>>()
           .map((h) => HotspotArea(
-                id: h['id'] as String,
-                label: h['label'] as String? ?? '',
+                id: _jsonText(h, ['id', 'hotspotId'], fallback: ''),
+                label: _jsonText(h, ['label', 'text', 'title', 'name']),
                 x: (h['x'] as num?)?.toDouble() ?? 0,
                 y: (h['y'] as num?)?.toDouble() ?? 0,
                 radius: (h['radius'] as num?)?.toDouble() ?? 0.08,
@@ -199,8 +199,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
   final evidenceItems = (json['evidenceItems'] as List?)
           ?.cast<Map<String, dynamic>>()
           .map((e) => EvidenceItem(
-                id: e['id'] as String,
-                label: e['label'] as String? ?? '',
+                id: _jsonText(e, ['id', 'evidenceId'], fallback: ''),
+                label: _jsonText(e, ['label', 'text', 'title', 'name']),
                 description: e['description'] as String?,
                 category: e['category'] as String?,
               ))
@@ -242,4 +242,27 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
     evidenceItems: evidenceItems,
     codeConfig: codeConfig,
   );
+}
+
+OrderingItem _orderingItemFromJson(Map<String, dynamic> json) {
+  final id = _jsonText(json, ['id', 'itemId'], fallback: '');
+  final label = _jsonText(
+    json,
+    ['label', 'text', 'title', 'name', 'description'],
+    fallback: id,
+  );
+  return OrderingItem(id: id, label: label);
+}
+
+String _jsonText(
+  Map<String, dynamic> json,
+  List<String> keys, {
+  String fallback = '',
+}) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    if (value is num || value is bool) return value.toString();
+  }
+  return fallback;
 }

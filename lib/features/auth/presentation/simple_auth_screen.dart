@@ -1377,8 +1377,8 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
     instruction: json['instruction'] as String?,
     options: _jsonList(json['options']).map((item) {
       return TemplateOption(
-        id: item['id'] as String,
-        label: item['label'] as String,
+        id: _templateJsonText(item, ['id', 'optionId', 'key']),
+        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
         imageUrl: item['imageUrl'] as String?,
         description: item['description'] as String?,
       );
@@ -1392,22 +1392,27 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
         : null,
     matchingPairs: _jsonList(json['matchingPairs']).map((item) {
       return MatchingPair(
-        leftId: item['leftId'] as String,
-        leftLabel: item['leftLabel'] as String,
-        rightId: item['rightId'] as String,
-        rightLabel: item['rightLabel'] as String,
+        leftId: _templateJsonText(item, ['leftId', 'left_id']),
+        leftLabel: _templateJsonText(item, ['leftLabel', 'left_label', 'label']),
+        rightId: _templateJsonText(item, ['rightId', 'right_id']),
+        rightLabel: _templateJsonText(item, ['rightLabel', 'right_label', 'answer']),
       );
     }).toList(growable: false),
     orderingItems: _jsonList(json['orderingItems']).map((item) {
+      final id = _templateJsonText(item, ['id', 'itemId', 'item_id']);
       return OrderingItem(
-        id: item['id'] as String,
-        label: item['label'] as String,
+        id: id,
+        label: _templateJsonText(
+          item,
+          ['label', 'text', 'title', 'name', 'description'],
+          fallback: id,
+        ),
       );
     }).toList(growable: false),
     hotspotAreas: _jsonList(json['hotspotAreas']).map((item) {
       return HotspotArea(
-        id: item['id'] as String,
-        label: item['label'] as String,
+        id: _templateJsonText(item, ['id', 'hotspotId', 'hotspot_id']),
+        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
         x: (item['x'] as num).toDouble(),
         y: (item['y'] as num).toDouble(),
         radius: ((item['radius'] as num?) ?? 0.08).toDouble(),
@@ -1415,16 +1420,16 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
     }).toList(growable: false),
     timelineItems: _jsonList(json['timelineItems']).map((item) {
       return TimelineItem(
-        id: item['id'] as String,
-        label: item['label'] as String,
+        id: _templateJsonText(item, ['id', 'itemId', 'item_id']),
+        label: _templateJsonText(item, ['label', 'text', 'title', 'name', 'description']),
         timeLabel: item['timeLabel'] as String?,
         description: item['description'] as String?,
       );
     }).toList(growable: false),
     evidenceItems: _jsonList(json['evidenceItems']).map((item) {
       return EvidenceItem(
-        id: item['id'] as String,
-        label: item['label'] as String,
+        id: _templateJsonText(item, ['id', 'evidenceId', 'evidence_id']),
+        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
         description: item['description'] as String?,
         category: item['category'] as String?,
       );
@@ -1433,6 +1438,19 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
         ? _codeConfigFromJson(json['codeConfig'] as Map<String, dynamic>)
         : null,
   );
+}
+
+String _templateJsonText(
+  Map<String, dynamic> json,
+  List<String> keys, {
+  String fallback = '',
+}) {
+  for (final key in keys) {
+    final value = json[key];
+    if (value is String && value.trim().isNotEmpty) return value.trim();
+    if (value is num || value is bool) return value.toString();
+  }
+  return fallback;
 }
 
 TemplateMedia _templateMediaFromJson(Map<String, dynamic> json) {

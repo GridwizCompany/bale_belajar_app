@@ -8,11 +8,13 @@ const _missionGreen = Color(0xFF4CAF50);
 class MissionHubScreen extends StatelessWidget {
   const MissionHubScreen({
     this.backendData,
+    this.adaptivePlan,
     required this.onStartMission,
     super.key,
   });
 
   final Map<String, dynamic>? backendData;
+  final Map<String, dynamic>? adaptivePlan;
   final VoidCallback onStartMission;
 
   @override
@@ -40,6 +42,13 @@ class MissionHubScreen extends StatelessWidget {
             mission: activeMission,
             onStartMission: onStartMission,
           ),
+          if (adaptivePlan != null) ...[
+            SizedBox(height: compact ? 8 : 14),
+            _RecommendationCard(
+              compact: compact,
+              plan: adaptivePlan!,
+            ),
+          ],
           SizedBox(height: compact ? 8 : 14),
           if (backendData == null)
             const Padding(
@@ -79,6 +88,91 @@ class MissionHubScreen extends StatelessWidget {
               unlocked: false,
               compact: compact,
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationCard extends StatelessWidget {
+  const _RecommendationCard({
+    required this.compact,
+    required this.plan,
+  });
+
+  final bool compact;
+  final Map<String, dynamic> plan;
+
+  @override
+  Widget build(BuildContext context) {
+    final mastery = plan['mastery'] as Map<String, dynamic>?;
+    final module = plan['targetModule'] as Map<String, dynamic>?;
+    final score = mastery?['masteryScore'];
+    final scoreText = score is num ? '${score.round()}%' : 'baru mulai';
+    return Container(
+      padding: EdgeInsets.all(compact ? 10 : 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFFFF4),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFBFE8CB), width: 1.2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: compact ? 42 : 52,
+            height: compact ? 42 : 52,
+            decoration: BoxDecoration(
+              color: _missionGreen.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: _missionGreen,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  plan['title'] as String? ?? 'Saran belajar berikutnya',
+                  style: TextStyle(
+                    color: _missionInk,
+                    fontSize: compact ? 15 : 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  plan['message'] as String? ??
+                      'Sistem memilih misi dari progres dan jawabanmu.',
+                  maxLines: compact ? 2 : 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: const Color(0xFF60646F),
+                    fontSize: compact ? 11 : 13,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (module?['title'] != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Target: ${module!['title']} - mastery $scoreText',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: _missionGreen,
+                      fontSize: compact ? 11 : 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );

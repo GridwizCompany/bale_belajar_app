@@ -40,10 +40,17 @@ class QuestAttemptController extends ChangeNotifier {
     try {
       final summary = await _repository.getTodayQuest(worldKey);
       var attemptId = summary.attemptId;
-      attemptId ??= await _repository.startAttempt(summary.assignmentId);
       quest = summary;
       _attemptId = attemptId;
       currentIndex = 0;
+      if (attemptId != null && summary.attemptStatus == 'SUBMITTED') {
+        result = await _repository.getResult(attemptId);
+        status = QuestLoadStatus.submitted;
+        notifyListeners();
+        return;
+      }
+      attemptId ??= await _repository.startAttempt(summary.assignmentId);
+      _attemptId = attemptId;
       status = QuestLoadStatus.ready;
     } catch (error) {
       errorMessage = error.toString();

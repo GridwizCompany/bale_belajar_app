@@ -26,4 +26,13 @@ class WorldsRepository {
       };
     }).toList();
   }
+
+  Future<Map<String, dynamic>> fetchAdaptivePlan({
+    required String worldKey,
+  }) async {
+    final data = await _apiClient.get(
+      '/student/worlds/$worldKey/adaptive-plan',
+    );
+    return Map<String, dynamic>.from(data as Map<String, dynamic>);
+  }
 }

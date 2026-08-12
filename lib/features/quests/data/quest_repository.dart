@@ -39,4 +39,9 @@ class QuestRepository {
     final data = await _apiClient.post('/student/quest-attempts/$attemptId/submit');
     return QuestSubmitResult.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<QuestSubmitResult> getResult(String attemptId) async {
+    final data = await _apiClient.get('/student/quest-attempts/$attemptId/result');
+    return QuestSubmitResult.fromJson(data as Map<String, dynamic>);
+  }
 }

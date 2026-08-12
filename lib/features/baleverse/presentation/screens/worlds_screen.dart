@@ -52,11 +52,11 @@ class WorldsScreen extends StatelessWidget {
                 compact: compact,
                 onTap: () {
                   final backendKey = world['key'] as String?;
-                  // Scientia (dan dunia baru lain yang belum punya alur
-                  // MissionQuestionScreen lama) pakai engine Quest generik
-                  // yang baru, bukan machine.selectWorld/onSelectWorld.
-                  if (backendKey != null &&
-                      _worldKeyFromBackend(backendKey) == null) {
+                  // Semua dunia yang datang dari backend sudah memakai engine
+                  // Quest generik. Jangan belokkan NUMERIA/KODEX/DETECTIVIA
+                  // ke flow misi lama karena pertanyaan hasil import hidup di
+                  // endpoint /student/quests.
+                  if (backendKey != null && backendKey.isNotEmpty) {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) =>
@@ -65,8 +65,8 @@ class WorldsScreen extends StatelessWidget {
                     );
                     return;
                   }
-                  final key = _worldKeyFromBackend(backendKey);
-                  if (key != null) onSelectWorld(key);
+                  final legacyKey = _worldKeyFromBackend(backendKey);
+                  if (legacyKey != null) onSelectWorld(legacyKey);
                 },
               ),
               SizedBox(height: compact ? 8 : 12),

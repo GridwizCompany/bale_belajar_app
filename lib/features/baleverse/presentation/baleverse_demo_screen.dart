@@ -41,6 +41,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   BaleTab _tab = BaleTab.home;
   BackgroundMusicId? _lastRequestedMusic;
   Map<String, dynamic>? _backendData;
+  Map<String, dynamic>? _adaptivePlan;
   List<Map<String, dynamic>> _realWorlds = [];
   GameProfileSummary? _gameProfile;
   double? _masteryAverage;
@@ -82,6 +83,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       _loadRealWorlds(),
       _loadGameProfile(),
       _loadMastery(),
+      _loadAdaptivePlan(),
     ]);
     if (mounted) {
       setState(() => _backendLoading = false);
@@ -145,6 +147,19 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       if (!mounted) return;
       setState(() => _masteryAverage = averageMasteryScore(competencies));
     } catch (_) {}
+  }
+
+  Future<void> _loadAdaptivePlan() async {
+    try {
+      final plan = await _worldsRepository.fetchAdaptivePlan(
+        worldKey: _selectedBackendWorldKey,
+      );
+      if (!mounted) return;
+      setState(() => _adaptivePlan = plan);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _adaptivePlan = null);
+    }
   }
 
   void _goToTab(BaleTab tab) {
@@ -305,6 +320,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     return MissionHubScreen(
       key: const ValueKey('missionHub'),
       backendData: _backendData,
+      adaptivePlan: _adaptivePlan,
       onStartMission: _startMission,
     );
   }

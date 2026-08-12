@@ -15,6 +15,7 @@ class QuestSummary {
     required this.hints,
     required this.chapterTitle,
     required this.questions,
+    this.attemptStatus,
   });
 
   factory QuestSummary.fromJson(Map<String, dynamic> json) {
@@ -38,6 +39,7 @@ class QuestSummary {
       hints: (quest['hints'] as List?)?.cast<String>() ?? const [],
       chapterTitle: chapter?['title'] as String?,
       questions: questions,
+      attemptStatus: attempt?['status'] as String?,
     );
   }
 
@@ -52,6 +54,7 @@ class QuestSummary {
   final List<String> hints;
   final String? chapterTitle;
   final List<TemplateQuestion> questions;
+  final String? attemptStatus;
 }
 
 /// Hasil satu soal setelah submit (kunci jawaban sudah boleh terlihat).

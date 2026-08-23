@@ -149,6 +149,9 @@ class _QuestSavingOverlay extends StatelessWidget {
       color: Color(0x33000000),
       child: Center(
         child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.sizeOf(context).width - 48,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -166,11 +169,15 @@ class _QuestSavingOverlay extends StatelessWidget {
                 ),
               ),
               SizedBox(width: 12),
-              Text(
-                'Menyimpan jawaban...',
-                style: TextStyle(
-                  color: _questInk,
-                  fontWeight: FontWeight.w900,
+              Flexible(
+                child: Text(
+                  'Menyimpan jawaban...',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: _questInk,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -259,59 +266,74 @@ class _QuestRewardScreen extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              const SizedBox(height: 12),
-              const Icon(Icons.emoji_events_rounded,
-                  color: _questYellow, size: 72),
-              const SizedBox(height: 12),
-              Text(
-                'Quest Selesai!',
-                style: const TextStyle(
-                  color: _questInk,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                questTitle,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF60646F),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: _RewardStat(
-                      label: 'Skor',
-                      value: '${result.overallScore.round()}',
-                      color: _questGreen,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _RewardStat(
-                      label: 'XP',
-                      value: '+${result.xpGained}',
+              Expanded(
+                child: ListView(
+                  children: [
+                    const SizedBox(height: 12),
+                    const Icon(
+                      Icons.emoji_events_rounded,
                       color: _questYellow,
+                      size: 72,
                     ),
-                  ),
-                ],
-              ),
-              if (result.accountLeveledUp || result.worldLeveledUp) ...[
-                const SizedBox(height: 12),
-                const Text(
-                  'Naik level!',
-                  style:
-                      TextStyle(color: _questInk, fontWeight: FontWeight.w900),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Quest Selesai!',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _questInk,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      questTitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF60646F),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _RewardStat(
+                            label: 'Skor',
+                            value: '${result.overallScore.round()}',
+                            color: _questGreen,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _RewardStat(
+                            label: 'XP',
+                            value: '+${result.xpGained}',
+                            color: _questYellow,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (result.accountLeveledUp || result.worldLeveledUp) ...[
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Naik level!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _questInk,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _LearningFeedback(result: result),
+                    const SizedBox(height: 12),
+                    _QuestionResultList(result: result),
+                    const SizedBox(height: 18),
+                  ],
                 ),
-              ],
-              const SizedBox(height: 12),
-              _LearningFeedback(result: result),
-              const Spacer(),
+              ),
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -331,6 +353,144 @@ class _QuestRewardScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _QuestionResultList extends StatelessWidget {
+  const _QuestionResultList({required this.result});
+
+  final QuestSubmitResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFE0A1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.fact_check_rounded, color: _questGreen),
+              SizedBox(width: 8),
+              Text(
+                'Hasil Tiap Soal',
+                style: TextStyle(
+                  color: _questInk,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final entry in result.questions.asMap().entries) ...[
+            _QuestionResultTile(
+              number: entry.key + 1,
+              question: entry.value,
+            ),
+            if (entry.key != result.questions.length - 1)
+              const Divider(height: 12, color: Color(0xFFFFE0A1)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestionResultTile extends StatelessWidget {
+  const _QuestionResultTile({
+    required this.number,
+    required this.question,
+  });
+
+  final int number;
+  final QuestQuestionResult question;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = _status;
+    final color = _color;
+    final icon = _icon;
+    final score = question.score;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            '$number',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, color: color, size: 18),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      status,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (score != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  'Skor soal: ${score.round()}',
+                  style: const TextStyle(
+                    color: Color(0xFF60646F),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String get _status {
+    if (question.isPendingReview) return 'Menunggu review';
+    if (question.isCorrect == true) return 'Benar';
+    return 'Salah';
+  }
+
+  Color get _color {
+    if (question.isPendingReview) return _questYellow;
+    if (question.isCorrect == true) return _questGreen;
+    return const Color(0xFFE53935);
+  }
+
+  IconData get _icon {
+    if (question.isPendingReview) return Icons.hourglass_top_rounded;
+    if (question.isCorrect == true) return Icons.check_circle_rounded;
+    return Icons.cancel_rounded;
   }
 }
 

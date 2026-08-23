@@ -18,6 +18,7 @@ class BaleApiException implements Exception {
 
 class ApiClient {
   static const _configuredBaseUrl = String.fromEnvironment('BALE_API_URL');
+  static const _emulatorBaseUrl = 'http://10.0.2.2:4000/api/v1';
   static const _productionBaseUrl = 'https://api.balebelajar.com/api/v1';
 
   ApiClient({
@@ -30,6 +31,7 @@ class ApiClient {
 
   static String get _defaultBaseUrl {
     if (_configuredBaseUrl.isNotEmpty) return _configuredBaseUrl;
+    if (kDebugMode) return _emulatorBaseUrl;
     return _productionBaseUrl;
   }
 

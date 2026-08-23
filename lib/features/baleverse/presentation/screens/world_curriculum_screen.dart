@@ -93,21 +93,10 @@ class _CurriculumContent extends StatelessWidget {
             children: [
               _Header(curriculum: curriculum),
               const SizedBox(height: 14),
-              if (modules.isEmpty)
-                const _Panel(
-                  child: Text(
-                    'Materi untuk dunia ini belum tersedia.',
-                    style: TextStyle(
-                      color: _ink,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                )
-              else
-                for (final module in modules) ...[
-                  _ModuleSection(module: module),
-                  const SizedBox(height: 12),
-                ],
+              for (final module in modules) ...[
+                _ModuleSection(module: module),
+                const SizedBox(height: 12),
+              ],
             ],
           ),
         ),
@@ -118,13 +107,12 @@ class _CurriculumContent extends StatelessWidget {
             width: double.infinity,
             height: 54,
             child: FilledButton.icon(
-              onPressed: modules.isEmpty ? null : onStartQuest,
+              onPressed: onStartQuest,
               icon: const Icon(Icons.play_arrow_rounded),
               label: const Text('Mulai Quest'),
               style: FilledButton.styleFrom(
                 backgroundColor: _green,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFFD8CDA8),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

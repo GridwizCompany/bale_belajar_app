@@ -8,15 +8,20 @@ class WorldCurriculum {
   });
 
   factory WorldCurriculum.fromJson(Map<String, dynamic> json) {
+    final key = json['key'] as String? ?? '';
+    final name = json['name'] as String? ?? 'Dunia';
+    final modules = (json['modules'] as List? ?? const [])
+        .cast<Map<String, dynamic>>()
+        .map(CurriculumModule.fromJson)
+        .toList();
     return WorldCurriculum(
-      key: json['key'] as String? ?? '',
-      name: json['name'] as String? ?? 'Dunia',
+      key: key,
+      name: name,
       characterClass: json['characterClass'] as String? ?? '',
       themeDescription: json['themeDescription'] as String? ?? '',
-      modules: (json['modules'] as List? ?? const [])
-          .cast<Map<String, dynamic>>()
-          .map(CurriculumModule.fromJson)
-          .toList(),
+      modules: modules.isEmpty
+          ? [CurriculumModule.fallback(worldKey: key, worldName: name)]
+          : modules,
     );
   }
 
@@ -53,6 +58,65 @@ class CurriculumModule {
           .cast<Map<String, dynamic>>()
           .map(CurriculumCaseStudy.fromJson)
           .toList(),
+    );
+  }
+
+  factory CurriculumModule.fallback({
+    required String worldKey,
+    required String worldName,
+  }) {
+    final concept = switch (worldKey.toLowerCase()) {
+      'numeria' => 'pola, operasi hitung, dan cara memeriksa jawaban angka',
+      'kodex' => 'urutan instruksi, pola logika, dan cara membaca kode',
+      'detectivia' => 'fakta, bukti, asumsi, dan kesimpulan yang adil',
+      'scientia' => 'pengamatan, fungsi bagian, dan hubungan sebab-akibat',
+      _ => 'konsep utama, petunjuk soal, dan alasan jawaban',
+    };
+    return CurriculumModule(
+      id: 'fallback-$worldKey',
+      title: 'Materi awal $worldName',
+      simpleGoal:
+          'Baca ringkasan ini dulu, lalu mulai quest untuk latihan langsung.',
+      bigIdea:
+          'Jawaban yang bagus bukan tebakan. Jawaban harus cocok dengan petunjuk dan bisa dijelaskan alasannya.',
+      estimatedMinutes: 8,
+      lessons: [
+        CurriculumLesson(
+          type: 'CONCEPT',
+          title: 'Inti materi',
+          body: 'Di $worldName kamu akan memakai $concept.',
+          examples: const [
+            'Baca instruksi sampai selesai.',
+            'Tandai informasi penting sebelum memilih jawaban.',
+          ],
+          items: const [],
+        ),
+        const CurriculumLesson(
+          type: 'CHECKLIST',
+          title: 'Siap mulai kalau kamu bisa',
+          body: 'Gunakan checklist ini sebelum masuk quest.',
+          examples: [],
+          items: [
+            'Menjelaskan pertanyaan dengan kata sendiri.',
+            'Memilih jawaban berdasarkan petunjuk.',
+            'Mengecek ulang jawaban sebelum lanjut.',
+          ],
+        ),
+      ],
+      caseStudies: const [
+        CurriculumCaseStudy(
+          title: 'Latihan singkat',
+          story:
+              'Babe memberi satu misi kecil: baca soal, cari petunjuk, lalu pilih jawaban yang paling kuat alasannya.',
+          analysisSteps: [
+            'Cari kata kunci.',
+            'Cocokkan dengan konsep.',
+            'Pilih jawaban yang paling sesuai.',
+          ],
+          commonMistake:
+              'Langsung memilih jawaban tanpa membaca semua pilihan.',
+        ),
+      ],
     );
   }
 

@@ -98,11 +98,12 @@ class ApiClient {
       );
     }
     final text = await response.stream.bytesToString();
-    final decoded = text.isEmpty ? null : jsonDecode(text);
+    final decoded = text.isEmpty ? null : _tryDecodeJson(text);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw BaleApiException(
-        _readMessage(decoded) ?? 'Koneksi ke server gagal.',
+        _readMessage(decoded) ??
+            'Server sedang bermasalah (HTTP ${response.statusCode}).',
         statusCode: response.statusCode,
       );
     }
@@ -111,6 +112,14 @@ class ApiClient {
       return decoded['data'];
     }
     return decoded;
+  }
+
+  dynamic _tryDecodeJson(String text) {
+    try {
+      return jsonDecode(text);
+    } on FormatException {
+      return null;
+    }
   }
 
   String? _readMessage(dynamic decoded) {

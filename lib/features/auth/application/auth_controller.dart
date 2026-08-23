@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import '../../../core/api/api_client.dart';
@@ -25,7 +27,7 @@ class AuthController extends ChangeNotifier {
     status = AuthStatus.checking;
     notifyListeners();
     try {
-      user = await authService.me();
+      user = await authService.me().timeout(const Duration(seconds: 5));
       status = _statusFor(user);
     } on BaleApiException {
       status = AuthStatus.signedOut;

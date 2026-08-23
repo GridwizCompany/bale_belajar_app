@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -20,6 +21,7 @@ class ApiClient {
   static const _configuredBaseUrl = String.fromEnvironment('BALE_API_URL');
   static const _emulatorBaseUrl = 'http://10.0.2.2:4000/api/v1';
   static const _productionBaseUrl = 'https://api.balebelajar.com/api/v1';
+  static const _requestTimeout = Duration(seconds: 8);
 
   ApiClient({
     http.Client? httpClient,
@@ -75,11 +77,13 @@ class ApiClient {
 
     late final http.StreamedResponse response;
     try {
-      response = await _httpClient.send(
-        http.Request(method, uri)
-          ..headers.addAll(headers)
-          ..body = body == null ? '' : jsonEncode(body),
-      );
+      response = await _httpClient
+          .send(
+            http.Request(method, uri)
+              ..headers.addAll(headers)
+              ..body = body == null ? '' : jsonEncode(body),
+          )
+          .timeout(_requestTimeout);
     } on SocketException catch (error) {
       throw BaleApiException(
         kDebugMode
@@ -95,6 +99,10 @@ class ApiClient {
         kDebugMode
             ? 'Tidak bisa menghubungi API: ${error.message}'
             : 'Tidak bisa terhubung ke server. Periksa koneksi internet.',
+      );
+    } on TimeoutException catch (_) {
+      throw const BaleApiException(
+        'Server terlalu lama merespons. Coba lagi sebentar.',
       );
     }
     final text = await response.stream.bytesToString();

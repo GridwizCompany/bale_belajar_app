@@ -71,7 +71,8 @@ class QuestQuestionResult {
       questionId: json['id'] as String,
       score: (json['score'] as num?)?.toDouble(),
       isCorrect: json['isCorrect'] as bool?,
-      evaluationStatus: json['evaluationStatus'] as String? ?? 'MENTOR_REVIEW_NEEDED',
+      evaluationStatus:
+          json['evaluationStatus'] as String? ?? 'MENTOR_REVIEW_NEEDED',
     );
   }
 
@@ -97,7 +98,8 @@ class QuestSubmitResult {
   });
 
   factory QuestSubmitResult.fromJson(Map<String, dynamic> json) {
-    final gameProfile = json['gameProfile'] as Map<String, dynamic>? ?? const {};
+    final gameProfile =
+        json['gameProfile'] as Map<String, dynamic>? ?? const {};
     return QuestSubmitResult(
       attemptId: json['attemptId'] as String,
       overallScore: (json['overallScore'] as num?)?.toDouble() ?? 0,
@@ -121,6 +123,28 @@ class QuestSubmitResult {
   final int? worldLevel;
   final bool worldLeveledUp;
   final List<QuestQuestionResult> questions;
+
+  int get autoScoredCount =>
+      questions.where((question) => !question.isPendingReview).length;
+
+  int get correctAutoScoredCount =>
+      questions.where((question) => question.isCorrect == true).length;
+
+  int get pendingReviewCount =>
+      questions.where((question) => question.isPendingReview).length;
+
+  String get recommendation {
+    if (pendingReviewCount > 0) {
+      return 'Ada jawaban yang menunggu review mentor. Sambil menunggu, ulangi materi dan cek alasan jawabanmu.';
+    }
+    if (overallScore >= 80) {
+      return 'Pemahamanmu kuat. Lanjutkan ke quest berikutnya atau coba world lain.';
+    }
+    if (overallScore >= 60) {
+      return 'Dasarnya sudah terbentuk. Baca ulang checklist materi lalu ulangi bagian yang masih ragu.';
+    }
+    return 'Mulai dari materi inti lagi, kerjakan contoh cara berpikir, lalu coba quest ulang.';
+  }
 }
 
 /// Konversi bentuk JSON per-soal dari backend `student-quests` ke
@@ -133,7 +157,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
     orElse: () => QuestionType.shortText,
   );
 
-  final mediaList = (json['media'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  final mediaList =
+      (json['media'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
   final media = mediaList.isEmpty
       ? null
       : TemplateMedia(
@@ -141,7 +166,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
           url: mediaList.first['url'] as String? ?? '',
           durationSeconds: mediaList.first['durationSeconds'] as int?,
           maxReplay: mediaList.first['maxReplay'] as int?,
-          transcriptAvailable: mediaList.first['transcriptAvailable'] as bool? ?? false,
+          transcriptAvailable:
+              mediaList.first['transcriptAvailable'] as bool? ?? false,
           transcript: mediaList.first['transcript'] as String?,
         );
 
@@ -156,8 +182,12 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
           .toList() ??
       const [];
 
-  final left = (json['matchingLeftOptions'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-  final right = (json['matchingRightOptions'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  final left =
+      (json['matchingLeftOptions'] as List?)?.cast<Map<String, dynamic>>() ??
+          const [];
+  final right =
+      (json['matchingRightOptions'] as List?)?.cast<Map<String, dynamic>>() ??
+          const [];
   final pairCount = left.length < right.length ? left.length : right.length;
   final matchingPairs = List.generate(
     pairCount,
@@ -169,7 +199,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
     ),
   );
 
-  final items = (json['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+  final items =
+      (json['items'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
   final orderingItems = type == QuestionType.ordering
       ? items.map(_orderingItemFromJson).toList()
       : const <OrderingItem>[];
@@ -177,7 +208,8 @@ TemplateQuestion questionFromBackendJson(Map<String, dynamic> json) {
       ? items
           .map((i) => TimelineItem(
                 id: _jsonText(i, ['id', 'itemId'], fallback: ''),
-                label: _jsonText(i, ['label', 'text', 'title', 'name', 'description']),
+                label: _jsonText(
+                    i, ['label', 'text', 'title', 'name', 'description']),
                 timeLabel: i['timeLabel'] as String?,
                 description: i['description'] as String?,
               ))

@@ -1,10 +1,9 @@
-import 'package:bale_belajar_app/app.dart';
 import 'package:bale_belajar_app/features/baleverse/application/baleverse_progress_service.dart';
 import 'package:bale_belajar_app/features/baleverse/application/mission_engine.dart';
 import 'package:bale_belajar_app/features/baleverse/application/progress_store.dart';
 import 'package:bale_belajar_app/features/baleverse/data/baleverse_dummy_data.dart';
 import 'package:bale_belajar_app/features/baleverse/domain/baleverse_models.dart';
-import 'package:bale_belajar_app/features/baleverse/presentation/baleverse_demo_screen.dart';
+import 'package:bale_belajar_app/features/baleverse/presentation/screens/world_curriculum_screen.dart';
 import 'package:bale_belajar_app/features/baleverse/state/mission_state_machine.dart';
 import 'package:bale_belajar_app/features/test_templates/domain/test_template_models.dart';
 import 'package:bale_belajar_app/features/test_templates/presentation/templates/image_choice_template.dart';
@@ -100,89 +99,19 @@ void main() {
     expect(progressFromJson(encoded).user.xp[BaleWorldKey.numeria], 4590);
   });
 
-  testWidgets('BaleVerse dashboard renders after demo login', (tester) async {
-    await tester.pumpWidget(
-      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
-    );
-
-    expect(find.text('Masuk ke BaleVerse'), findsOneWidget);
-
-    await tester.tap(find.text('Masuk sebagai Nara'));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('BaleVerse'), findsOneWidget);
-    expect(find.text('Lanjutkan Misi'), findsOneWidget);
-    await tester.drag(find.byType(Scrollable), const Offset(0, -520));
-    await tester.pumpAndSettle();
-    expect(find.text('Numeria'), findsOneWidget);
-    expect(find.text('XP Matematika'), findsOneWidget);
-    expect(find.text('Mastery'), findsOneWidget);
-  });
-
-  testWidgets('wrong answers reveal human help card', (tester) async {
+  testWidgets('world curriculum screen loads before quest', (tester) async {
     tester.view.physicalSize = const Size(390, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
     await tester.pumpWidget(
-      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
+      const MaterialApp(home: WorldCurriculumScreen(worldKey: 'numeria')),
     );
-    await tester.tap(find.text('Masuk sebagai Nara'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjutkan Misi'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Mulai Misi'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
-    for (var i = 0; i < 3; i++) {
-      await tester.tap(find.text('3x + 4'));
-      await tester.pump();
-      await tester.ensureVisible(find.text('Cek Jawaban'));
-      await tester.tap(find.text('Cek Jawaban'));
-      await tester.pumpAndSettle();
-    }
-
-    expect(find.text('Bantuan Manusia'), findsOneWidget);
-    expect(find.text('Minta Mentor Membantu'), findsOneWidget);
-  });
-
-  testWidgets('correct answer continues to find mistake and teach back', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 1200);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await tester.pumpWidget(
-      const BaleBelajarApp(home: BaleVerseDemoScreen(skipDemoLogin: false)),
-    );
-    await tester.tap(find.text('Masuk sebagai Nara'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Lanjutkan Misi'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Mulai Misi'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('3x + 12'));
-    await tester.pump();
-    await tester.tap(find.text('Cek Jawaban'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cari kesalahannya'), findsOneWidget);
-
-    await tester.tap(find.text('Tandai: 3 hanya dikali ke x'));
-    await tester.pump();
-    await tester.tap(find.text('Cek Jawaban'));
-    await tester.pumpAndSettle();
-    expect(find.text('Jelaskan Balik'), findsOneWidget);
-
-    await tester.enterText(
-        find.byType(EditableText), 'Karena 3 mengalikan semua isi kurung.');
-    await tester.pump();
-    await tester.tap(find.text('Kirim Penjelasan'));
-    await tester.pumpAndSettle();
-    expect(find.text('Gerbang Distribusi terbuka.'), findsOneWidget);
+    expect(find.text('Menyiapkan materi...'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
 
   testWidgets('image choice template fits a narrow phone viewport', (

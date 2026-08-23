@@ -252,9 +252,6 @@ class _QuestRewardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pendingReview =
-        result.questions.where((q) => q.isPendingReview).length;
-
     return Scaffold(
       backgroundColor: _questBg,
       body: SafeArea(
@@ -307,28 +304,13 @@ class _QuestRewardScreen extends StatelessWidget {
               if (result.accountLeveledUp || result.worldLeveledUp) ...[
                 const SizedBox(height: 12),
                 const Text(
-                  'Naik level! 🎉',
+                  'Naik level!',
                   style:
                       TextStyle(color: _questInk, fontWeight: FontWeight.w900),
                 ),
               ],
-              if (pendingReview > 0) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFFFE0A1)),
-                  ),
-                  child: Text(
-                    '$pendingReview jawaban menunggu review mentor - belum masuk skor otomatis.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Color(0xFF60646F), fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
+              const SizedBox(height: 12),
+              _LearningFeedback(result: result),
               const Spacer(),
               SizedBox(
                 width: double.infinity,
@@ -341,12 +323,77 @@ class _QuestRewardScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('Selesai'),
+                  child: const Text('Kembali ke Materi'),
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LearningFeedback extends StatelessWidget {
+  const _LearningFeedback({required this.result});
+
+  final QuestSubmitResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFE0A1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.insights_rounded, color: _questYellow),
+              SizedBox(width: 8),
+              Text(
+                'Ringkasan Belajar',
+                style: TextStyle(
+                  color: _questInk,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Benar otomatis: ${result.correctAutoScoredCount}/${result.autoScoredCount}',
+            style: const TextStyle(
+              color: _questInk,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (result.pendingReviewCount > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Menunggu review: ${result.pendingReviewCount}',
+              style: const TextStyle(
+                color: Color(0xFF60646F),
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            result.recommendation,
+            style: const TextStyle(
+              color: Color(0xFF60646F),
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }

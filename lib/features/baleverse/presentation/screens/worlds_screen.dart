@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../quests/presentation/quest_screen.dart';
 import '../../domain/baleverse_models.dart';
+import 'world_curriculum_screen.dart';
 
 const _worldBg = Color(0xFFFFF3C6);
 const _worldInk = Color(0xFF3B2318);
@@ -52,15 +52,12 @@ class WorldsScreen extends StatelessWidget {
                 compact: compact,
                 onTap: () {
                   final backendKey = world['key'] as String?;
-                  // Semua dunia yang datang dari backend sudah memakai engine
-                  // Quest generik. Jangan belokkan NUMERIA/KODEX/DETECTIVIA
-                  // ke flow misi lama karena pertanyaan hasil import hidup di
-                  // endpoint /student/quests.
                   if (backendKey != null && backendKey.isNotEmpty) {
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
-                        builder: (_) =>
-                            QuestScreen(worldKey: backendKey.toLowerCase()),
+                        builder: (_) => WorldCurriculumScreen(
+                          worldKey: backendKey.toLowerCase(),
+                        ),
                       ),
                     );
                     return;
@@ -116,6 +113,7 @@ class _BackendWorldCard extends StatelessWidget {
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),
       child: InkWell(
+        key: ValueKey('world-card-${world['key']}'),
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Container(

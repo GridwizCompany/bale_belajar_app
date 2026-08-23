@@ -24,6 +24,8 @@ class WorldsRepository {
         'name': world['name'],
         'subject': subject?['name'] ?? '',
         'description': world['themeDescription'] ?? '',
+        'exampleMission': world['exampleMission'],
+        'activeQuestionCount': world['activeQuestionCount'] ?? 0,
       };
     }).toList();
   }

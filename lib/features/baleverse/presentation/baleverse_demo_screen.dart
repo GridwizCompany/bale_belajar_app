@@ -5,7 +5,6 @@ import '../../../core/api/api_client.dart';
 import '../../../core/audio/audio_scope.dart';
 import '../../../core/audio/audio_types.dart';
 import '../../auth/application/auth_controller.dart';
-import '../../quests/presentation/quest_screen.dart';
 import '../data/game_profile_repository.dart';
 import '../data/mastery_repository.dart';
 import '../data/worlds_repository.dart';
@@ -13,6 +12,7 @@ import '../domain/baleverse_models.dart';
 import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/mission_hub_screen.dart';
+import 'screens/world_curriculum_screen.dart';
 import 'screens/worlds_screen.dart';
 
 enum BaleTab { home, worlds, mission, profile }
@@ -123,7 +123,13 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     try {
       final worlds = await _worldsRepository.fetchWorlds();
       if (!mounted) return;
-      setState(() => _realWorlds = worlds);
+      setState(() {
+        _realWorlds = worlds;
+        if (worlds.isNotEmpty) {
+          _backendError = null;
+          _backendData ??= _fallbackBackendData(worlds);
+        }
+      });
     } catch (_) {}
     if (!mounted) return;
     if (_realWorlds.isEmpty) {
@@ -176,7 +182,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       Navigator.of(context)
           .push<bool>(
         MaterialPageRoute<bool>(
-          builder: (_) => QuestScreen(worldKey: backendWorldKey),
+          builder: (_) => WorldCurriculumScreen(worldKey: backendWorldKey),
         ),
       )
           .then((completed) {
@@ -191,6 +197,60 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         content: Text('Misi belum siap dari backend. Coba muat ulang.'),
       ),
     );
+  }
+
+  Map<String, dynamic> _fallbackBackendData(List<Map<String, dynamic>> worlds) {
+    final selected = worlds.first;
+    final selectedKey =
+        (selected['key'] as String? ?? 'SCIENTIA').toLowerCase();
+    final missionTitle =
+        selected['exampleMission'] as String? ?? 'Misi belajar pertama';
+    return {
+      'profile': {
+        'name': widget.authController?.user?.name ?? 'Pengguna',
+        'rank': 'Pemula',
+        'level': 7,
+        'foundation': 'FOUNDATION_1',
+      },
+      'stats': {
+        'xp': _gameProfile?.accountXp ?? 0,
+        'streak': _gameProfile?.streakCurrent ?? 0,
+        'weeklyCompleted': 0,
+        'weeklyTarget': 3,
+      },
+      'selectedWorld': selectedKey,
+      'todayMission': {
+        'id': 'fallback-$selectedKey',
+        'worldKey': selectedKey,
+        'title': missionTitle,
+        'durationMinutes': 10,
+        'activityCount': 10,
+        'rewardXp': 25,
+      },
+      'worlds': worlds,
+      'missions': [
+        {
+          'id': 'fallback-$selectedKey',
+          'worldKey': selectedKey,
+          'title': missionTitle,
+          'description': selected['description'] as String? ?? '',
+          'durationMinutes': 10,
+          'rewardXp': 25,
+          'questionCount': 10,
+          'active': true,
+        },
+      ],
+      'learningPath': [
+        {
+          'step': 1,
+          'title': selected['name'] as String? ?? 'Materi awal',
+          'completed': false,
+          'active': true,
+          'locked': false,
+          'stars': 0,
+        },
+      ],
+    };
   }
 
   @override

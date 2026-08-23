@@ -34,6 +34,9 @@ class DashboardScreen extends StatelessWidget {
     final backendProfile = backendData?['profile'] as Map<String, dynamic>?;
     final backendStats = backendData?['stats'] as Map<String, dynamic>?;
     final todayMission = backendData?['todayMission'] as Map<String, dynamic>?;
+    final learningPath =
+        (backendData?['learningPath'] as List?)?.cast<Map<String, dynamic>>() ??
+            const <Map<String, dynamic>>[];
     final compact = MediaQuery.sizeOf(context).height < 900;
 
     return Container(
@@ -60,15 +63,18 @@ class DashboardScreen extends StatelessWidget {
             compact: compact,
             onStartMission: onStartMission,
           ),
-          if (!compact) ...[
-            const SizedBox(height: 18),
-            _LegacyProgressSummary(
-              gameProfile: gameProfile,
-              masteryAverage: masteryAverage,
-            ),
-            const SizedBox(height: 18),
-          ] else
-            const SizedBox(height: 8),
+          SizedBox(height: compact ? 8 : 14),
+          _JourneyMapCard(
+            path: learningPath,
+            compact: compact,
+            onStartMission: onStartMission,
+          ),
+          SizedBox(height: compact ? 8 : 14),
+          _LegacyProgressSummary(
+            gameProfile: gameProfile,
+            masteryAverage: masteryAverage,
+          ),
+          SizedBox(height: compact ? 8 : 14),
           _StreakCard(gameProfile: gameProfile, compact: compact),
           // Keep this text for existing smoke tests while the visible CTA uses
           // the updated design language.
@@ -408,10 +414,343 @@ class _TodayMissionCard extends StatelessWidget {
   }
 }
 
-// "Peta Belajar" (learning-path map dengan node/bintang/lock) sengaja
-// dihapus - tidak ada satupun field backend yang mengisi progres node-nya
-// (Fase 4, belum dikerjakan). Menampilkan node/bintang statis akan jadi
-// klaim progres yang tidak benar.
+class _JourneyMapCard extends StatelessWidget {
+  const _JourneyMapCard({
+    required this.path,
+    required this.compact,
+    required this.onStartMission,
+  });
+
+  final List<Map<String, dynamic>> path;
+  final bool compact;
+  final VoidCallback onStartMission;
+
+  @override
+  Widget build(BuildContext context) {
+    final nodes = path.isEmpty
+        ? const [
+            {
+              'step': 1,
+              'title': 'Misi pertama',
+              'completed': false,
+              'active': true,
+              'locked': false,
+              'stars': 0,
+            },
+          ]
+        : path;
+    final visibleNodes = nodes.take(compact ? 5 : 7).toList();
+    final completedCount =
+        nodes.where((node) => node['completed'] == true).length;
+    final progress = nodes.isEmpty ? 0.0 : completedCount / nodes.length;
+    return Container(
+      padding: EdgeInsets.fromLTRB(16, compact ? 14 : 18, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFFD05A), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: _homeGreen.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.route_rounded, color: _homeGreen),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Peta Perjalanan',
+                      style: TextStyle(
+                        color: _homeInk,
+                        fontSize: compact ? 18 : 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Text(
+                      'Ikuti node aktif, kumpulkan bintang.',
+                      style: TextStyle(
+                        color: Color(0xFF60646F),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0, 1),
+              minHeight: 9,
+              color: _homeGreen,
+              backgroundColor: const Color(0xFFFFE8A8),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$completedCount/${nodes.length} langkah selesai',
+            style: const TextStyle(
+              color: Color(0xFF60646F),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (final entry in visibleNodes.asMap().entries)
+            _JourneyNode(
+              data: entry.value,
+              index: entry.key,
+              isLast: entry.key == visibleNodes.length - 1,
+              compact: compact,
+              onStartMission: onStartMission,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JourneyNode extends StatelessWidget {
+  const _JourneyNode({
+    required this.data,
+    required this.index,
+    required this.isLast,
+    required this.compact,
+    required this.onStartMission,
+  });
+
+  final Map<String, dynamic> data;
+  final int index;
+  final bool isLast;
+  final bool compact;
+  final VoidCallback onStartMission;
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = data['completed'] == true;
+    final active = data['active'] == true;
+    final locked = data['locked'] == true;
+    final stars = data['stars'] is int ? data['stars'] as int : 0;
+    final color = locked
+        ? const Color(0xFF9AA0AA)
+        : completed
+            ? _homeGreen
+            : active
+                ? _homeYellow
+                : const Color(0xFF2D8CFF);
+    final alignRight = index.isOdd;
+    final title = data['title'] as String? ?? 'Langkah ${index + 1}';
+    final step = data['step'] ?? index + 1;
+    final node = _JourneyBubble(
+      color: color,
+      locked: locked,
+      completed: completed,
+      active: active,
+      step: step,
+    );
+
+    return SizedBox(
+      height: compact ? 96 : 112,
+      child: Stack(
+        children: [
+          if (!isLast)
+            Positioned(
+              left: 0,
+              right: 0,
+              top: compact ? 50 : 58,
+              child: Center(
+                child: Container(
+                  width: 6,
+                  height: compact ? 58 : 70,
+                  decoration: BoxDecoration(
+                    color: active || completed
+                        ? color.withValues(alpha: 0.36)
+                        : const Color(0xFFFFE0A1),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+            ),
+          Align(
+            alignment:
+                alignRight ? Alignment.centerRight : Alignment.centerLeft,
+            child: SizedBox(
+              width: MediaQuery.sizeOf(context).width * 0.72,
+              child: Row(
+                textDirection:
+                    alignRight ? TextDirection.rtl : TextDirection.ltr,
+                children: [
+                  node,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(compact ? 10 : 12),
+                      decoration: BoxDecoration(
+                        color: locked
+                            ? const Color(0xFFF1F2F5)
+                            : active
+                                ? const Color(0xFFFFF7D6)
+                                : const Color(0xFFFFFAEA),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: active ? _homeYellow : const Color(0xFFFFE0A1),
+                          width: active ? 1.6 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: alignRight
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign:
+                                alignRight ? TextAlign.right : TextAlign.left,
+                            style: TextStyle(
+                              color:
+                                  locked ? const Color(0xFF777C86) : _homeInk,
+                              fontSize: compact ? 13 : 15,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            textDirection: alignRight
+                                ? TextDirection.rtl
+                                : TextDirection.ltr,
+                            children: [
+                              for (var i = 0; i < 3; i++)
+                                Icon(
+                                  i < stars
+                                      ? Icons.star_rounded
+                                      : Icons.star_border_rounded,
+                                  color: i < stars
+                                      ? _homeYellow
+                                      : const Color(0xFFC9CDD5),
+                                  size: 17,
+                                ),
+                              if (active) ...[
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: onStartMission,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _homeGreen,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.play_arrow_rounded,
+                                          color: Colors.white,
+                                          size: 15,
+                                        ),
+                                        SizedBox(width: 2),
+                                        Text(
+                                          'Mulai',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JourneyBubble extends StatelessWidget {
+  const _JourneyBubble({
+    required this.color,
+    required this.locked,
+    required this.completed,
+    required this.active,
+    required this.step,
+  });
+
+  final Color color;
+  final bool locked;
+  final bool completed;
+  final bool active;
+  final Object step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 62,
+      height: 62,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: 4),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Icon(
+        locked
+            ? Icons.lock_rounded
+            : completed
+                ? Icons.check_rounded
+                : active
+                    ? Icons.play_arrow_rounded
+                    : Icons.flag_rounded,
+        color: Colors.white,
+        size: active ? 32 : 28,
+      ),
+    );
+  }
+}
 
 class _LegacyProgressSummary extends StatelessWidget {
   const _LegacyProgressSummary({

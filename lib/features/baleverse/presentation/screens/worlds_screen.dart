@@ -6,6 +6,7 @@ import 'world_curriculum_screen.dart';
 const _worldBg = Color(0xFFFFF3C6);
 const _worldInk = Color(0xFF3B2318);
 const _worldYellow = Color(0xFFF4B400);
+const _worldGreen = Color(0xFF4CAF50);
 
 class WorldsScreen extends StatelessWidget {
   const WorldsScreen({
@@ -38,10 +39,30 @@ class WorldsScreen extends StatelessWidget {
           _WorldHeader(compact: compact),
           SizedBox(height: compact ? 8 : 16),
           if (realWorlds.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(
-                child: CircularProgressIndicator(color: _worldYellow),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFFFE0A1)),
+                ),
+                child: const Row(
+                  children: [
+                    CircularProgressIndicator(color: _worldYellow),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        'Memuat dunia belajar...',
+                        style: TextStyle(
+                          color: _worldInk,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           else
@@ -109,6 +130,8 @@ class _BackendWorldCard extends StatelessWidget {
       'DETECTIVIA' => Icons.search_rounded,
       _ => Icons.public_rounded,
     };
+    final questions = world['activeQuestionCount'] as int? ?? 0;
+    final mission = world['exampleMission'] as String? ?? '-';
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),
@@ -127,14 +150,34 @@ class _BackendWorldCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: compact ? 46 : 64,
-                height: compact ? 46 : 64,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(compact ? 14 : 18),
-                ),
-                child: Icon(icon, color: color, size: compact ? 25 : 34),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: compact ? 52 : 70,
+                    height: compact ? 52 : 70,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(compact ? 16 : 20),
+                    ),
+                    child: Icon(icon, color: color, size: compact ? 28 : 38),
+                  ),
+                  if (selected)
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_circle_rounded,
+                          color: _worldGreen,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               SizedBox(width: compact ? 10 : 14),
               Expanded(
@@ -154,9 +197,10 @@ class _BackendWorldCard extends StatelessWidget {
                           ),
                         ),
                         if (selected)
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: _worldYellow,
+                          _WorldChip(
+                            label: 'Aktif',
+                            color: _worldGreen,
+                            compact: compact,
                           ),
                       ],
                     ),
@@ -184,7 +228,7 @@ class _BackendWorldCard extends StatelessWidget {
                     ),
                     SizedBox(height: compact ? 3 : 8),
                     Text(
-                      'Misi contoh: ${world['exampleMission'] ?? '-'}',
+                      mission,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -193,11 +237,64 @@ class _BackendWorldCard extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+                    SizedBox(height: compact ? 6 : 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _WorldChip(
+                          label: '$questions soal aktif',
+                          color: color,
+                          compact: compact,
+                        ),
+                        _WorldChip(
+                          label: 'Materi siap',
+                          color: _worldGreen,
+                          compact: compact,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right_rounded, color: color, size: 30),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorldChip extends StatelessWidget {
+  const _WorldChip({
+    required this.label,
+    required this.color,
+    required this.compact,
+  });
+
+  final String label;
+  final Color color;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 7 : 9,
+        vertical: compact ? 3 : 5,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: compact ? 10 : 11,
+          fontWeight: FontWeight.w900,
         ),
       ),
     );

@@ -50,6 +50,19 @@ class BaleProfilePage extends StatelessWidget {
             compact: compact,
           ),
           SizedBox(height: compact ? 8 : 14),
+          _ProfileStatsGrid(
+            gameProfile: gameProfile,
+            masteryAverage: masteryAverage,
+            backendStats: backendStats,
+            compact: compact,
+          ),
+          SizedBox(height: compact ? 8 : 14),
+          _BadgeShelf(
+            gameProfile: gameProfile,
+            masteryAverage: masteryAverage,
+            compact: compact,
+          ),
+          SizedBox(height: compact ? 8 : 14),
           _ProfileMenuTile(
             icon: Icons.school_rounded,
             title: 'Jalur belajar',
@@ -82,6 +95,245 @@ class BaleProfilePage extends StatelessWidget {
               label: const Text('Keluar'),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileStatsGrid extends StatelessWidget {
+  const _ProfileStatsGrid({
+    required this.gameProfile,
+    required this.masteryAverage,
+    required this.backendStats,
+    required this.compact,
+  });
+
+  final GameProfileSummary? gameProfile;
+  final double? masteryAverage;
+  final Map<String, dynamic>? backendStats;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final xp = backendStats?['xp'] ?? gameProfile?.accountXp ?? '-';
+    final streak = backendStats?['streak'] ?? gameProfile?.streakCurrent ?? '-';
+    final mastery =
+        masteryAverage == null ? '-' : '${masteryAverage!.round()}%';
+    final level = gameProfile?.accountLevel ?? '-';
+    return Row(
+      children: [
+        Expanded(
+          child: _ProfileStatCard(
+            icon: Icons.star_rounded,
+            label: 'XP',
+            value: '$xp',
+            color: _profileYellow,
+            compact: compact,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _ProfileStatCard(
+            icon: Icons.local_fire_department_rounded,
+            label: 'Streak',
+            value: '$streak',
+            color: const Color(0xFFFF6B2C),
+            compact: compact,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _ProfileStatCard(
+            icon: Icons.insights_rounded,
+            label: 'Mastery',
+            value: mastery,
+            color: _profileGreen,
+            compact: compact,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _ProfileStatCard(
+            icon: Icons.workspace_premium_rounded,
+            label: 'Level',
+            value: '$level',
+            color: const Color(0xFF2D8CFF),
+            compact: compact,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProfileStatCard extends StatelessWidget {
+  const _ProfileStatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.compact,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 6 : 8,
+        vertical: compact ? 9 : 12,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFFE0A1)),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: compact ? 21 : 26),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: _profileInk,
+              fontSize: compact ? 14 : 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: const Color(0xFF60646F),
+              fontSize: compact ? 9 : 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeShelf extends StatelessWidget {
+  const _BadgeShelf({
+    required this.gameProfile,
+    required this.masteryAverage,
+    required this.compact,
+  });
+
+  final GameProfileSummary? gameProfile;
+  final double? masteryAverage;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = [
+      _BadgeData(
+        icon: Icons.bolt_rounded,
+        title: 'Pemula Aktif',
+        active: (gameProfile?.accountXp ?? 0) > 0,
+        color: _profileYellow,
+      ),
+      _BadgeData(
+        icon: Icons.local_fire_department_rounded,
+        title: 'Nyala',
+        active: (gameProfile?.streakCurrent ?? 0) > 0,
+        color: const Color(0xFFFF6B2C),
+      ),
+      _BadgeData(
+        icon: Icons.psychology_rounded,
+        title: 'Paham',
+        active: (masteryAverage ?? 0) >= 60,
+        color: _profileGreen,
+      ),
+    ];
+    return Container(
+      padding: EdgeInsets.all(compact ? 12 : 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFFFE0A1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Badge',
+            style: TextStyle(
+              color: _profileInk,
+              fontSize: compact ? 18 : 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              for (final badge in badges) ...[
+                Expanded(child: _BadgeItem(data: badge, compact: compact)),
+                if (badge != badges.last) const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeData {
+  const _BadgeData({
+    required this.icon,
+    required this.title,
+    required this.active,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final bool active;
+  final Color color;
+}
+
+class _BadgeItem extends StatelessWidget {
+  const _BadgeItem({required this.data, required this.compact});
+
+  final _BadgeData data;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = data.active ? data.color : const Color(0xFF9AA0AA);
+    return Container(
+      padding: EdgeInsets.all(compact ? 8 : 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: data.active ? 0.14 : 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          Icon(data.active ? data.icon : Icons.lock_rounded, color: color),
+          const SizedBox(height: 5),
+          Text(
+            data.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: color,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );

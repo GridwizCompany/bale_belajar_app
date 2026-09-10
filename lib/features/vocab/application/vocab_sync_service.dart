@@ -20,21 +20,19 @@ import '../domain/vocab_models.dart';
 /// benar-benar refresh sendiri di tengah malam kalau app tidak pernah dibuka
 /// hari itu.
 ///
-/// Izin notifikasi dan pemasangan widget SENGAJA diminta secara aktif (bukan
-/// menunggu user membuka halaman setting): begitu sync pertama kali berhasil
-/// dan fitur terkait masih ON, OS diminta menampilkan dialog izin/pasang-widget
-/// langsung (lihat [_maybeRequestNotificationPermission] & [_maybeRequestPinWidget]).
-/// Ini hanya terjadi SEKALI per perangkat (ditandai di SharedPreferences) supaya
-/// tidak menyebalkan kalau user sudah menolak - status tetap bisa dicek ulang
-/// dan diminta manual lewat [notificationPermissionStatus]/[requestPinWidget]
-/// di layar pengaturan.
+/// Izin notifikasi dan pemasangan widget diminta secara aktif lewat
+/// `VocabPermissionGateScreen` (lihat `auth_gate.dart`) - layar wajib-lihat
+/// yang muncul setiap kali user mencapai status signedIn (login BARU maupun
+/// yang SUDAH punya akun/sesi tersimpan) selama izin notifikasi belum
+/// diberikan atau widget belum ditaruh di home screen. Method di kelas ini
+/// (`requestNotificationPermission`, `requestPinWidget`, dst) dipanggil dari
+/// sana, bukan otomatis di dalam [syncToday] - supaya alurnya deterministik
+/// (satu tempat yang memicu dialog OS) dan tidak dobel-minta.
 class VocabSyncService {
   VocabSyncService({VocabRepository? repository})
       : _repository = repository ?? VocabRepository();
 
   static const _prefsDateKey = 'vocab_sync_date';
-  static const _prefsNotifAskedKey = 'vocab_notif_permission_asked';
-  static const _prefsWidgetAskedKey = 'vocab_widget_pin_asked';
   static const _androidWidgetProvider = 'VocabWidgetProvider';
   static const _notificationChannelId = 'vocab_daily';
   static const _notificationBaseId = 6100;
@@ -106,57 +104,27 @@ class VocabSyncService {
 
   /// Panggil setelah user login dan setiap kali app kembali ke foreground.
   /// [force] = true dipakai setelah pengaturan diubah supaya sinkronisasi
-  /// tidak menunggu hari berganti dulu.
-  Future<void> syncToday({bool force = false}) async {
+  /// tidak menunggu hari berganti dulu. Mengembalikan `null` kalau fetch ke
+  /// backend gagal (mis. offline) - dipakai `auth_gate.dart` untuk tahu
+  /// setting notifikasi/widget terbaru saat memutuskan perlu menampilkan
+  /// `VocabPermissionGateScreen` atau tidak.
+  Future<DailyVocab?> syncToday({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (!force && prefs.getString(_prefsDateKey) == today) return;
+    if (!force && prefs.getString(_prefsDateKey) == today) return null;
 
     DailyVocab daily;
     try {
       daily = await _repository.fetchDaily();
     } catch (error) {
       if (kDebugMode) debugPrint('VocabSyncService.syncToday gagal: $error');
-      return;
+      return null;
     }
 
     await prefs.setString(_prefsDateKey, today);
-    await _maybeRequestNotificationPermission(daily, prefs);
     await _updateWidget(daily);
     await _updateNotifications(daily);
-    await _maybeRequestPinWidget(daily, prefs);
-  }
-
-  /// Begitu kosakata harian pertama kali berhasil disinkronkan dan
-  /// notifikasi masih ON, langsung minta izin OS - jangan tunggu user
-  /// buka halaman setting duluan. Hanya sekali seumur install.
-  Future<void> _maybeRequestNotificationPermission(
-    DailyVocab daily,
-    SharedPreferences prefs,
-  ) async {
-    if (!daily.setting.notificationEnabled) return;
-    if (prefs.getBool(_prefsNotifAskedKey) == true) return;
-    await prefs.setBool(_prefsNotifAskedKey, true);
-    final status = await Permission.notification.status;
-    if (status.isDenied) {
-      await Permission.notification.request();
-    }
-  }
-
-  /// Sama seperti notifikasi - begitu widget masih ON dan belum pernah
-  /// ditaruh di home screen, langsung tawarkan lewat dialog OS. Hanya
-  /// sekali seumur install supaya tidak menyebalkan kalau user menolak.
-  Future<void> _maybeRequestPinWidget(
-    DailyVocab daily,
-    SharedPreferences prefs,
-  ) async {
-    if (!daily.setting.widgetEnabled) return;
-    if (prefs.getBool(_prefsWidgetAskedKey) == true) return;
-    await prefs.setBool(_prefsWidgetAskedKey, true);
-    if (await isWidgetPinned()) return;
-    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
-    if (!supported) return;
-    await requestPinWidget();
+    return daily;
   }
 
   Future<void> _updateWidget(DailyVocab daily) async {

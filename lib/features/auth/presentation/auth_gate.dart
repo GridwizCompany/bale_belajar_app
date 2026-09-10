@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/token_store.dart';
 import '../../../theme/bale_theme.dart';
 import '../../baleverse/presentation/baleverse_demo_screen.dart';
 import '../../vocab/application/vocab_sync_service.dart';
+import '../../vocab/presentation/vocab_permission_gate_screen.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_service.dart';
 import 'signed_out_flow.dart';
@@ -26,13 +28,22 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   final _vocabSyncService = VocabSyncService();
   bool _splashDone = false;
   bool _keepSignedOutFlow = false;
-  bool _vocabSynced = false;
+
+  // Status gate izin notifikasi/widget kosakata. Dievaluasi ulang SETIAP kali
+  // status berubah jadi signedIn (login baru maupun sesi lama yang sudah
+  // tersimpan) - bukan cuma sekali seumur install - supaya user yang belum
+  // kasih izin terus "ditagih" tiap sesi baru sampai dia benar-benar
+  // mengizinkan atau memilih lewati (lihat VocabPermissionGateScreen).
+  bool _vocabGateResolved = false;
+  bool _vocabGateNeedsNotification = false;
+  bool _vocabGateNeedsWidget = false;
+  bool _vocabGateDismissedThisSession = false;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? _buildController();
-    _controller.addListener(_maybeSyncVocab);
+    _controller.addListener(_handleAuthStatusChange);
     _controller.initialize();
     WidgetsBinding.instance.addObserver(this);
     Future<void>.delayed(const Duration(seconds: 3), () {
@@ -43,7 +54,7 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _controller.removeListener(_maybeSyncVocab);
+    _controller.removeListener(_handleAuthStatusChange);
     if (widget.controller == null) {
       _controller.dispose();
     }
@@ -61,13 +72,34 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
     }
   }
 
-  // Kosakata harian tidak punya proses background sendiri (lihat catatan di
-  // VocabSyncService) - jadi disinkronkan sekali per sesi app di sini, begitu
-  // siswa berhasil login/terautentikasi.
-  void _maybeSyncVocab() {
-    if (_vocabSynced || _controller.status != AuthStatus.signedIn) return;
-    _vocabSynced = true;
-    unawaited(_vocabSyncService.syncToday());
+  void _handleAuthStatusChange() {
+    if (_controller.status != AuthStatus.signedIn) {
+      // Reset supaya kalau user logout lalu login lagi (akun sama atau
+      // beda), gate dievaluasi ulang dari nol untuk sesi baru itu.
+      _vocabGateResolved = false;
+      _vocabGateDismissedThisSession = false;
+      return;
+    }
+    if (_vocabGateResolved) return;
+    unawaited(_evaluateVocabGate());
+  }
+
+  // Dipanggil setiap sesi signedIn baru (login baru ATAU akun/sesi yang
+  // sudah ada) - sync kosakata dulu (untuk tahu notificationEnabled/
+  // widgetEnabled terbaru dari akun ini), lalu cek status izin OS yang
+  // sesungguhnya, baru putuskan perlu tampilkan gate atau tidak.
+  Future<void> _evaluateVocabGate() async {
+    final daily = await _vocabSyncService.syncToday(force: true);
+    final notifStatus = await _vocabSyncService.notificationPermissionStatus();
+    final widgetPinned = await _vocabSyncService.isWidgetPinned();
+    if (!mounted) return;
+    setState(() {
+      _vocabGateNeedsNotification =
+          (daily?.setting.notificationEnabled ?? true) && !notifStatus.isGranted;
+      _vocabGateNeedsWidget =
+          (daily?.setting.widgetEnabled ?? true) && !widgetPinned;
+      _vocabGateResolved = true;
+    });
   }
 
   @override
@@ -105,13 +137,32 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
                 controller: _controller,
                 initialMode: AuthMode.register,
               ),
-            AuthStatus.signedIn => BaleVerseDemoScreen(
-                skipDemoLogin: true,
-                authController: _controller,
-              ),
+            AuthStatus.signedIn => _buildSignedInFlow(),
           };
         },
       ),
+    );
+  }
+
+  Widget _buildSignedInFlow() {
+    if (!_vocabGateResolved) {
+      // Sedang evaluasi izin notifikasi/widget - tahan sebentar di splash
+      // daripada kelap-kelip nampilin dashboard lalu langsung ketutup gate.
+      return const BaleSplashScreen();
+    }
+    final needsGate =
+        (_vocabGateNeedsNotification || _vocabGateNeedsWidget) &&
+            !_vocabGateDismissedThisSession;
+    if (needsGate) {
+      return VocabPermissionGateScreen(
+        needsNotification: _vocabGateNeedsNotification,
+        needsWidget: _vocabGateNeedsWidget,
+        onContinue: () => setState(() => _vocabGateDismissedThisSession = true),
+      );
+    }
+    return BaleVerseDemoScreen(
+      skipDemoLogin: true,
+      authController: _controller,
     );
   }
 

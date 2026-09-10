@@ -570,134 +570,172 @@ class _JourneyNode extends StatelessWidget {
       step: step,
     );
 
-    return SizedBox(
-      height: compact ? 96 : 112,
-      child: Stack(
-        children: [
-          if (!isLast)
-            Positioned(
-              left: 0,
-              right: 0,
-              top: compact ? 50 : 58,
-              child: Center(
-                child: Container(
-                  width: 6,
-                  height: compact ? 58 : 70,
-                  decoration: BoxDecoration(
-                    color: active || completed
-                        ? color.withValues(alpha: 0.36)
-                        : const Color(0xFFFFE0A1),
-                    borderRadius: BorderRadius.circular(99),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _handleTap(context, title: title, stars: stars),
+      child: SizedBox(
+        height: compact ? 96 : 112,
+        child: Stack(
+          children: [
+            if (!isLast)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: compact ? 50 : 58,
+                child: Center(
+                  child: Container(
+                    width: 6,
+                    height: compact ? 58 : 70,
+                    decoration: BoxDecoration(
+                      color: active || completed
+                          ? color.withValues(alpha: 0.36)
+                          : const Color(0xFFFFE0A1),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                   ),
                 ),
               ),
-            ),
-          Align(
-            alignment:
-                alignRight ? Alignment.centerRight : Alignment.centerLeft,
-            child: SizedBox(
-              width: MediaQuery.sizeOf(context).width * 0.72,
-              child: Row(
-                textDirection:
-                    alignRight ? TextDirection.rtl : TextDirection.ltr,
-                children: [
-                  node,
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.all(compact ? 10 : 12),
-                      decoration: BoxDecoration(
-                        color: locked
-                            ? const Color(0xFFF1F2F5)
-                            : active
-                                ? const Color(0xFFFFF7D6)
-                                : const Color(0xFFFFFAEA),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: active ? _homeYellow : const Color(0xFFFFE0A1),
-                          width: active ? 1.6 : 1,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: alignRight
-                            ? CrossAxisAlignment.end
-                            : CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign:
-                                alignRight ? TextAlign.right : TextAlign.left,
-                            style: TextStyle(
-                              color:
-                                  locked ? const Color(0xFF777C86) : _homeInk,
-                              fontSize: compact ? 13 : 15,
-                              fontWeight: FontWeight.w900,
-                            ),
+            Align(
+              alignment:
+                  alignRight ? Alignment.centerRight : Alignment.centerLeft,
+              child: SizedBox(
+                width: MediaQuery.sizeOf(context).width * 0.72,
+                child: Row(
+                  textDirection:
+                      alignRight ? TextDirection.rtl : TextDirection.ltr,
+                  children: [
+                    node,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Container(
+                        padding: EdgeInsets.all(compact ? 10 : 12),
+                        decoration: BoxDecoration(
+                          color: locked
+                              ? const Color(0xFFF1F2F5)
+                              : active
+                                  ? const Color(0xFFFFF7D6)
+                                  : const Color(0xFFFFFAEA),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color:
+                                active ? _homeYellow : const Color(0xFFFFE0A1),
+                            width: active ? 1.6 : 1,
                           ),
-                          const SizedBox(height: 5),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            textDirection: alignRight
-                                ? TextDirection.rtl
-                                : TextDirection.ltr,
-                            children: [
-                              for (var i = 0; i < 3; i++)
-                                Icon(
-                                  i < stars
-                                      ? Icons.star_rounded
-                                      : Icons.star_border_rounded,
-                                  color: i < stars
-                                      ? _homeYellow
-                                      : const Color(0xFFC9CDD5),
-                                  size: 17,
-                                ),
-                              if (active) ...[
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: onStartMission,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _homeGreen,
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.play_arrow_rounded,
-                                          color: Colors.white,
-                                          size: 15,
-                                        ),
-                                        SizedBox(width: 2),
-                                        Text(
-                                          'Mulai',
-                                          style: TextStyle(
+                        ),
+                        child: Column(
+                          crossAxisAlignment: alignRight
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign:
+                                  alignRight ? TextAlign.right : TextAlign.left,
+                              style: TextStyle(
+                                color:
+                                    locked ? const Color(0xFF777C86) : _homeInk,
+                                fontSize: compact ? 13 : 15,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              textDirection: alignRight
+                                  ? TextDirection.rtl
+                                  : TextDirection.ltr,
+                              children: [
+                                for (var i = 0; i < 3; i++)
+                                  Icon(
+                                    i < stars
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    color: i < stars
+                                        ? _homeYellow
+                                        : const Color(0xFFC9CDD5),
+                                    size: 17,
+                                  ),
+                                if (active) ...[
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: onStartMission,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: _homeGreen,
+                                        borderRadius:
+                                            BorderRadius.circular(999),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.play_arrow_rounded,
                                             color: Colors.white,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w900,
+                                            size: 15,
                                           ),
-                                        ),
-                                      ],
+                                          SizedBox(width: 2),
+                                          Text(
+                                            'Mulai',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleTap(BuildContext context,
+      {required String title, required int stars}) {
+    final completed = data['completed'] == true;
+    final active = data['active'] == true;
+    final locked = data['locked'] == true;
+
+    if (active) {
+      onStartMission();
+      return;
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(
+          locked
+              ? 'Langkah ini masih terkunci. Selesaikan langkah sebelumnya dulu ya.'
+              : completed
+                  ? 'Kamu sudah menyelesaikan langkah ini dengan $stars dari 3 bintang.'
+                  : 'Langkah ini belum bisa dimulai sekarang.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Tutup'),
           ),
         ],
       ),

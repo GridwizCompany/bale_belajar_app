@@ -103,6 +103,35 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
     }
   }
 
+  Future<void> _handleContinuePressed({required bool skipping}) async {
+    if (!skipping) {
+      widget.onContinue();
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Lewati dulu?'),
+        content: const Text(
+          'Tanpa izin notifikasi/widget, kamu tidak akan diingatkan kosakata '
+          'harian secara otomatis. Kamu tetap bisa mengaktifkannya nanti '
+          'lewat Profil > Kosakata Korea.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Lewati'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) widget.onContinue();
+  }
+
   Future<void> _handleAddWidget() async {
     final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
     if (!mounted) return;
@@ -173,7 +202,9 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
                       ),
                     const Spacer(),
                     FilledButton(
-                      onPressed: widget.onContinue,
+                      onPressed: () => _handleContinuePressed(
+                        skipping: !(notifSatisfied && widgetSatisfied),
+                      ),
                       child: Text(
                         notifSatisfied && widgetSatisfied
                             ? 'Lanjutkan'

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -63,7 +64,8 @@ class VocabSyncService {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
     await _notifications.initialize(
-      settings: const InitializationSettings(android: androidInit, iOS: iosInit),
+      settings:
+          const InitializationSettings(android: androidInit, iOS: iosInit),
     );
     _notificationsInitialized = true;
   }
@@ -177,8 +179,9 @@ class VocabSyncService {
 
     for (var i = 0; i < words.length; i++) {
       final word = words[i];
-      var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour)
-          .add(Duration(minutes: (slotMinutes * i).round()));
+      var scheduled =
+          tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour)
+              .add(Duration(minutes: (slotMinutes * i).round()));
       if (!scheduled.isAfter(now)) {
         // Slot hari ini sudah lewat (mis. baru sync jam 3 sore) - tetap
         // tampilkan, dijadwalkan beberapa menit dari sekarang.
@@ -188,17 +191,25 @@ class VocabSyncService {
       await _notifications.zonedSchedule(
         id: _notificationBaseId + i,
         scheduledDate: scheduled,
-        title: 'Kosakata Korea Hari Ini',
+        title: '한 kata kecil, skill besar',
         body: _notificationBody(word, setting.displayLanguage),
-        notificationDetails: const NotificationDetails(
+        notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
             _notificationChannelId,
             'Kosakata Harian',
             channelDescription: 'Notifikasi kosakata Inggris-Korea harian',
-            importance: Importance.defaultImportance,
-            priority: Priority.defaultPriority,
+            importance: Importance.high,
+            priority: Priority.high,
+            category: AndroidNotificationCategory.reminder,
+            color: const Color(0xFFF4B400),
+            ticker: 'Kosakata Korea baru',
+            styleInformation: BigTextStyleInformation(
+              _notificationBody(word, setting.displayLanguage),
+              contentTitle: '한 kata kecil, skill besar',
+              summaryText: 'BaleBelajar',
+            ),
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: const DarwinNotificationDetails(),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );
@@ -209,9 +220,12 @@ class VocabSyncService {
     final romanized =
         word.koreanRomanized != null ? ' (${word.koreanRomanized})' : '';
     return switch (lang) {
-      VocabDisplayLanguage.enToKo => '${word.english} = ${word.korean}$romanized',
-      VocabDisplayLanguage.koToEn => '${word.korean}$romanized = ${word.english}',
-      VocabDisplayLanguage.both => '${word.english} ↔ ${word.korean}$romanized',
+      VocabDisplayLanguage.enToKo =>
+        '${word.english} = ${word.korean}$romanized. Ketuk untuk lanjut belajar.',
+      VocabDisplayLanguage.koToEn =>
+        '${word.korean}$romanized = ${word.english}. Ketuk untuk latihan lagi.',
+      VocabDisplayLanguage.both =>
+        '${word.english} ↔ ${word.korean}$romanized. Simpan satu kata baru hari ini.',
     };
   }
 }

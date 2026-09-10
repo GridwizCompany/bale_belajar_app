@@ -67,14 +67,19 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
   }
 
   Future<void> _autoRequestOnOpen() async {
+    PermissionStatus? requestedNotificationStatus;
     if (widget.needsNotification) {
-      await _syncService.requestNotificationPermission();
+      requestedNotificationStatus =
+          await _syncService.requestNotificationPermission();
     }
     if (widget.needsWidget) {
       final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
       if (supported && !(await _syncService.isWidgetPinned())) {
         await _syncService.requestPinWidget();
       }
+    }
+    if (requestedNotificationStatus?.isGranted ?? false) {
+      await _syncService.syncToday(force: true);
     }
     await _refreshStatus();
   }
@@ -94,6 +99,10 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
     setState(() => _busy = true);
     final status = await _syncService.requestNotificationPermission();
     if (!mounted) return;
+    if (status.isGranted) {
+      await _syncService.syncToday(force: true);
+      if (!mounted) return;
+    }
     setState(() {
       _notifStatus = status;
       _busy = false;

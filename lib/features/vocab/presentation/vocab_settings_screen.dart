@@ -149,6 +149,10 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
   Future<void> _handleEnableNotifications() async {
     final status = await _syncService.requestNotificationPermission();
     if (!mounted) return;
+    if (status.isGranted) {
+      await _syncService.syncToday(force: true);
+      if (!mounted) return;
+    }
     setState(() => _notifStatus = status);
     if (status.isPermanentlyDenied) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -326,6 +330,10 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
               Text('Notifikasi & Widget',
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
+              if (_todayWords.isNotEmpty) ...[
+                _NotificationWidgetPreview(word: _todayWords.first),
+                const SizedBox(height: 10),
+              ],
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Notifikasi harian'),
@@ -496,6 +504,83 @@ class _PermissionBanner extends StatelessWidget {
             FilledButton(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _NotificationWidgetPreview extends StatelessWidget {
+  const _NotificationWidgetPreview({required this.word});
+
+  final VocabWord word;
+
+  @override
+  Widget build(BuildContext context) {
+    final koreanText = word.koreanRomanized != null
+        ? '${word.korean} (${word.koreanRomanized})'
+        : word.korean;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFEAF7EC), Color(0xFFFFF7D6)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: BaleColors.warning),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: BaleColors.warning,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Text(
+              '한',
+              style: TextStyle(
+                color: BaleColors.ink,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Preview pengingat',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: BaleColors.ink,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${word.english} ↔ $koreanText',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF5F4A2C),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.notifications_active_rounded,
+              color: BaleColors.warning),
+        ],
       ),
     );
   }

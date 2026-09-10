@@ -70,9 +70,10 @@ class VocabWidgetProvider : HomeWidgetProvider() {
     val words = parseWords(widgetData.getString(KEY_WORDS_JSON, null))
 
     if (!enabled || words.isEmpty()) {
-      views.setTextViewText(R.id.vocab_widget_english, "Buka app untuk mulai")
-      views.setTextViewText(R.id.vocab_widget_korean, "")
-      views.setTextViewText(R.id.vocab_widget_footer, "Belum ada kosakata hari ini")
+      views.setTextViewText(R.id.vocab_widget_title, "Kata Korea Hari Ini")
+      views.setTextViewText(R.id.vocab_widget_english, "Siap belajar?")
+      views.setTextViewText(R.id.vocab_widget_korean, "Buka BaleBelajar dulu")
+      views.setTextViewText(R.id.vocab_widget_footer, "Kosakata harian akan muncul di sini")
       return
     }
 
@@ -97,7 +98,7 @@ class VocabWidgetProvider : HomeWidgetProvider() {
     }
     views.setTextViewText(
         R.id.vocab_widget_footer,
-        "${index + 1}/${words.size} · ketuk untuk kata berikutnya",
+        "${index + 1}/${words.size} • ketuk kartu untuk kata berikutnya",
     )
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
 import '../../settings/presentation/widgets/audio_settings_section.dart';
+import '../../vocab/presentation/vocab_settings_screen.dart';
 import '../application/auth_controller.dart';
 import '../domain/auth_models.dart';
 
@@ -80,6 +81,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 14),
             const AudioSettingsSection(),
+            const SizedBox(height: 14),
+            BaleCard(
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.translate_rounded,
+                    color: BaleColors.detectivia),
+                title: const Text('Kosakata Korea'),
+                subtitle: const Text(
+                  'Atur notifikasi & widget kosakata Inggris-Korea harian',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const VocabSettingsScreen(),
+                  ),
+                ),
+              ),
+            ),
             const SizedBox(height: 14),
             BaleCard(
               child: Form(

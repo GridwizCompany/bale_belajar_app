@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/token_store.dart';
 import '../../../theme/bale_theme.dart';
 import '../../baleverse/presentation/baleverse_demo_screen.dart';
+import '../../vocab/application/vocab_sync_service.dart';
 import '../application/auth_controller.dart';
 import '../data/auth_service.dart';
 import 'signed_out_flow.dart';
@@ -18,16 +21,20 @@ class AuthGate extends StatefulWidget {
   State<AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends State<AuthGate> {
+class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   late final AuthController _controller;
+  final _vocabSyncService = VocabSyncService();
   bool _splashDone = false;
   bool _keepSignedOutFlow = false;
+  bool _vocabSynced = false;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller ?? _buildController();
+    _controller.addListener(_maybeSyncVocab);
     _controller.initialize();
+    WidgetsBinding.instance.addObserver(this);
     Future<void>.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _splashDone = true);
     });
@@ -35,10 +42,32 @@ class _AuthGateState extends State<AuthGate> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _controller.removeListener(_maybeSyncVocab);
     if (widget.controller == null) {
       _controller.dispose();
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Kalau app dibuka lagi di hari baru, ini yang membuat notifikasi/widget
+    // ikut refresh (syncToday() sendiri no-op kalau hari ini sudah pernah
+    // sync - lihat catatan di VocabSyncService soal keterbatasan ini).
+    if (state == AppLifecycleState.resumed &&
+        _controller.status == AuthStatus.signedIn) {
+      unawaited(_vocabSyncService.syncToday());
+    }
+  }
+
+  // Kosakata harian tidak punya proses background sendiri (lihat catatan di
+  // VocabSyncService) - jadi disinkronkan sekali per sesi app di sini, begitu
+  // siswa berhasil login/terautentikasi.
+  void _maybeSyncVocab() {
+    if (_vocabSynced || _controller.status != AuthStatus.signedIn) return;
+    _vocabSynced = true;
+    unawaited(_vocabSyncService.syncToday());
   }
 
   @override

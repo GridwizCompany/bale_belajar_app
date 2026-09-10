@@ -159,69 +159,83 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
     return Scaffold(
       backgroundColor: BaleColors.soft,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-          child: _busy && notifStatus == null
-              ? const Center(child: CircularProgressIndicator())
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Icon(Icons.notifications_active_rounded,
-                        size: 56, color: BaleColors.warning),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Aktifkan Pengingat Kosakata Korea',
-                      style: Theme.of(context).textTheme.headlineMedium,
+        child: _busy && notifStatus == null
+            ? const Center(child: CircularProgressIndicator())
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight - 44,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Icon(Icons.notifications_active_rounded,
+                                size: 56, color: BaleColors.warning),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Aktifkan Pengingat Kosakata Korea',
+                              style: Theme.of(context).textTheme.headlineMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Supaya kosakata Inggris-Korea harianmu muncul lewat '
+                              'notifikasi dan widget di home screen, izinkan dua hal '
+                              'berikut ini.',
+                            ),
+                            const SizedBox(height: 20),
+                            if (widget.needsNotification)
+                              _GateItem(
+                                icon: Icons.notifications_rounded,
+                                title: 'Izin Notifikasi',
+                                satisfied: notifSatisfied,
+                                actionLabel:
+                                    (notifStatus?.isPermanentlyDenied ?? false)
+                                        ? 'Buka Pengaturan'
+                                        : 'Izinkan',
+                                onAction: _handleEnableNotifications,
+                              ),
+                            if (widget.needsNotification && widget.needsWidget)
+                              const SizedBox(height: 10),
+                            if (widget.needsWidget)
+                              _GateItem(
+                                icon: Icons.add_to_home_screen_rounded,
+                                title: 'Widget di Home Screen',
+                                satisfied: widgetSatisfied,
+                                actionLabel: 'Tambahkan',
+                                onAction: _handleAddWidget,
+                              ),
+                            const Spacer(),
+                            const SizedBox(height: 20),
+                            FilledButton(
+                              onPressed: () => _handleContinuePressed(
+                                skipping: !(notifSatisfied && widgetSatisfied),
+                              ),
+                              child: Text(
+                                notifSatisfied && widgetSatisfied
+                                    ? 'Lanjutkan'
+                                    : 'Lewati untuk sekarang',
+                              ),
+                            ),
+                            if (!(notifSatisfied && widgetSatisfied)) ...[
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Kamu tetap bisa mengaktifkannya nanti lewat Profil > Kosakata Korea.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black54),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Supaya kosakata Inggris-Korea harianmu muncul lewat '
-                      'notifikasi dan widget di home screen, izinkan dua hal '
-                      'berikut ini.',
-                    ),
-                    const SizedBox(height: 20),
-                    if (widget.needsNotification)
-                      _GateItem(
-                        icon: Icons.notifications_rounded,
-                        title: 'Izin Notifikasi',
-                        satisfied: notifSatisfied,
-                        actionLabel: (notifStatus?.isPermanentlyDenied ?? false)
-                            ? 'Buka Pengaturan'
-                            : 'Izinkan',
-                        onAction: _handleEnableNotifications,
-                      ),
-                    if (widget.needsNotification && widget.needsWidget)
-                      const SizedBox(height: 10),
-                    if (widget.needsWidget)
-                      _GateItem(
-                        icon: Icons.add_to_home_screen_rounded,
-                        title: 'Widget di Home Screen',
-                        satisfied: widgetSatisfied,
-                        actionLabel: 'Tambahkan',
-                        onAction: _handleAddWidget,
-                      ),
-                    const Spacer(),
-                    FilledButton(
-                      onPressed: () => _handleContinuePressed(
-                        skipping: !(notifSatisfied && widgetSatisfied),
-                      ),
-                      child: Text(
-                        notifSatisfied && widgetSatisfied
-                            ? 'Lanjutkan'
-                            : 'Lewati untuk sekarang',
-                      ),
-                    ),
-                    if (!(notifSatisfied && widgetSatisfied)) ...[
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Kamu tetap bisa mengaktifkannya nanti lewat Profil > Kosakata Korea.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                    ],
-                  ],
-                ),
-        ),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -245,18 +259,63 @@ class _GateItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BaleCard(
-      child: Row(
-        children: [
-          Icon(icon, color: BaleColors.ink),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-          ),
-          if (satisfied)
-            const Icon(Icons.check_circle_rounded, color: BaleColors.success)
-          else
-            OutlinedButton(onPressed: onAction, child: Text(actionLabel)),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 330;
+          final status = satisfied
+              ? const Icon(Icons.check_circle_rounded,
+                  color: BaleColors.success)
+              : OutlinedButton(
+                  onPressed: onAction,
+                  child: Text(
+                    actionLabel,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, color: BaleColors.ink),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Align(alignment: Alignment.centerRight, child: status),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Icon(icon, color: BaleColors.ink),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                  child:
+                      Align(alignment: Alignment.centerRight, child: status)),
+            ],
+          );
+        },
       ),
     );
   }

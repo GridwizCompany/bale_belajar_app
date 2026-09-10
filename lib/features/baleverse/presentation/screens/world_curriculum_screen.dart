@@ -189,32 +189,41 @@ class _QuestDailySettingPanel extends StatelessWidget {
             children: [
               const Icon(Icons.checklist_rounded, color: _green),
               const SizedBox(width: 8),
-              Text(
-                data == null
-                    ? 'Misi hari ini'
-                    : 'Misi hari ini: ${data.completedCount}/${data.assignments.length.clamp(1, 99)} selesai',
-                style: const TextStyle(color: _ink, fontWeight: FontWeight.w900),
+              Expanded(
+                child: Text(
+                  data == null
+                      ? 'Misi hari ini'
+                      : 'Misi hari ini: ${data.completedCount}/${data.assignments.length.clamp(1, 99)} selesai',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _ink,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               const Text(
                 'Misi per hari:',
-                style: TextStyle(color: Color(0xFF60646F), fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  color: Color(0xFF60646F),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-              const SizedBox(width: 10),
               for (var count = 1; count <= 5; count++)
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: ChoiceChip(
-                    label: Text('$count'),
-                    selected: data?.dailyQuestCount == count,
-                    onSelected: data == null
-                        ? null
-                        : (_) => onChangeDailyQuestCount(count),
-                  ),
+                ChoiceChip(
+                  label: Text('$count'),
+                  selected: data?.dailyQuestCount == count,
+                  onSelected: data == null
+                      ? null
+                      : (_) => onChangeDailyQuestCount(count),
                 ),
             ],
           ),
@@ -239,9 +248,9 @@ class _QuestActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final data = progress;
     final label = _label(data);
-    final onPressed = _isDone(data) ? null : (data != null && data.canRequestNext
-        ? onRequestNext
-        : onStartQuest);
+    final onPressed = _isDone(data)
+        ? null
+        : (data != null && data.canRequestNext ? onRequestNext : onStartQuest);
 
     return SizedBox(
       width: double.infinity,
@@ -253,7 +262,8 @@ class _QuestActionButton extends StatelessWidget {
         style: FilledButton.styleFrom(
           backgroundColor: _green,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
         ),
       ),

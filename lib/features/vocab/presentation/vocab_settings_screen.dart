@@ -188,8 +188,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
   Widget _buildContent(BuildContext context) {
     final setting = _setting!;
     final notifStatus = _notifStatus;
-    final showNotifBanner =
-        !_checkingPermissions &&
+    final showNotifBanner = !_checkingPermissions &&
         setting.notificationEnabled &&
         notifStatus != null &&
         !notifStatus.isGranted;
@@ -246,36 +245,50 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
                 onChanged: _saving
                     ? null
                     : (value) => setState(() {
-                          _setting = setting.copyWith(dailyCount: value.round());
+                          _setting =
+                              setting.copyWith(dailyCount: value.round());
                         }),
                 onChangeEnd: (value) =>
                     _persist(setting.copyWith(dailyCount: value.round())),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _HourDropdown(
-                      label: 'Mulai jam',
-                      value: setting.notificationStartHour,
-                      onChanged: _saving
-                          ? null
-                          : (hour) => _persist(
-                              setting.copyWith(notificationStartHour: hour)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _HourDropdown(
-                      label: 'Sampai jam',
-                      value: setting.notificationEndHour,
-                      onChanged: _saving
-                          ? null
-                          : (hour) => _persist(
-                              setting.copyWith(notificationEndHour: hour)),
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final start = _HourDropdown(
+                    label: 'Mulai jam',
+                    value: setting.notificationStartHour,
+                    onChanged: _saving
+                        ? null
+                        : (hour) => _persist(
+                            setting.copyWith(notificationStartHour: hour)),
+                  );
+                  final end = _HourDropdown(
+                    label: 'Sampai jam',
+                    value: setting.notificationEndHour,
+                    onChanged: _saving
+                        ? null
+                        : (hour) => _persist(
+                            setting.copyWith(notificationEndHour: hour)),
+                  );
+
+                  if (constraints.maxWidth < 360) {
+                    return Column(
+                      children: [
+                        start,
+                        const SizedBox(height: 10),
+                        end,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: start),
+                      const SizedBox(width: 12),
+                      Expanded(child: end),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -316,7 +329,8 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Notifikasi harian'),
-                subtitle: const Text('Kirim pengingat kosakata di rentang jam di atas'),
+                subtitle: const Text(
+                    'Kirim pengingat kosakata di rentang jam di atas'),
                 value: setting.notificationEnabled,
                 onChanged: _saving
                     ? null
@@ -326,11 +340,13 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Widget home-screen'),
-                subtitle: const Text('Tampilkan kosakata hari ini di widget Android'),
+                subtitle:
+                    const Text('Tampilkan kosakata hari ini di widget Android'),
                 value: setting.widgetEnabled,
                 onChanged: _saving
                     ? null
-                    : (value) => _persist(setting.copyWith(widgetEnabled: value)),
+                    : (value) =>
+                        _persist(setting.copyWith(widgetEnabled: value)),
               ),
               if (setting.widgetEnabled) ...[
                 const SizedBox(height: 8),
@@ -340,14 +356,19 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
                       Icon(Icons.check_circle_rounded,
                           color: BaleColors.success, size: 18),
                       SizedBox(width: 8),
-                      Text('Widget sudah terpasang di home screen'),
+                      Expanded(
+                        child: Text('Widget sudah terpasang di home screen'),
+                      ),
                     ],
                   )
                 else
                   OutlinedButton.icon(
                     onPressed: _handleAddWidget,
                     icon: const Icon(Icons.add_to_home_screen_rounded),
-                    label: const Text('Tambahkan Widget ke Home Screen'),
+                    label: const Text(
+                      'Tambahkan Widget ke Home Screen',
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
             ],
@@ -498,23 +519,49 @@ class _TodayPreviewCard extends StatelessWidget {
           for (final word in words)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(word.english,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
-                  ),
-                  const Icon(Icons.sync_alt_rounded, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      word.koreanRomanized != null
-                          ? '${word.korean} (${word.koreanRomanized})'
-                          : word.korean,
-                      textAlign: TextAlign.end,
-                    ),
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final koreanText = word.koreanRomanized != null
+                      ? '${word.korean} (${word.koreanRomanized})'
+                      : word.korean;
+
+                  if (constraints.maxWidth < 340) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          word.english,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(koreanText),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          word.english,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const Icon(Icons.sync_alt_rounded, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          koreanText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
         ],
@@ -538,7 +585,11 @@ class _HourDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<int>(
       initialValue: value,
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+      ),
       items: [
         for (var hour = 0; hour < 24; hour++)
           DropdownMenuItem(

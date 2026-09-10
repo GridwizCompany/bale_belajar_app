@@ -17,7 +17,8 @@ const _questGreen = Color(0xFF4CAF50);
 /// (yang khusus 3-activity-type Numeria) supaya tidak mengganggu alur lama
 /// yang sudah berjalan.
 class QuestScreen extends StatefulWidget {
-  const QuestScreen({required this.worldKey, this.requestNext = false, super.key});
+  const QuestScreen(
+      {required this.worldKey, this.requestNext = false, super.key});
 
   final String worldKey;
   // true = ambil misi tambahan hari ini alih-alih misi utama - lihat
@@ -77,13 +78,22 @@ class _QuestScreenState extends State<QuestScreen> {
           onDone: () => Navigator.of(context).pop(true),
         );
       case QuestLoadStatus.ready:
+        if (_controller.totalQuestions == 0) {
+          return _QuestMessageScreen(
+            message: 'Misi ini belum punya soal aktif.',
+            onRetry: _controller.load,
+          );
+        }
         return Stack(
           children: [
-            QuestQuestionView(
-              question: _controller.currentQuestion,
-              currentQuestion: _controller.currentIndex + 1,
-              totalQuestions: _controller.totalQuestions,
-              onAnswered: _controller.answerCurrentAndAdvance,
+            IgnorePointer(
+              ignoring: _controller.isSavingAnswer,
+              child: QuestQuestionView(
+                question: _controller.currentQuestion,
+                currentQuestion: _controller.currentIndex + 1,
+                totalQuestions: _controller.totalQuestions,
+                onAnswered: _controller.answerCurrentAndAdvance,
+              ),
             ),
             if (_controller.errorMessage != null)
               Positioned(
@@ -93,8 +103,11 @@ class _QuestScreenState extends State<QuestScreen> {
                 child: _QuestErrorBanner(message: _controller.errorMessage!),
               ),
             if (_controller.isSavingAnswer)
-              const Positioned.fill(
-                child: _QuestSavingOverlay(),
+              Positioned(
+                left: 16,
+                right: 16,
+                bottom: MediaQuery.paddingOf(context).bottom + 18,
+                child: const _QuestSavingOverlay(),
               ),
           ],
         );
@@ -151,43 +164,45 @@ class _QuestSavingOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: Color(0x33000000),
-      child: Center(
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.sizeOf(context).width - 48,
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  color: _questYellow,
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFFFE0A1)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x22000000),
+              blurRadius: 18,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.4,
+                color: _questYellow,
+              ),
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Menyimpan jawaban...',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: _questInk,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              SizedBox(width: 12),
-              Flexible(
-                child: Text(
-                  'Menyimpan jawaban...',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _questInk,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

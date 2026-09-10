@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../core/api/api_client.dart';
 import '../data/quest_repository.dart';
 import '../domain/quest_models.dart';
 
@@ -46,9 +47,12 @@ class QuestAttemptController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      final summary = requestNext
-          ? await _repository.requestNextQuest(worldKey)
-          : await _repository.getTodayQuest(worldKey);
+      final summary = await _loadQuestSummary();
+      if (summary.questions.isEmpty) {
+        throw Exception(
+          'Misi ini belum punya soal aktif. Coba kembali lalu pilih misi lagi.',
+        );
+      }
       var attemptId = summary.attemptId;
       quest = summary;
       _attemptId = attemptId;
@@ -67,6 +71,19 @@ class QuestAttemptController extends ChangeNotifier {
       status = QuestLoadStatus.error;
     }
     notifyListeners();
+  }
+
+  Future<QuestSummary> _loadQuestSummary() async {
+    if (!requestNext) return _repository.getTodayQuest(worldKey);
+
+    try {
+      return await _repository.requestNextQuest(worldKey);
+    } on BaleApiException catch (error) {
+      final shouldFallback =
+          error.statusCode == 400 && error.message.contains('misi hari ini');
+      if (!shouldFallback) rethrow;
+      return _repository.getTodayQuest(worldKey);
+    }
   }
 
   /// Simpan jawaban soal saat ini lalu maju ke soal berikutnya, atau submit

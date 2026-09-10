@@ -111,6 +111,13 @@ class ApiClient {
     final decoded = text.isEmpty ? null : _tryDecodeJson(text);
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 401) {
+        throw const BaleApiException(
+          'Sesi login sudah habis. Silakan keluar lalu login ulang.',
+          statusCode: 401,
+        );
+      }
+
       throw BaleApiException(
         _readMessage(decoded) ??
             'Server sedang bermasalah (HTTP ${response.statusCode}).',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../vocab/presentation/vocab_settings_screen.dart';
 import '../../domain/baleverse_models.dart';
 import 'world_curriculum_screen.dart';
 
@@ -74,6 +75,18 @@ class WorldsScreen extends StatelessWidget {
                 onTap: () {
                   final backendKey = world['key'] as String?;
                   if (backendKey != null && backendKey.isNotEmpty) {
+                    // Dunia berkind VOCAB (Dunia Korea/Inggris) tidak punya
+                    // Quest/Chapter - "misinya" adalah kosakata harian, jadi
+                    // dibuka langsung ke layar kosakata, bukan
+                    // WorldCurriculumScreen yang mengasumsikan ada Quest.
+                    if (world['kind'] == 'VOCAB') {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const VocabSettingsScreen(),
+                        ),
+                      );
+                      return;
+                    }
                     Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => WorldCurriculumScreen(

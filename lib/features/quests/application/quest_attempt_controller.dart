@@ -14,10 +14,18 @@ enum QuestLoadStatus { loading, ready, submitting, submitted, error }
 /// lama (`simple_auth_screen.dart`) - supaya matching/ordering/hotspot/dst
 /// terkirim dengan bentuk yang benar ke backend.
 class QuestAttemptController extends ChangeNotifier {
-  QuestAttemptController({required this.worldKey, QuestRepository? repository})
-      : _repository = repository ?? QuestRepository();
+  QuestAttemptController({
+    required this.worldKey,
+    this.requestNext = false,
+    QuestRepository? repository,
+  }) : _repository = repository ?? QuestRepository();
 
   final String worldKey;
+  // true = ambil misi TAMBAHAN hari ini (POST /student/quests/next) alih-alih
+  // misi utama hari ini (GET /student/quests/today) - dipakai tombol "Misi
+  // Lagi" di WorldCurriculumScreen setelah StudentQuestSetting.dailyQuestCount
+  // mengizinkan lebih dari 1 misi/hari.
+  final bool requestNext;
   final QuestRepository _repository;
 
   QuestLoadStatus status = QuestLoadStatus.loading;
@@ -38,7 +46,9 @@ class QuestAttemptController extends ChangeNotifier {
     errorMessage = null;
     notifyListeners();
     try {
-      final summary = await _repository.getTodayQuest(worldKey);
+      final summary = requestNext
+          ? await _repository.requestNextQuest(worldKey)
+          : await _repository.getTodayQuest(worldKey);
       var attemptId = summary.attemptId;
       quest = summary;
       _attemptId = attemptId;

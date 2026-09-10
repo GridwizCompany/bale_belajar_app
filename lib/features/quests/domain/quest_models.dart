@@ -57,6 +57,35 @@ class QuestSummary {
   final String? attemptStatus;
 }
 
+/// Semua misi hari ini untuk satu dunia (sequence 1..N) - dipetakan dari
+/// `GET /student/quests/today-all`. Dipakai untuk progress "misi 2/3 selesai"
+/// dan tombol "Misi Lagi" kalau [canRequestNext] true.
+class QuestDailyProgress {
+  const QuestDailyProgress({
+    required this.dailyQuestCount,
+    required this.assignments,
+    required this.canRequestNext,
+  });
+
+  factory QuestDailyProgress.fromJson(Map<String, dynamic> json) {
+    return QuestDailyProgress(
+      dailyQuestCount: json['dailyQuestCount'] as int,
+      assignments: (json['assignments'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(QuestSummary.fromJson)
+          .toList(),
+      canRequestNext: json['canRequestNext'] as bool? ?? false,
+    );
+  }
+
+  final int dailyQuestCount;
+  final List<QuestSummary> assignments;
+  final bool canRequestNext;
+
+  int get completedCount =>
+      assignments.where((a) => a.attemptStatus == 'SUBMITTED').length;
+}
+
 /// Hasil satu soal setelah submit (kunci jawaban sudah boleh terlihat).
 class QuestQuestionResult {
   const QuestQuestionResult({

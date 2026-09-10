@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../auth/data/auth_service.dart';
+import '../../../auth/presentation/change_password_screen.dart';
+import '../../../vocab/presentation/vocab_settings_screen.dart';
 import '../../data/game_profile_repository.dart';
 
 const _profileBg = Color(0xFFFFF3C6);
@@ -14,6 +17,8 @@ class BaleProfilePage extends StatelessWidget {
     required this.gameProfile,
     required this.masteryAverage,
     this.onSignOut,
+    this.onOpenWorlds,
+    this.authService,
     super.key,
   });
 
@@ -25,6 +30,11 @@ class BaleProfilePage extends StatelessWidget {
   final GameProfileSummary? gameProfile;
   final double? masteryAverage;
   final VoidCallback? onSignOut;
+  // Pindah ke tab Dunia (BaleTab.worlds) di shell utama - lihat "Jalur
+  // belajar" di bawah.
+  final VoidCallback? onOpenWorlds;
+  // Dibutuhkan tile "Data & keamanan" untuk buka ChangePasswordScreen.
+  final AuthService? authService;
 
   @override
   Widget build(BuildContext context) {
@@ -69,15 +79,19 @@ class BaleProfilePage extends StatelessWidget {
             subtitle: 'Atur jalur belajarmu',
             color: _profileYellow,
             compact: compact,
-            onTap: () {},
+            onTap: onOpenWorlds ?? () {},
           ),
           _ProfileMenuTile(
             icon: Icons.notifications_rounded,
             title: 'Pengingat belajar',
-            subtitle: 'Atur pengingat belajar',
+            subtitle: 'Atur notifikasi & widget kosakata harian',
             color: _profileGreen,
             compact: compact,
-            onTap: () {},
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const VocabSettingsScreen(),
+              ),
+            ),
           ),
           _ProfileMenuTile(
             icon: Icons.verified_user_rounded,
@@ -85,7 +99,22 @@ class BaleProfilePage extends StatelessWidget {
             subtitle: 'Kelola keamanan akun',
             color: const Color(0xFF0E3A5F),
             compact: compact,
-            onTap: () {},
+            onTap: () {
+              final service = authService;
+              if (service == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Belum bisa dibuka, coba muat ulang app.'),
+                  ),
+                );
+                return;
+              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => ChangePasswordScreen(authService: service),
+                ),
+              );
+            },
           ),
           if (onSignOut != null) ...[
             const SizedBox(height: 12),

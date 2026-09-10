@@ -21,6 +21,11 @@ class WorldsRepository {
       final subject = world['subject'] as Map<String, dynamic>?;
       return <String, dynamic>{
         'key': (world['key'] as String? ?? '').toUpperCase(),
+        // 'kind' dipakai untuk membedakan dunia Quest biasa (Numeria, dst)
+        // dari dunia berbasis kosakata (Dunia Korea/Inggris) - lihat
+        // worlds_screen.dart dan baleverse_demo_screen.dart yang membranch
+        // navigasi berdasarkan ini alih-alih masuk ke WorldCurriculumScreen.
+        'kind': world['kind'] ?? 'QUEST',
         'name': world['name'],
         'subject': subject?['name'] ?? '',
         'description': world['themeDescription'] ?? '',

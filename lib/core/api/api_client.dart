@@ -43,8 +43,12 @@ class ApiClient {
     return _send('GET', path, query: query);
   }
 
-  Future<dynamic> post(String path, {Map<String, dynamic>? body}) {
-    return _send('POST', path, body: body);
+  Future<dynamic> post(
+    String path, {
+    Map<String, dynamic>? body,
+    Map<String, String>? query,
+  }) {
+    return _send('POST', path, body: body, query: query);
   }
 
   Future<dynamic> put(String path, {Map<String, dynamic>? body}) {

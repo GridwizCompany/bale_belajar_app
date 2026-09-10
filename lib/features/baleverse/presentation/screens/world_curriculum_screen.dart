@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../quests/data/quest_repository.dart';
+import '../../../quests/domain/quest_models.dart';
 import '../../../quests/presentation/quest_screen.dart';
 import '../../data/worlds_repository.dart';
 import '../../domain/world_curriculum_models.dart';
@@ -20,19 +22,61 @@ class WorldCurriculumScreen extends StatefulWidget {
 
 class _WorldCurriculumScreenState extends State<WorldCurriculumScreen> {
   final WorldsRepository _repository = WorldsRepository();
+  final QuestRepository _questRepository = QuestRepository();
 
   late Future<WorldCurriculum> _future;
+  QuestDailyProgress? _dailyProgress;
 
   @override
   void initState() {
     super.initState();
     _future = _repository.fetchCurriculum(worldKey: widget.worldKey);
+    _loadDailyProgress();
   }
 
   void _retry() {
     setState(() {
       _future = _repository.fetchCurriculum(worldKey: widget.worldKey);
     });
+  }
+
+  // Panel progress + "misi per hari" bersifat pelengkap - kalau gagal dimuat
+  // (mis. offline), alur "Mulai Quest" utama tetap harus jalan seperti biasa.
+  Future<void> _loadDailyProgress() async {
+    try {
+      final progress = await _questRepository.fetchTodayAll(widget.worldKey);
+      if (mounted) setState(() => _dailyProgress = progress);
+    } catch (_) {
+      // diam-diam - lihat komentar di atas
+    }
+  }
+
+  Future<void> _updateDailyQuestCount(int value) async {
+    final previous = _dailyProgress;
+    try {
+      await _questRepository.updateDailyQuestCount(value);
+      await _loadDailyProgress();
+    } catch (error) {
+      if (mounted) {
+        setState(() => _dailyProgress = previous);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal menyimpan pengaturan: $error')),
+        );
+      }
+    }
+  }
+
+  void _openQuest({required bool requestNext}) {
+    Navigator.of(context)
+        .push<void>(
+          MaterialPageRoute<void>(
+            builder: (_) => QuestScreen(
+              worldKey: widget.worldKey,
+              requestNext: requestNext,
+            ),
+          ),
+        )
+        .then((_) => _loadDailyProgress());
   }
 
   @override
@@ -57,13 +101,10 @@ class _WorldCurriculumScreenState extends State<WorldCurriculumScreen> {
             }
             return _CurriculumContent(
               curriculum: snapshot.data!,
-              onStartQuest: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => QuestScreen(worldKey: widget.worldKey),
-                  ),
-                );
-              },
+              dailyProgress: _dailyProgress,
+              onStartQuest: () => _openQuest(requestNext: false),
+              onRequestNext: () => _openQuest(requestNext: true),
+              onChangeDailyQuestCount: _updateDailyQuestCount,
             );
           },
         ),
@@ -75,11 +116,17 @@ class _WorldCurriculumScreenState extends State<WorldCurriculumScreen> {
 class _CurriculumContent extends StatelessWidget {
   const _CurriculumContent({
     required this.curriculum,
+    required this.dailyProgress,
     required this.onStartQuest,
+    required this.onRequestNext,
+    required this.onChangeDailyQuestCount,
   });
 
   final WorldCurriculum curriculum;
+  final QuestDailyProgress? dailyProgress;
   final VoidCallback onStartQuest;
+  final VoidCallback onRequestNext;
+  final ValueChanged<int> onChangeDailyQuestCount;
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +140,11 @@ class _CurriculumContent extends StatelessWidget {
             children: [
               _Header(curriculum: curriculum),
               const SizedBox(height: 14),
+              _QuestDailySettingPanel(
+                progress: dailyProgress,
+                onChangeDailyQuestCount: onChangeDailyQuestCount,
+              ),
+              const SizedBox(height: 14),
               for (final module in modules) ...[
                 _ModuleSection(module: module),
                 const SizedBox(height: 12),
@@ -103,29 +155,124 @@ class _CurriculumContent extends StatelessWidget {
         Container(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
           color: _bg,
-          child: SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: FilledButton.icon(
-              onPressed: onStartQuest,
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: const Text('Mulai Quest'),
-              style: FilledButton.styleFrom(
-                backgroundColor: _green,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
+          child: _QuestActionButton(
+            progress: dailyProgress,
+            onStartQuest: onStartQuest,
+            onRequestNext: onRequestNext,
           ),
         ),
       ],
     );
+  }
+}
+
+/// Kartu "misi hari ini" + slider berapa misi per hari yang mau siswa ambil
+/// (1-5, lihat StudentQuestSetting di backend) - mirip pola pengaturan
+/// jumlah kosakata harian di VocabSettingsScreen.
+class _QuestDailySettingPanel extends StatelessWidget {
+  const _QuestDailySettingPanel({
+    required this.progress,
+    required this.onChangeDailyQuestCount,
+  });
+
+  final QuestDailyProgress? progress;
+  final ValueChanged<int> onChangeDailyQuestCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = progress;
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.checklist_rounded, color: _green),
+              const SizedBox(width: 8),
+              Text(
+                data == null
+                    ? 'Misi hari ini'
+                    : 'Misi hari ini: ${data.completedCount}/${data.assignments.length.clamp(1, 99)} selesai',
+                style: const TextStyle(color: _ink, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Text(
+                'Misi per hari:',
+                style: TextStyle(color: Color(0xFF60646F), fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(width: 10),
+              for (var count = 1; count <= 5; count++)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text('$count'),
+                    selected: data?.dailyQuestCount == count,
+                    onSelected: data == null
+                        ? null
+                        : (_) => onChangeDailyQuestCount(count),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QuestActionButton extends StatelessWidget {
+  const _QuestActionButton({
+    required this.progress,
+    required this.onStartQuest,
+    required this.onRequestNext,
+  });
+
+  final QuestDailyProgress? progress;
+  final VoidCallback onStartQuest;
+  final VoidCallback onRequestNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final data = progress;
+    final label = _label(data);
+    final onPressed = _isDone(data) ? null : (data != null && data.canRequestNext
+        ? onRequestNext
+        : onStartQuest);
+
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.play_arrow_rounded),
+        label: Text(label),
+        style: FilledButton.styleFrom(
+          backgroundColor: _green,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+        ),
+      ),
+    );
+  }
+
+  bool _isDone(QuestDailyProgress? data) {
+    if (data == null) return false;
+    return data.assignments.isNotEmpty &&
+        data.completedCount == data.assignments.length &&
+        !data.canRequestNext &&
+        data.assignments.length >= data.dailyQuestCount;
+  }
+
+  String _label(QuestDailyProgress? data) {
+    if (_isDone(data)) return 'Misi hari ini selesai semua';
+    if (data == null || data.assignments.isEmpty) return 'Mulai Quest';
+    if (data.canRequestNext) return 'Misi Lagi';
+    return 'Lanjutkan Quest';
   }
 }
 

@@ -81,6 +81,19 @@ class AuthService {
     await apiClient.post('/student/onboarding/complete', body: answers);
   }
 
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await apiClient.post(
+      '/auth/change-password',
+      body: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      },
+    );
+  }
+
   Future<void> logout() async {
     try {
       await apiClient.post('/auth/logout');

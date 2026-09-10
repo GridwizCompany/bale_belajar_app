@@ -19,6 +19,39 @@ class QuestRepository {
     return QuestSummary.fromJson(data as Map<String, dynamic>);
   }
 
+  /// Berapa misi per hari yang mau siswa ambil (1-5, default 1) - lihat
+  /// StudentQuestSetting di backend.
+  Future<int> fetchDailyQuestCount() async {
+    final data = await _apiClient.get('/student/quests/setting');
+    return (data as Map<String, dynamic>)['dailyQuestCount'] as int;
+  }
+
+  Future<int> updateDailyQuestCount(int dailyQuestCount) async {
+    final data = await _apiClient.put(
+      '/student/quests/setting',
+      body: {'dailyQuestCount': dailyQuestCount},
+    );
+    return (data as Map<String, dynamic>)['dailyQuestCount'] as int;
+  }
+
+  Future<QuestDailyProgress> fetchTodayAll(String worldKey) async {
+    final data = await _apiClient.get(
+      '/student/quests/today-all',
+      query: {'worldKey': worldKey},
+    );
+    return QuestDailyProgress.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// Minta misi tambahan hari ini (sequence 2+) - backend menolak (400) kalau
+  /// sudah menyentuh dailyQuestCount atau misi terakhir belum SUBMITTED.
+  Future<QuestSummary> requestNextQuest(String worldKey) async {
+    final data = await _apiClient.post(
+      '/student/quests/next',
+      query: {'worldKey': worldKey},
+    );
+    return QuestSummary.fromJson(data as Map<String, dynamic>);
+  }
+
   Future<String> startAttempt(String assignmentId) async {
     final data = await _apiClient.post('/student/quests/$assignmentId/start');
     return (data as Map<String, dynamic>)['id'] as String;

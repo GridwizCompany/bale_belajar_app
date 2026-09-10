@@ -9,6 +9,7 @@ import '../data/game_profile_repository.dart';
 import '../data/mastery_repository.dart';
 import '../data/worlds_repository.dart';
 import '../domain/baleverse_models.dart';
+import '../../vocab/presentation/vocab_settings_screen.dart';
 import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/mission_hub_screen.dart';
@@ -179,6 +180,19 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     final backendWorldKey = _selectedBackendWorldKey;
     if (backendWorldKey.isNotEmpty) {
       AudioScope.maybeOf(context)?.playSound(SoundEffectId.pageTransition);
+      // Dunia berkind VOCAB (Dunia Korea/Inggris) tidak punya Quest/Chapter -
+      // WorldCurriculumScreen akan kosong/error kalau dipaksa. "Mulai" untuk
+      // dunia itu berarti buka layar kosakata harian.
+      final selected = _realWorlds.firstWhere(
+        (world) => (world['key'] as String?)?.toLowerCase() == backendWorldKey,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (selected['kind'] == 'VOCAB') {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const VocabSettingsScreen()),
+        );
+        return;
+      }
       Navigator.of(context)
           .push<bool>(
         MaterialPageRoute<bool>(
@@ -374,6 +388,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         gameProfile: _gameProfile,
         masteryAverage: _masteryAverage,
         onSignOut: widget.authController?.signOut,
+        onOpenWorlds: () => _goToTab(BaleTab.worlds),
+        authService: widget.authController?.authService,
       );
     }
 

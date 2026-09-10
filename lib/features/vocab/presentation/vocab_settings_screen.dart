@@ -40,6 +40,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
 
   PermissionStatus? _notifStatus;
   bool _widgetPinned = false;
+  bool _widgetPinSupported = true;
   bool _checkingPermissions = false;
 
   @override
@@ -67,10 +68,12 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
   Future<void> _refreshPermissionStatus() async {
     setState(() => _checkingPermissions = true);
     final status = await _syncService.notificationPermissionStatus();
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
     final pinned = await _syncService.isWidgetPinned();
     if (!mounted) return;
     setState(() {
       _notifStatus = status;
+      _widgetPinSupported = supported;
       _widgetPinned = pinned;
       _checkingPermissions = false;
     });
@@ -176,8 +179,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Launcher ini tidak mendukung tambah widget otomatis. '
-            'Tambahkan lewat tekan-lama layar utama > Widget > Bale Belajar.',
+            'Tambahkan manual: tekan lama layar utama > Widget > Bale Belajar.',
           ),
         ),
       );
@@ -196,8 +198,10 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
         setting.notificationEnabled &&
         notifStatus != null &&
         !notifStatus.isGranted;
-    final showWidgetBanner =
-        !_checkingPermissions && setting.widgetEnabled && !_widgetPinned;
+    final showWidgetBanner = !_checkingPermissions &&
+        setting.widgetEnabled &&
+        _widgetPinSupported &&
+        !_widgetPinned;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
@@ -369,6 +373,8 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
                       ),
                     ],
                   )
+                else if (!_widgetPinSupported)
+                  const _WidgetManualHint()
                 else
                   OutlinedButton.icon(
                     onPressed: _handleAddWidget,
@@ -504,6 +510,35 @@ class _PermissionBanner extends StatelessWidget {
             FilledButton(onPressed: onAction, child: Text(actionLabel)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _WidgetManualHint extends StatelessWidget {
+  const _WidgetManualHint();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEAF7EC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: BaleColors.success.withValues(alpha: 0.35)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.widgets_rounded, color: BaleColors.success, size: 20),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Launcher HP ini tidak bisa ditambah widget otomatis. '
+              'Tekan lama layar utama > Widget > Bale Belajar untuk menambahkannya manual.',
+            ),
+          ),
+        ],
       ),
     );
   }

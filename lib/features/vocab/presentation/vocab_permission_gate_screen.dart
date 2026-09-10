@@ -44,6 +44,7 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
 
   PermissionStatus? _notifStatus;
   bool _widgetPinned = false;
+  bool _widgetPinSupported = true;
   bool _busy = true;
 
   @override
@@ -74,6 +75,7 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
     }
     if (widget.needsWidget) {
       final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
+      _widgetPinSupported = supported;
       if (supported && !(await _syncService.isWidgetPinned())) {
         await _syncService.requestPinWidget();
       }
@@ -86,10 +88,12 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
 
   Future<void> _refreshStatus() async {
     final status = await _syncService.notificationPermissionStatus();
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
     final pinned = await _syncService.isWidgetPinned();
     if (!mounted) return;
     setState(() {
       _notifStatus = status;
+      _widgetPinSupported = supported;
       _widgetPinned = pinned;
       _busy = false;
     });
@@ -148,8 +152,7 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Launcher ini tidak mendukung tambah widget otomatis. '
-            'Tambahkan lewat tekan-lama layar utama > Widget > Bale Belajar.',
+            'Tambahkan manual: tekan lama layar utama > Widget > Bale Belajar.',
           ),
         ),
       );
@@ -163,7 +166,8 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
     final notifStatus = _notifStatus;
     final notifGranted = notifStatus?.isGranted ?? false;
     final notifSatisfied = !widget.needsNotification || notifGranted;
-    final widgetSatisfied = !widget.needsWidget || _widgetPinned;
+    final widgetSatisfied =
+        !widget.needsWidget || !_widgetPinSupported || _widgetPinned;
 
     return Scaffold(
       backgroundColor: BaleColors.soft,
@@ -212,11 +216,25 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
                             if (widget.needsWidget)
                               _GateItem(
                                 icon: Icons.add_to_home_screen_rounded,
-                                title: 'Widget di Home Screen',
+                                title: _widgetPinSupported
+                                    ? 'Widget di Home Screen'
+                                    : 'Widget bisa ditambah manual',
                                 satisfied: widgetSatisfied,
                                 actionLabel: 'Tambahkan',
                                 onAction: _handleAddWidget,
                               ),
+                            if (widget.needsWidget && !_widgetPinSupported) ...[
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Launcher HP ini tidak menerima permintaan tambah widget otomatis. '
+                                'Tambah manual lewat layar utama > Widget > Bale Belajar.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                            ],
                             const Spacer(),
                             const SizedBox(height: 20),
                             FilledButton(

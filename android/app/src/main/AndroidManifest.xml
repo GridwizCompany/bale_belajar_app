@@ -40,7 +40,7 @@
              dan VocabSyncService (Dart) yang menulis datanya. -->
         <receiver
             android:name=".VocabWidgetProvider"
-            android:exported="false">
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.balebelajar.bale_belajar_app.VOCAB_WIDGET_NEXT" />

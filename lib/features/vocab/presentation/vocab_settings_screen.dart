@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
@@ -22,7 +23,8 @@ class VocabSettingsScreen extends StatefulWidget {
   State<VocabSettingsScreen> createState() => _VocabSettingsScreenState();
 }
 
-class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
+class _VocabSettingsScreenState extends State<VocabSettingsScreen>
+    with WidgetsBindingObserver {
   late final VocabRepository _repository =
       widget._repository ?? VocabRepository();
   late final VocabSyncService _syncService =
@@ -36,10 +38,42 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
   List<VocabCategory> _categories = const [];
   List<VocabWord> _todayWords = const [];
 
+  PermissionStatus? _notifStatus;
+  bool _widgetPinned = false;
+  bool _checkingPermissions = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // User mungkin baru balik dari system settings (izin notifikasi) atau
+    // dari home screen (setelah nambah widget) - cek ulang statusnya.
+    if (state == AppLifecycleState.resumed) {
+      _refreshPermissionStatus();
+    }
+  }
+
+  Future<void> _refreshPermissionStatus() async {
+    setState(() => _checkingPermissions = true);
+    final status = await _syncService.notificationPermissionStatus();
+    final pinned = await _syncService.isWidgetPinned();
+    if (!mounted) return;
+    setState(() {
+      _notifStatus = status;
+      _widgetPinned = pinned;
+      _checkingPermissions = false;
+    });
   }
 
   Future<void> _load() async {
@@ -58,28 +92,12 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
         _categories = results[1] as List<VocabCategory>;
         _todayWords = (results[2] as DailyVocab).words;
       });
+      await _refreshPermissionStatus();
     } catch (error) {
       setState(() => _error = 'Gagal memuat pengaturan kosakata: $error');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _requestPinWidget() async {
-    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
-    if (!mounted) return;
-    if (!supported) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Launcher ini tidak mendukung tambah widget otomatis. '
-            'Tambahkan lewat tekan-lama layar utama > Widget > Bale Belajar.',
-          ),
-        ),
-      );
-      return;
-    }
-    await HomeWidget.requestPinWidget(androidName: 'VocabWidgetProvider');
   }
 
   Future<void> _persist(VocabSetting updated) async {
@@ -103,6 +121,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
       await _syncService.syncToday(force: true);
       final daily = await _repository.fetchDaily();
       if (mounted) setState(() => _todayWords = daily.words);
+      await _refreshPermissionStatus();
     } catch (error) {
       setState(() => _setting = previous);
       if (mounted) {
@@ -127,11 +146,81 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
     );
   }
 
+  Future<void> _handleEnableNotifications() async {
+    final status = await _syncService.requestNotificationPermission();
+    if (!mounted) return;
+    setState(() => _notifStatus = status);
+    if (status.isPermanentlyDenied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notifikasi ditolak permanen. Aktifkan manual lewat Pengaturan.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleOpenNotificationSettings() async {
+    await _syncService.openNotificationSettings();
+  }
+
+  Future<void> _handleAddWidget() async {
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
+    if (!mounted) return;
+    if (!supported) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Launcher ini tidak mendukung tambah widget otomatis. '
+            'Tambahkan lewat tekan-lama layar utama > Widget > Bale Belajar.',
+          ),
+        ),
+      );
+      return;
+    }
+    await _syncService.requestPinWidget();
+    // Pemasangan widget dikonfirmasi user di dialog OS, bukan langsung -
+    // status baru bisa dicek ulang begitu app kembali ke foreground
+    // (lihat didChangeAppLifecycleState).
+  }
+
   Widget _buildContent(BuildContext context) {
     final setting = _setting!;
+    final notifStatus = _notifStatus;
+    final showNotifBanner =
+        !_checkingPermissions &&
+        setting.notificationEnabled &&
+        notifStatus != null &&
+        !notifStatus.isGranted;
+    final showWidgetBanner =
+        !_checkingPermissions && setting.widgetEnabled && !_widgetPinned;
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
+        if (showNotifBanner)
+          _PermissionBanner(
+            title: 'Notifikasi belum diizinkan',
+            message: notifStatus.isPermanentlyDenied
+                ? 'Kamu menolak izin notifikasi. Aktifkan manual lewat Pengaturan HP supaya pengingat kosakata harian bisa muncul.'
+                : 'Izinkan notifikasi supaya kosakata harian bisa mengingatkanmu lewat notifikasi.',
+            actionLabel: notifStatus.isPermanentlyDenied
+                ? 'Buka Pengaturan'
+                : 'Izinkan Notifikasi',
+            onAction: notifStatus.isPermanentlyDenied
+                ? _handleOpenNotificationSettings
+                : _handleEnableNotifications,
+          ),
+        if (showWidgetBanner)
+          _PermissionBanner(
+            title: 'Widget belum ditambahkan',
+            message:
+                'Tambahkan widget kosakata ke home screen supaya kata hari ini selalu kelihatan tanpa buka app.',
+            actionLabel: 'Tambahkan Widget',
+            onAction: _handleAddWidget,
+          ),
+        if (showNotifBanner || showWidgetBanner) const SizedBox(height: 14),
         if (_todayWords.isNotEmpty) _TodayPreviewCard(words: _todayWords),
         const SizedBox(height: 14),
         BaleCard(
@@ -245,11 +334,21 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
               ),
               if (setting.widgetEnabled) ...[
                 const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _requestPinWidget,
-                  icon: const Icon(Icons.add_to_home_screen_rounded),
-                  label: const Text('Tambahkan Widget ke Home Screen'),
-                ),
+                if (_widgetPinned)
+                  const Row(
+                    children: [
+                      Icon(Icons.check_circle_rounded,
+                          color: BaleColors.success, size: 18),
+                      SizedBox(width: 8),
+                      Text('Widget sudah terpasang di home screen'),
+                    ],
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: _handleAddWidget,
+                    icon: const Icon(Icons.add_to_home_screen_rounded),
+                    label: const Text('Tambahkan Widget ke Home Screen'),
+                  ),
               ],
             ],
           ),
@@ -331,6 +430,52 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _PermissionBanner extends StatelessWidget {
+  const _PermissionBanner({
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+  });
+
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: BaleCard(
+        color: const Color(0xFFFFF1E0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.notifications_active_rounded,
+                    color: BaleColors.warning),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(message, style: Theme.of(context).textTheme.bodyMedium),
+            const SizedBox(height: 10),
+            FilledButton(onPressed: onAction, child: Text(actionLabel)),
+          ],
+        ),
+      ),
     );
   }
 }

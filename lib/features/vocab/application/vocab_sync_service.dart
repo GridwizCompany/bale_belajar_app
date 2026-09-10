@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:home_widget/home_widget.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -18,11 +19,22 @@ import '../domain/vocab_models.dart';
 /// widget menampilkan kosakata "sampai hari terakhir app dibuka", bukan
 /// benar-benar refresh sendiri di tengah malam kalau app tidak pernah dibuka
 /// hari itu.
+///
+/// Izin notifikasi dan pemasangan widget SENGAJA diminta secara aktif (bukan
+/// menunggu user membuka halaman setting): begitu sync pertama kali berhasil
+/// dan fitur terkait masih ON, OS diminta menampilkan dialog izin/pasang-widget
+/// langsung (lihat [_maybeRequestNotificationPermission] & [_maybeRequestPinWidget]).
+/// Ini hanya terjadi SEKALI per perangkat (ditandai di SharedPreferences) supaya
+/// tidak menyebalkan kalau user sudah menolak - status tetap bisa dicek ulang
+/// dan diminta manual lewat [notificationPermissionStatus]/[requestPinWidget]
+/// di layar pengaturan.
 class VocabSyncService {
   VocabSyncService({VocabRepository? repository})
       : _repository = repository ?? VocabRepository();
 
   static const _prefsDateKey = 'vocab_sync_date';
+  static const _prefsNotifAskedKey = 'vocab_notif_permission_asked';
+  static const _prefsWidgetAskedKey = 'vocab_widget_pin_asked';
   static const _androidWidgetProvider = 'VocabWidgetProvider';
   static const _notificationChannelId = 'vocab_daily';
   static const _notificationBaseId = 6100;
@@ -55,12 +67,42 @@ class VocabSyncService {
     await _notifications.initialize(
       settings: const InitializationSettings(android: androidInit, iOS: iosInit),
     );
-    await _notifications
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
     _notificationsInitialized = true;
   }
+
+  /// Status izin notifikasi OS saat ini - dipakai layar setting untuk
+  /// menampilkan banner "belum diizinkan" dengan tombol yang sesuai.
+  Future<PermissionStatus> notificationPermissionStatus() =>
+      Permission.notification.status;
+
+  /// Minta izin notifikasi lewat dialog OS. Kalau sebelumnya sudah ditolak
+  /// permanen ("Jangan tanya lagi"), OS tidak akan menampilkan dialog lagi -
+  /// di kondisi itu layar setting harus arahkan user ke [openNotificationSettings].
+  Future<PermissionStatus> requestNotificationPermission() =>
+      Permission.notification.request();
+
+  Future<bool> openNotificationSettings() => openAppSettings();
+
+  /// Apakah widget kosakata sudah benar-benar ditaruh di home screen (bukan
+  /// cuma "tersedia untuk ditaruh").
+  Future<bool> isWidgetPinned() async {
+    try {
+      final widgets = await HomeWidget.getInstalledWidgets();
+      return widgets.any(
+        (widget) =>
+            (widget.androidClassName ?? '').contains(_androidWidgetProvider),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Minta OS menampilkan dialog "Tambahkan ke Home Screen" untuk widget
+  /// kosakata. Hanya didukung sebagian launcher Android 8+ - layar setting
+  /// harus punya fallback instruksi manual kalau [HomeWidget.isRequestPinWidgetSupported]
+  /// mengembalikan false.
+  Future<void> requestPinWidget() =>
+      HomeWidget.requestPinWidget(androidName: _androidWidgetProvider);
 
   /// Panggil setelah user login dan setiap kali app kembali ke foreground.
   /// [force] = true dipakai setelah pengaturan diubah supaya sinkronisasi
@@ -79,8 +121,42 @@ class VocabSyncService {
     }
 
     await prefs.setString(_prefsDateKey, today);
+    await _maybeRequestNotificationPermission(daily, prefs);
     await _updateWidget(daily);
     await _updateNotifications(daily);
+    await _maybeRequestPinWidget(daily, prefs);
+  }
+
+  /// Begitu kosakata harian pertama kali berhasil disinkronkan dan
+  /// notifikasi masih ON, langsung minta izin OS - jangan tunggu user
+  /// buka halaman setting duluan. Hanya sekali seumur install.
+  Future<void> _maybeRequestNotificationPermission(
+    DailyVocab daily,
+    SharedPreferences prefs,
+  ) async {
+    if (!daily.setting.notificationEnabled) return;
+    if (prefs.getBool(_prefsNotifAskedKey) == true) return;
+    await prefs.setBool(_prefsNotifAskedKey, true);
+    final status = await Permission.notification.status;
+    if (status.isDenied) {
+      await Permission.notification.request();
+    }
+  }
+
+  /// Sama seperti notifikasi - begitu widget masih ON dan belum pernah
+  /// ditaruh di home screen, langsung tawarkan lewat dialog OS. Hanya
+  /// sekali seumur install supaya tidak menyebalkan kalau user menolak.
+  Future<void> _maybeRequestPinWidget(
+    DailyVocab daily,
+    SharedPreferences prefs,
+  ) async {
+    if (!daily.setting.widgetEnabled) return;
+    if (prefs.getBool(_prefsWidgetAskedKey) == true) return;
+    await prefs.setBool(_prefsWidgetAskedKey, true);
+    if (await isWidgetPinned()) return;
+    final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
+    if (!supported) return;
+    await requestPinWidget();
   }
 
   Future<void> _updateWidget(DailyVocab daily) async {

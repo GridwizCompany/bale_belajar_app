@@ -19,19 +19,17 @@
             android:layout_height="32dp"
             android:background="@drawable/vocab_widget_badge_background"
             android:gravity="center"
-            android:text="한"
+            android:text="&#54620;"
             android:textColor="#0E3A5F"
             android:textSize="16sp"
             android:textStyle="bold" />
-
-        <Space
-            android:layout_width="8dp"
-            android:layout_height="1dp" />
 
         <TextView
             android:id="@+id/vocab_widget_title"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginLeft="8dp"
             android:layout_weight="1"
             android:ellipsize="end"
             android:maxLines="1"
@@ -76,7 +74,7 @@
         android:layout_marginTop="2dp"
         android:ellipsize="end"
         android:maxLines="2"
-        android:text="안녕하세요 (annyeonghaseyo)"
+        android:text="annyeonghaseyo"
         android:textColor="#8D5E34"
         android:textSize="15sp" />
 
@@ -87,7 +85,7 @@
         android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
-        android:text="1/5 • ketuk kartu untuk kata berikutnya"
+        android:text="1/5 &#8226; ketuk kartu untuk kata berikutnya"
         android:textColor="#475569"
         android:textSize="10sp" />
 </LinearLayout>

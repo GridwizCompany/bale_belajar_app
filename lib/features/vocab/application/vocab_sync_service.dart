@@ -119,13 +119,27 @@ class VocabSyncService {
     try {
       daily = await _repository.fetchDaily();
     } catch (error) {
-      if (kDebugMode) debugPrint('VocabSyncService.syncToday gagal: $error');
+      if (kDebugMode) {
+        debugPrint('VocabSyncService.syncToday gagal: $error');
+      }
       return null;
     }
 
     await prefs.setString(_prefsDateKey, today);
-    await _updateWidget(daily);
-    await _updateNotifications(daily);
+    try {
+      await _updateWidget(daily);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('VocabSyncService._updateWidget gagal: $error');
+      }
+    }
+    try {
+      await _updateNotifications(daily);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('VocabSyncService._updateNotifications gagal: $error');
+      }
+    }
     return daily;
   }
 

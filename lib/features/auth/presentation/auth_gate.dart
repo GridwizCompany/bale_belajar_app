@@ -89,17 +89,32 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
   // widgetEnabled terbaru dari akun ini), lalu cek status izin OS yang
   // sesungguhnya, baru putuskan perlu tampilkan gate atau tidak.
   Future<void> _evaluateVocabGate() async {
-    final daily = await _vocabSyncService.syncToday(force: true);
-    final notifStatus = await _vocabSyncService.notificationPermissionStatus();
-    final widgetPinned = await _vocabSyncService.isWidgetPinned();
-    if (!mounted) return;
-    setState(() {
-      _vocabGateNeedsNotification =
-          (daily?.setting.notificationEnabled ?? true) && !notifStatus.isGranted;
-      _vocabGateNeedsWidget =
-          (daily?.setting.widgetEnabled ?? true) && !widgetPinned;
-      _vocabGateResolved = true;
-    });
+    try {
+      final daily = await _vocabSyncService
+          .syncToday(force: true)
+          .timeout(const Duration(seconds: 10), onTimeout: () => null);
+      final notifStatus =
+          await _vocabSyncService.notificationPermissionStatus();
+      final widgetPinned = await _vocabSyncService.isWidgetPinned();
+      if (!mounted) return;
+      setState(() {
+        _vocabGateNeedsNotification =
+            (daily?.setting.notificationEnabled ?? true) &&
+                !notifStatus.isGranted;
+        _vocabGateNeedsWidget =
+            (daily?.setting.widgetEnabled ?? true) && !widgetPinned;
+        _vocabGateResolved = true;
+      });
+    } catch (_) {
+      // Jangan sampai fitur opsional kosakata menahan user di layar kosong
+      // setelah login. Settings kosakata tetap bisa dibuka ulang dari profil.
+      if (!mounted) return;
+      setState(() {
+        _vocabGateNeedsNotification = false;
+        _vocabGateNeedsWidget = false;
+        _vocabGateResolved = true;
+      });
+    }
   }
 
   @override
@@ -150,9 +165,8 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       // daripada kelap-kelip nampilin dashboard lalu langsung ketutup gate.
       return const BaleSplashScreen();
     }
-    final needsGate =
-        (_vocabGateNeedsNotification || _vocabGateNeedsWidget) &&
-            !_vocabGateDismissedThisSession;
+    final needsGate = (_vocabGateNeedsNotification || _vocabGateNeedsWidget) &&
+        !_vocabGateDismissedThisSession;
     if (needsGate) {
       return VocabPermissionGateScreen(
         needsNotification: _vocabGateNeedsNotification,

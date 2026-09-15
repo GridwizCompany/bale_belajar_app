@@ -179,22 +179,6 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
 
   Future<void> _handleShowLockScreenNow() async {
     final messenger = ScaffoldMessenger.of(context);
-    var status =
-        _notifStatus ?? await _syncService.notificationPermissionStatus();
-    if (!status.isGranted) {
-      status = await _syncService.requestNotificationPermission();
-      if (!mounted) return;
-      setState(() => _notifStatus = status);
-    }
-    if (!status.isGranted) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Izinkan notifikasi dulu supaya vocab bisa tampil.'),
-        ),
-      );
-      return;
-    }
-
     final daily = await _syncService.showLockScreenNow();
     if (!mounted) return;
     if (daily == null || daily.words.isEmpty) {
@@ -209,7 +193,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
     setState(() => _todayWords = daily.words);
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('Vocab sudah dikirim ke notifikasi lock screen.'),
+        content: Text('Wallpaper lock screen kosakata sudah dipasang.'),
       ),
     );
   }
@@ -373,7 +357,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Notifikasi & Widget',
+              Text('Lock Screen & Widget',
                   style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               if (_todayWords.isNotEmpty) ...[
@@ -382,26 +366,24 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
               ],
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Notifikasi harian'),
+                title: const Text('Wallpaper lock screen harian'),
                 subtitle: const Text(
-                    'Kirim pengingat kosakata di rentang jam di atas'),
+                    'Pasang kosakata Korea di lock screen dan ganti per jam'),
                 value: setting.notificationEnabled,
                 onChanged: _saving
                     ? null
                     : (value) =>
                         _persist(setting.copyWith(notificationEnabled: value)),
               ),
-              if (setting.notificationEnabled) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  onPressed: _saving ? null : _handleShowLockScreenNow,
-                  icon: const Icon(Icons.lock_rounded),
-                  label: const Text(
-                    'Tampilkan di Lock Screen Sekarang',
-                    overflow: TextOverflow.ellipsis,
-                  ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _saving ? null : _handleShowLockScreenNow,
+                icon: const Icon(Icons.wallpaper_rounded),
+                label: const Text(
+                  'Pasang Wallpaper Lock Screen',
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Widget home-screen'),

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../../../core/api/api_client.dart';
 import '../../../core/auth/token_store.dart';
@@ -93,24 +92,20 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
       final daily = await _vocabSyncService
           .syncToday(force: true)
           .timeout(const Duration(seconds: 10), onTimeout: () => null);
-      final notifStatus =
-          await _vocabSyncService.notificationPermissionStatus();
       final widgetPinned = await _vocabSyncService.isWidgetPinned();
       if (!mounted) return;
       setState(() {
-        _vocabGateNeedsNotification =
-            (daily?.setting.notificationEnabled ?? true) &&
-                !notifStatus.isGranted;
+        _vocabGateNeedsNotification = false;
         _vocabGateNeedsWidget =
             (daily?.setting.widgetEnabled ?? true) && !widgetPinned;
         _vocabGateResolved = true;
       });
     } catch (_) {
-      // Mode lock-screen vocab dipaksa: walau sync backend gagal sementara,
-      // tetap tahan di gate notifikasi agar user tidak lewat tanpa izin.
+      // Wallpaper lock-screen dipasang dari syncToday. Kalau backend sedang
+      // gagal, jangan tahan user di gate kosong.
       if (!mounted) return;
       setState(() {
-        _vocabGateNeedsNotification = true;
+        _vocabGateNeedsNotification = false;
         _vocabGateNeedsWidget = false;
         _vocabGateResolved = true;
       });

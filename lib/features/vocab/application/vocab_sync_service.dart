@@ -1,14 +1,10 @@
 import 'dart:convert';
-import 'dart:ui';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest.dart' as tz_data;
-import 'package:timezone/timezone.dart' as tz;
 
 import '../data/vocab_repository.dart';
 import '../domain/vocab_models.dart';
@@ -35,30 +31,18 @@ class VocabSyncService {
 
   static const _prefsDateKey = 'vocab_sync_date';
   static const _androidWidgetProvider = 'VocabWidgetProvider';
-  static const _notificationChannelId = 'vocab_lock_screen_v2';
   static const _notificationCurrentId = 6100;
   static const _notificationScheduledBaseId = 6110;
   static const _maxScheduledNotifications = 24;
+  static const _wallpaperChannel = MethodChannel(
+    'com.balebelajar.bale_belajar_app/vocab_lock_wallpaper',
+  );
 
   final VocabRepository _repository;
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
-  bool _timezoneReady = false;
   bool _notificationsInitialized = false;
-
-  Future<void> _ensureTimezoneReady() async {
-    if (_timezoneReady) return;
-    tz_data.initializeTimeZones();
-    try {
-      final timezoneInfo = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timezoneInfo.identifier));
-    } catch (_) {
-      // Fallback aman kalau device timezone tidak dikenali tzdata.
-      tz.setLocalLocation(tz.getLocation('Asia/Jakarta'));
-    }
-    _timezoneReady = true;
-  }
 
   Future<void> _ensureNotificationsReady() async {
     if (_notificationsInitialized) return;
@@ -114,7 +98,16 @@ class VocabSyncService {
   Future<DailyVocab?> syncToday({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (!force && prefs.getString(_prefsDateKey) == today) return null;
+    if (!force && prefs.getString(_prefsDateKey) == today) {
+      try {
+        await _wallpaperChannel.invokeMethod<bool>('setCurrent');
+      } catch (error) {
+        if (kDebugMode) {
+          debugPrint('VocabSyncService.restoreWallpaper gagal: $error');
+        }
+      }
+      return null;
+    }
 
     DailyVocab daily;
     try {
@@ -135,23 +128,18 @@ class VocabSyncService {
       }
     }
     try {
-      await _updateNotifications(daily);
+      await _updateLockWallpaper(daily);
     } catch (error) {
       if (kDebugMode) {
-        debugPrint('VocabSyncService._updateNotifications gagal: $error');
+        debugPrint('VocabSyncService._updateLockWallpaper gagal: $error');
       }
     }
+    await _cancelNotifications();
     return daily;
   }
 
   Future<void> _updateWidget(DailyVocab daily) async {
     final setting = daily.setting;
-    if (!setting.widgetEnabled || daily.words.isEmpty) {
-      await HomeWidget.saveWidgetData<bool>('vocab_widget_enabled', false);
-      await HomeWidget.updateWidget(androidName: _androidWidgetProvider);
-      return;
-    }
-
     final wordsJson = jsonEncode(
       daily.words
           .map((word) => {
@@ -163,7 +151,10 @@ class VocabSyncService {
           .toList(),
     );
 
-    await HomeWidget.saveWidgetData<bool>('vocab_widget_enabled', true);
+    await HomeWidget.saveWidgetData<bool>(
+      'vocab_widget_enabled',
+      setting.widgetEnabled && daily.words.isNotEmpty,
+    );
     await HomeWidget.saveWidgetData<String>(
       'vocab_display_language',
       setting.displayLanguage.apiValue,
@@ -175,58 +166,12 @@ class VocabSyncService {
     await HomeWidget.updateWidget(androidName: _androidWidgetProvider);
   }
 
-  Future<void> _updateNotifications(DailyVocab daily) async {
-    await _ensureTimezoneReady();
-    await _ensureNotificationsReady();
-
-    await _notifications.cancel(id: _notificationCurrentId);
-    for (var i = 0; i < _maxScheduledNotifications; i++) {
-      await _notifications.cancel(id: _notificationScheduledBaseId + i);
-    }
-
-    final setting = daily.setting;
-    if (!setting.notificationEnabled || daily.words.isEmpty) return;
-
-    final words = daily.words.take(_maxScheduledNotifications).toList();
-    final now = tz.TZDateTime.now(tz.local);
-    final currentWord = words.first;
-
-    await _notifications.show(
-      id: _notificationCurrentId,
-      title: currentWord.korean,
-      body: _lockScreenBody(currentWord),
-      notificationDetails:
-          _lockScreenNotificationDetails(currentWord, persistent: true),
-      payload: currentWord.id,
-    );
-
-    final slots = _upcomingHourlySlots(
-      now: now,
-      startHour: setting.notificationStartHour,
-      endHour: setting.notificationEndHour,
-      maxSlots: words.length - 1,
-    );
-
-    for (var i = 0; i < slots.length; i++) {
-      final word = words[i + 1];
-      await _notifications.zonedSchedule(
-        id: _notificationScheduledBaseId + i,
-        scheduledDate: slots[i],
-        title: word.korean,
-        body: _lockScreenBody(word),
-        notificationDetails: _lockScreenNotificationDetails(word),
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        payload: word.id,
-      );
-    }
-  }
-
   Future<DailyVocab?> showLockScreenNow() async {
-    final status = await notificationPermissionStatus();
-    if (!status.isGranted) return null;
     try {
       final daily = await _repository.fetchDaily();
-      await _updateNotifications(daily);
+      await _updateWidget(daily);
+      await _updateLockWallpaper(daily);
+      await _cancelNotifications();
       return daily;
     } catch (error) {
       if (kDebugMode) {
@@ -236,71 +181,24 @@ class VocabSyncService {
     }
   }
 
-  NotificationDetails _lockScreenNotificationDetails(
-    VocabWord word, {
-    bool persistent = false,
-  }) {
-    final body = _lockScreenBody(word);
-    return NotificationDetails(
-      android: AndroidNotificationDetails(
-        _notificationChannelId,
-        'Kosakata Lock Screen',
-        channelDescription:
-            'Kosakata Korea yang tampil di lock screen dan berubah tiap jam',
-        importance: Importance.max,
-        priority: Priority.high,
-        category: AndroidNotificationCategory.reminder,
-        visibility: NotificationVisibility.public,
-        autoCancel: false,
-        ongoing: persistent,
-        channelShowBadge: false,
-        onlyAlertOnce: true,
-        showWhen: false,
-        timeoutAfter:
-            persistent ? null : const Duration(minutes: 65).inMilliseconds,
-        color: const Color(0xFFF4B400),
-        ticker: word.korean,
-        styleInformation: BigTextStyleInformation(
-          body,
-          contentTitle: word.korean,
-          summaryText: 'BaleBelajar Korea',
-        ),
-      ),
-      iOS: const DarwinNotificationDetails(),
-    );
-  }
-
-  List<tz.TZDateTime> _upcomingHourlySlots({
-    required tz.TZDateTime now,
-    required int startHour,
-    required int endHour,
-    required int maxSlots,
-  }) {
-    final normalizedEnd = endHour <= startHour ? startHour + 1 : endHour;
-    var cursor = tz.TZDateTime(tz.local, now.year, now.month, now.day, now.hour)
-        .add(const Duration(hours: 1));
-    final firstAllowed =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour);
-    final lastAllowed =
-        tz.TZDateTime(tz.local, now.year, now.month, now.day, normalizedEnd);
-    if (cursor.isBefore(firstAllowed)) cursor = firstAllowed;
-
-    final slots = <tz.TZDateTime>[];
-    while (cursor.isBefore(lastAllowed) && slots.length < maxSlots) {
-      slots.add(cursor);
-      cursor = cursor.add(const Duration(hours: 1));
+  Future<void> _updateLockWallpaper(DailyVocab daily) async {
+    if (daily.words.isEmpty) {
+      await _wallpaperChannel.invokeMethod<bool>('cancelHourly');
+      return;
     }
-    return slots;
+    await _wallpaperChannel.invokeMethod<bool>('setCurrent');
   }
 
-  String _lockScreenBody(VocabWord word) {
-    final romanized =
-        word.koreanRomanized != null ? '(${word.koreanRomanized})' : '';
-    return [
-      if (romanized.isNotEmpty) romanized,
-      'EN: ${word.english}',
-      'ID: ${_indonesianMeaning(word)}',
-    ].join('\n');
+  Future<void> _cancelNotifications() async {
+    try {
+      await _ensureNotificationsReady();
+      await _notifications.cancel(id: _notificationCurrentId);
+      for (var i = 0; i < _maxScheduledNotifications; i++) {
+        await _notifications.cancel(id: _notificationScheduledBaseId + i);
+      }
+    } catch (_) {
+      // Notification cleanup is best-effort; wallpaper should keep working.
+    }
   }
 
   String _indonesianMeaning(VocabWord word) {

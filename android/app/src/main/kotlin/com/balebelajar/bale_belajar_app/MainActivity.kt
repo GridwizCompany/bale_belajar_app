@@ -14,9 +14,13 @@ class MainActivity : FlutterActivity() {
       try {
         when (call.method) {
           "setCurrent" -> {
-            VocabLockScreenWallpaper.renderCurrent(this)
-            VocabLockScreenWallpaper.scheduleHourly(this)
-            result.success(true)
+            val wordsJson = call.argument<String>("wordsJson")
+            if (!wordsJson.isNullOrBlank()) {
+              VocabLockScreenWallpaper.saveWords(this, wordsJson)
+            }
+            val changed = VocabLockScreenWallpaper.renderCurrent(this)
+            if (changed) VocabLockScreenWallpaper.scheduleHourly(this)
+            result.success(changed)
           }
           "scheduleHourly" -> {
             VocabLockScreenWallpaper.scheduleHourly(this)

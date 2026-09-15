@@ -120,15 +120,16 @@ class VocabSyncService {
     }
 
     await prefs.setString(_prefsDateKey, today);
+    final wordsJson = _encodeWords(daily);
     try {
-      await _updateWidget(daily);
+      await _updateWidget(daily, wordsJson: wordsJson);
     } catch (error) {
       if (kDebugMode) {
         debugPrint('VocabSyncService._updateWidget gagal: $error');
       }
     }
     try {
-      await _updateLockWallpaper(daily);
+      await _updateLockWallpaper(daily, wordsJson: wordsJson);
     } catch (error) {
       if (kDebugMode) {
         debugPrint('VocabSyncService._updateLockWallpaper gagal: $error');
@@ -138,9 +139,8 @@ class VocabSyncService {
     return daily;
   }
 
-  Future<void> _updateWidget(DailyVocab daily) async {
-    final setting = daily.setting;
-    final wordsJson = jsonEncode(
+  String _encodeWords(DailyVocab daily) {
+    return jsonEncode(
       daily.words
           .map((word) => {
                 'english': word.english,
@@ -150,7 +150,13 @@ class VocabSyncService {
               })
           .toList(),
     );
+  }
 
+  Future<void> _updateWidget(
+    DailyVocab daily, {
+    required String wordsJson,
+  }) async {
+    final setting = daily.setting;
     await HomeWidget.saveWidgetData<bool>(
       'vocab_widget_enabled',
       setting.widgetEnabled && daily.words.isNotEmpty,
@@ -169,8 +175,9 @@ class VocabSyncService {
   Future<DailyVocab?> showLockScreenNow() async {
     try {
       final daily = await _repository.fetchDaily();
-      await _updateWidget(daily);
-      await _updateLockWallpaper(daily);
+      final wordsJson = _encodeWords(daily);
+      await _updateWidget(daily, wordsJson: wordsJson);
+      await _updateLockWallpaper(daily, wordsJson: wordsJson);
       await _cancelNotifications();
       return daily;
     } catch (error) {
@@ -181,12 +188,21 @@ class VocabSyncService {
     }
   }
 
-  Future<void> _updateLockWallpaper(DailyVocab daily) async {
+  Future<void> _updateLockWallpaper(
+    DailyVocab daily, {
+    required String wordsJson,
+  }) async {
     if (daily.words.isEmpty) {
       await _wallpaperChannel.invokeMethod<bool>('cancelHourly');
       return;
     }
-    await _wallpaperChannel.invokeMethod<bool>('setCurrent');
+    final changed = await _wallpaperChannel.invokeMethod<bool>(
+      'setCurrent',
+      {'wordsJson': wordsJson},
+    );
+    if (changed != true) {
+      throw StateError('Wallpaper tidak berubah karena data vocab kosong.');
+    }
   }
 
   Future<void> _cancelNotifications() async {

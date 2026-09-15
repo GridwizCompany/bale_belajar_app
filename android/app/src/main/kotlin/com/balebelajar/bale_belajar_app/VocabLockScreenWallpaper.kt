@@ -25,10 +25,19 @@ object VocabLockScreenWallpaper {
   private const val KEY_WORDS_JSON = "vocab_words_json"
   private const val KEY_LOCK_INDEX = "vocab_lock_wallpaper_index"
 
-  fun renderCurrent(context: Context, word: VocabWallpaperWord? = null) {
+  fun saveWords(context: Context, wordsJson: String) {
+    context
+        .getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        .edit()
+        .putString(KEY_WORDS_JSON, wordsJson)
+        .putInt(KEY_LOCK_INDEX, 0)
+        .apply()
+  }
+
+  fun renderCurrent(context: Context, word: VocabWallpaperWord? = null): Boolean {
     val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     val words = parseWords(prefs.getString(KEY_WORDS_JSON, null))
-    val selected = word ?: words.firstOrNull() ?: return
+    val selected = word ?: words.firstOrNull() ?: return false
     val bitmap = drawWallpaper(context, selected)
     val wallpaperManager = WallpaperManager.getInstance(context)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -36,6 +45,7 @@ object VocabLockScreenWallpaper {
     } else {
       wallpaperManager.setBitmap(bitmap)
     }
+    return true
   }
 
   fun renderNext(context: Context) {

@@ -140,8 +140,9 @@ class VocabSyncService {
   }
 
   String _encodeWords(DailyVocab daily) {
+    final words = daily.words.where(_isSingleVocabWord);
     return jsonEncode(
-      daily.words
+      words
           .map((word) => {
                 'english': word.english,
                 'indonesian': _indonesianMeaning(word),
@@ -152,14 +153,24 @@ class VocabSyncService {
     );
   }
 
+  bool _isSingleVocabWord(VocabWord word) {
+    final english = word.english.trim();
+    final korean = word.korean.trim();
+    if (english.isEmpty || korean.isEmpty) return false;
+    final englishIsOneWord = RegExp(r"^[A-Za-z][A-Za-z'-]*$").hasMatch(english);
+    final koreanHasNoSpacing = !RegExp(r'\s').hasMatch(korean);
+    return englishIsOneWord && koreanHasNoSpacing;
+  }
+
   Future<void> _updateWidget(
     DailyVocab daily, {
     required String wordsJson,
   }) async {
     final setting = daily.setting;
+    final hasWords = _hasEncodedWords(wordsJson);
     await HomeWidget.saveWidgetData<bool>(
       'vocab_widget_enabled',
-      setting.widgetEnabled && daily.words.isNotEmpty,
+      setting.widgetEnabled && hasWords,
     );
     await HomeWidget.saveWidgetData<String>(
       'vocab_display_language',
@@ -192,7 +203,7 @@ class VocabSyncService {
     DailyVocab daily, {
     required String wordsJson,
   }) async {
-    if (daily.words.isEmpty) {
+    if (daily.words.isEmpty || !_hasEncodedWords(wordsJson)) {
       await _wallpaperChannel.invokeMethod<bool>('cancelHourly');
       return;
     }
@@ -203,6 +214,11 @@ class VocabSyncService {
     if (changed != true) {
       throw StateError('Wallpaper tidak berubah karena data vocab kosong.');
     }
+  }
+
+  bool _hasEncodedWords(String wordsJson) {
+    final decoded = jsonDecode(wordsJson);
+    return decoded is List && decoded.isNotEmpty;
   }
 
   Future<void> _cancelNotifications() async {

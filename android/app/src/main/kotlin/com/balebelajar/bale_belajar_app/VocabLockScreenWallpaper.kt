@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.graphics.LinearGradient
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.Shader
 import android.graphics.Typeface
 import android.os.Build
@@ -24,6 +25,7 @@ object VocabLockScreenWallpaper {
   private const val PREFERENCES_NAME = "HomeWidgetPreferences"
   private const val KEY_WORDS_JSON = "vocab_words_json"
   private const val KEY_LOCK_INDEX = "vocab_lock_wallpaper_index"
+  private const val WALLPAPER_INTERVAL_MS = 30L * 60L * 1000L
 
   fun saveWords(context: Context, wordsJson: String) {
     context
@@ -61,11 +63,11 @@ object VocabLockScreenWallpaper {
   fun scheduleHourly(context: Context) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val pendingIntent = updatePendingIntent(context)
-    val nextHour = System.currentTimeMillis() + AlarmManager.INTERVAL_HOUR
+    val nextUpdate = System.currentTimeMillis() + WALLPAPER_INTERVAL_MS
     alarmManager.setInexactRepeating(
         AlarmManager.RTC_WAKEUP,
-        nextHour,
-        AlarmManager.INTERVAL_HOUR,
+        nextUpdate,
+        WALLPAPER_INTERVAL_MS,
         pendingIntent,
     )
   }
@@ -104,7 +106,12 @@ object VocabLockScreenWallpaper {
           0f,
           0f,
           height.toFloat(),
-          intArrayOf(skyTop[random.nextInt(skyTop.size)], skyMid[random.nextInt(skyMid.size)], horizon[random.nextInt(horizon.size)], 0xFF111827.toInt()),
+          intArrayOf(
+              skyTop[random.nextInt(skyTop.size)],
+              skyMid[random.nextInt(skyMid.size)],
+              horizon[random.nextInt(horizon.size)],
+              0xFF111827.toInt(),
+          ),
           floatArrayOf(0f, 0.52f, 0.74f, 1f),
           Shader.TileMode.CLAMP,
       )
@@ -123,41 +130,94 @@ object VocabLockScreenWallpaper {
   }
 
   private fun drawVocabulary(canvas: Canvas, width: Int, height: Int, word: VocabWallpaperWord) {
-    val left = width * 0.17f
-    val top = height * 0.43f
+    val cardLeft = width * 0.60f
+    val cardRight = width * 0.96f
+    val cardTop = height * 0.215f
+    val cardBottom = height * 0.335f
+    val card = RectF(cardLeft, cardTop, cardRight, cardBottom)
+    val cardPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0x24000000 }
+    val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+      color = 0x26FFFFFF
+      style = Paint.Style.STROKE
+      strokeWidth = max(1.5f, width * 0.0018f)
+    }
+    val radius = width * 0.030f
+    canvas.drawRoundRect(card, radius, radius, cardPaint)
+    canvas.drawRoundRect(card, radius, radius, strokePaint)
+
+    val left = cardLeft + width * 0.030f
+    val right = cardRight - width * 0.030f
+    val top = cardTop + height * 0.040f
     val shadow = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-      color = 0x55000000
+      color = 0x66000000
       textAlign = Paint.Align.LEFT
       typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
     }
     val hangul = Paint(shadow).apply {
       color = Color.WHITE
-      textSize = width * 0.105f
+      textSize = fitTextSize(word.korean, this, right - left, width * 0.060f, width * 0.036f)
     }
     shadow.textSize = hangul.textSize
-    canvas.drawText(word.korean, left + 4f, top + 6f, shadow)
-    canvas.drawText(word.korean, left, top, hangul)
+    drawEllipsized(canvas, word.korean, left + 3f, top + 5f, shadow, right - left)
+    drawEllipsized(canvas, word.korean, left, top, hangul, right - left)
 
     val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
       color = 0xEEFFFFFF.toInt()
-      textSize = width * 0.038f
+      textSize = width * 0.025f
       typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
       textAlign = Paint.Align.LEFT
     }
     val small = Paint(body).apply {
       color = 0xDFFFFFFF.toInt()
-      textSize = width * 0.034f
+      textSize = width * 0.022f
       typeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
     }
 
-    var cursor = top + width * 0.06f
+    var cursor = top + hangul.textSize * 0.70f
     if (word.romanized.isNotBlank()) {
-      canvas.drawText(word.romanized, left, cursor, body)
-      cursor += width * 0.054f
+      drawEllipsized(canvas, word.romanized, left, cursor, small, right - left)
+      cursor += small.textSize * 1.20f
     }
-    canvas.drawText(word.english, left, cursor, small)
-    cursor += width * 0.048f
-    canvas.drawText(word.indonesian, left, cursor, small)
+    drawEllipsized(canvas, word.indonesian, left, cursor, body, right - left)
+  }
+
+  private fun fitTextSize(
+      text: String,
+      paint: Paint,
+      maxWidth: Float,
+      preferred: Float,
+      minimum: Float,
+  ): Float {
+    var size = preferred
+    paint.textSize = size
+    while (size > minimum && paint.measureText(text) > maxWidth) {
+      size *= 0.92f
+      paint.textSize = size
+    }
+    return max(size, minimum)
+  }
+
+  private fun drawEllipsized(
+      canvas: Canvas,
+      text: String,
+      x: Float,
+      y: Float,
+      paint: Paint,
+      maxWidth: Float,
+  ) {
+    if (paint.measureText(text) <= maxWidth) {
+      canvas.drawText(text, x, y, paint)
+      return
+    }
+
+    val ellipsis = "..."
+    var clipped = text.trim()
+    while (clipped.isNotEmpty() && paint.measureText(clipped + ellipsis) > maxWidth) {
+      clipped = clipped.dropLast(1).trimEnd()
+    }
+    if (clipped.isNotEmpty()) {
+      canvas.drawText(clipped + ellipsis, x, y, paint)
+    }
   }
 
   private fun drawMountains(canvas: Canvas, width: Int, height: Int) {

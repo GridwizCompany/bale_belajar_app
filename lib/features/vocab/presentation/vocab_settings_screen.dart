@@ -246,8 +246,8 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
                   style: const TextStyle(fontWeight: FontWeight.w800)),
               Slider(
                 min: 1,
-                max: 20,
-                divisions: 19,
+                max: 24,
+                divisions: 23,
                 value: setting.dailyCount.toDouble(),
                 label: '${setting.dailyCount}',
                 onChanged: _saving

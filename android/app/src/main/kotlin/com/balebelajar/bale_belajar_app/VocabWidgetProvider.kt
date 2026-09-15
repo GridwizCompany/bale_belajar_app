@@ -12,16 +12,6 @@ import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetProvider
 import org.json.JSONArray
 
-/**
- * Widget home-screen yang menampilkan kosakata Inggris-Korea hari ini. Data
- * (kata + pengaturan tampilan) ditulis dari Dart lewat package `home_widget`
- * (lihat VocabSyncService._updateWidget) ke SharedPreferences bernama
- * "HomeWidgetPreferences" - [widgetData] di bawah adalah preferences itu.
- *
- * Ketuk kartu = pindah ke kata berikutnya di daftar hari ini (index disimpan
- * balik ke preferences yang sama supaya tetap sinkron kalau widget di-resize/
- * di-recreate). Ketuk "Buka App" = buka MainActivity seperti biasa.
- */
 class VocabWidgetProvider : HomeWidgetProvider() {
 
   override fun onUpdate(
@@ -98,7 +88,7 @@ class VocabWidgetProvider : HomeWidgetProvider() {
     }
     views.setTextViewText(
         R.id.vocab_widget_footer,
-        "${index + 1}/${words.size} • ketuk kartu untuk kata berikutnya",
+        "${index + 1}/${words.size} • ID: ${word.indonesian}",
     )
   }
 
@@ -119,6 +109,7 @@ class VocabWidgetProvider : HomeWidgetProvider() {
         val obj = array.getJSONObject(i)
         VocabWordEntry(
             english = obj.optString("english"),
+            indonesian = obj.optString("indonesian", obj.optString("english")),
             korean = obj.optString("korean"),
             romanized = obj.optString("koreanRomanized", ""),
         )
@@ -128,13 +119,15 @@ class VocabWidgetProvider : HomeWidgetProvider() {
     }
   }
 
-  private data class VocabWordEntry(val english: String, val korean: String, val romanized: String)
+  private data class VocabWordEntry(
+      val english: String,
+      val indonesian: String,
+      val korean: String,
+      val romanized: String,
+  )
 
   companion object {
     private const val ACTION_NEXT_WORD = "com.balebelajar.bale_belajar_app.VOCAB_WIDGET_NEXT"
-
-    // Nilai-nilai ini HARUS sama persis dengan key yang dipakai
-    // VocabSyncService._updateWidget di sisi Dart.
     private const val PREFERENCES_NAME = "HomeWidgetPreferences"
     private const val KEY_WIDGET_ENABLED = "vocab_widget_enabled"
     private const val KEY_WORDS_JSON = "vocab_words_json"

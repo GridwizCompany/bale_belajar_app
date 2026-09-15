@@ -35,9 +35,10 @@ class VocabSyncService {
 
   static const _prefsDateKey = 'vocab_sync_date';
   static const _androidWidgetProvider = 'VocabWidgetProvider';
-  static const _notificationChannelId = 'vocab_daily';
-  static const _notificationBaseId = 6100;
-  static const _maxScheduledNotifications = 20;
+  static const _notificationChannelId = 'vocab_lock_screen';
+  static const _notificationCurrentId = 6100;
+  static const _notificationScheduledBaseId = 6110;
+  static const _maxScheduledNotifications = 24;
 
   final VocabRepository _repository;
   final FlutterLocalNotificationsPlugin _notifications =
@@ -155,6 +156,7 @@ class VocabSyncService {
       daily.words
           .map((word) => {
                 'english': word.english,
+                'indonesian': _indonesianMeaning(word),
                 'korean': word.korean,
                 'koreanRomanized': word.koreanRomanized,
               })
@@ -177,8 +179,9 @@ class VocabSyncService {
     await _ensureTimezoneReady();
     await _ensureNotificationsReady();
 
+    await _notifications.cancel(id: _notificationCurrentId);
     for (var i = 0; i < _maxScheduledNotifications; i++) {
-      await _notifications.cancel(id: _notificationBaseId + i);
+      await _notifications.cancel(id: _notificationScheduledBaseId + i);
     }
 
     final setting = daily.setting;
@@ -186,60 +189,137 @@ class VocabSyncService {
 
     final words = daily.words.take(_maxScheduledNotifications).toList();
     final now = tz.TZDateTime.now(tz.local);
-    final startHour = setting.notificationStartHour;
-    final endHour = setting.notificationEndHour;
-    final spanMinutes = ((endHour - startHour).clamp(1, 24)) * 60;
-    final slotMinutes = spanMinutes / words.length;
+    final currentWord = words.first;
 
-    for (var i = 0; i < words.length; i++) {
-      final word = words[i];
-      var scheduled =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour)
-              .add(Duration(minutes: (slotMinutes * i).round()));
-      if (!scheduled.isAfter(now)) {
-        // Slot hari ini sudah lewat (mis. baru sync jam 3 sore) - tetap
-        // tampilkan, dijadwalkan beberapa menit dari sekarang.
-        scheduled = now.add(Duration(minutes: 2 + i * 3));
-      }
+    await _notifications.show(
+      id: _notificationCurrentId,
+      title: currentWord.korean,
+      body: _lockScreenBody(currentWord),
+      notificationDetails: _lockScreenNotificationDetails(currentWord),
+      payload: currentWord.id,
+    );
 
+    final slots = _upcomingHourlySlots(
+      now: now,
+      startHour: setting.notificationStartHour,
+      endHour: setting.notificationEndHour,
+      maxSlots: words.length - 1,
+    );
+
+    for (var i = 0; i < slots.length; i++) {
+      final word = words[i + 1];
       await _notifications.zonedSchedule(
-        id: _notificationBaseId + i,
-        scheduledDate: scheduled,
-        title: '한 kata kecil, skill besar',
-        body: _notificationBody(word, setting.displayLanguage),
-        notificationDetails: NotificationDetails(
-          android: AndroidNotificationDetails(
-            _notificationChannelId,
-            'Kosakata Harian',
-            channelDescription: 'Notifikasi kosakata Inggris-Korea harian',
-            importance: Importance.high,
-            priority: Priority.high,
-            category: AndroidNotificationCategory.reminder,
-            color: const Color(0xFFF4B400),
-            ticker: 'Kosakata Korea baru',
-            styleInformation: BigTextStyleInformation(
-              _notificationBody(word, setting.displayLanguage),
-              contentTitle: '한 kata kecil, skill besar',
-              summaryText: 'BaleBelajar',
-            ),
-          ),
-          iOS: const DarwinNotificationDetails(),
-        ),
+        id: _notificationScheduledBaseId + i,
+        scheduledDate: slots[i],
+        title: word.korean,
+        body: _lockScreenBody(word),
+        notificationDetails: _lockScreenNotificationDetails(word),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        payload: word.id,
       );
     }
   }
 
-  String _notificationBody(VocabWord word, VocabDisplayLanguage lang) {
+  NotificationDetails _lockScreenNotificationDetails(VocabWord word) {
+    final body = _lockScreenBody(word);
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        _notificationChannelId,
+        'Kosakata Lock Screen',
+        channelDescription:
+            'Kosakata Korea yang tampil di lock screen dan berubah tiap jam',
+        importance: Importance.max,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.reminder,
+        visibility: NotificationVisibility.public,
+        autoCancel: false,
+        channelShowBadge: false,
+        onlyAlertOnce: true,
+        showWhen: false,
+        timeoutAfter: const Duration(minutes: 65).inMilliseconds,
+        color: const Color(0xFFF4B400),
+        ticker: word.korean,
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: word.korean,
+          summaryText: 'BaleBelajar Korea',
+        ),
+      ),
+      iOS: const DarwinNotificationDetails(),
+    );
+  }
+
+  List<tz.TZDateTime> _upcomingHourlySlots({
+    required tz.TZDateTime now,
+    required int startHour,
+    required int endHour,
+    required int maxSlots,
+  }) {
+    final normalizedEnd = endHour <= startHour ? startHour + 1 : endHour;
+    var cursor = tz.TZDateTime(tz.local, now.year, now.month, now.day, now.hour)
+        .add(const Duration(hours: 1));
+    final firstAllowed =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, startHour);
+    final lastAllowed =
+        tz.TZDateTime(tz.local, now.year, now.month, now.day, normalizedEnd);
+    if (cursor.isBefore(firstAllowed)) cursor = firstAllowed;
+
+    final slots = <tz.TZDateTime>[];
+    while (cursor.isBefore(lastAllowed) && slots.length < maxSlots) {
+      slots.add(cursor);
+      cursor = cursor.add(const Duration(hours: 1));
+    }
+    return slots;
+  }
+
+  String _lockScreenBody(VocabWord word) {
     final romanized =
-        word.koreanRomanized != null ? ' (${word.koreanRomanized})' : '';
-    return switch (lang) {
-      VocabDisplayLanguage.enToKo =>
-        '${word.english} = ${word.korean}$romanized. Ketuk untuk lanjut belajar.',
-      VocabDisplayLanguage.koToEn =>
-        '${word.korean}$romanized = ${word.english}. Ketuk untuk latihan lagi.',
-      VocabDisplayLanguage.both =>
-        '${word.english} ↔ ${word.korean}$romanized. Simpan satu kata baru hari ini.',
-    };
+        word.koreanRomanized != null ? '(${word.koreanRomanized})' : '';
+    return [
+      if (romanized.isNotEmpty) romanized,
+      'EN: ${word.english}',
+      'ID: ${_indonesianMeaning(word)}',
+    ].join('\n');
+  }
+
+  String _indonesianMeaning(VocabWord word) {
+    final provided = word.indonesian?.trim();
+    if (provided != null && provided.isNotEmpty) return provided;
+    return _fallbackIndonesian[word.english.toLowerCase()] ?? word.english;
   }
 }
+
+const _fallbackIndonesian = <String, String>{
+  'hello': 'halo',
+  'goodbye': 'selamat tinggal',
+  'thank you': 'terima kasih',
+  'sorry': 'maaf',
+  'yes': 'ya',
+  'no': 'tidak',
+  'please': 'tolong',
+  'water': 'air',
+  'house': 'rumah',
+  'room': 'ruangan',
+  'friend': 'teman',
+  'food': 'makanan',
+  'restaurant': 'restoran',
+  'school': 'sekolah',
+  'teacher': 'guru',
+  'student': 'siswa',
+  'book': 'buku',
+  'family': 'keluarga',
+  'mother': 'ibu',
+  'father': 'ayah',
+  'train': 'kereta',
+  'bus': 'bus',
+  'taxi': 'taksi',
+  'hotel': 'hotel',
+  'hospital': 'rumah sakit',
+  'doctor': 'dokter',
+  'computer': 'komputer',
+  'screen': 'layar',
+  'culture': 'budaya',
+  'history': 'sejarah',
+  'problem': 'masalah',
+  'solution': 'solusi',
+};

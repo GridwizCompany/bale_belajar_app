@@ -43,7 +43,8 @@ extension VocabDisplayLanguageJson on VocabDisplayLanguage {
 }
 
 class VocabCategory {
-  const VocabCategory({required this.id, required this.key, required this.name});
+  const VocabCategory(
+      {required this.id, required this.key, required this.name});
 
   final String id;
   final String key;
@@ -60,6 +61,7 @@ class VocabWord {
   const VocabWord({
     required this.id,
     required this.english,
+    this.indonesian,
     required this.korean,
     required this.level,
     required this.category,
@@ -70,6 +72,7 @@ class VocabWord {
 
   final String id;
   final String english;
+  final String? indonesian;
   final String korean;
   final String? koreanRomanized;
   final String? exampleSentenceEn;
@@ -82,6 +85,7 @@ class VocabWord {
     return VocabWord(
       id: json['id'] as String,
       english: json['english'] as String,
+      indonesian: json['indonesian'] as String?,
       korean: json['korean'] as String,
       koreanRomanized: json['koreanRomanized'] as String?,
       exampleSentenceEn: json['exampleSentenceEn'] as String?,
@@ -94,6 +98,7 @@ class VocabWord {
   Map<String, dynamic> toJson() => {
         'id': id,
         'english': english,
+        'indonesian': indonesian,
         'korean': korean,
         'koreanRomanized': koreanRomanized,
         'exampleSentenceEn': exampleSentenceEn,
@@ -126,8 +131,8 @@ class VocabSetting {
 
   factory VocabSetting.fromJson(Map<String, dynamic> json) => VocabSetting(
         dailyCount: json['dailyCount'] as int,
-        displayLanguage:
-            VocabDisplayLanguageJson.fromApi(json['displayLanguage'] as String? ?? 'BOTH'),
+        displayLanguage: VocabDisplayLanguageJson.fromApi(
+            json['displayLanguage'] as String? ?? 'BOTH'),
         notificationEnabled: json['notificationEnabled'] as bool? ?? true,
         widgetEnabled: json['widgetEnabled'] as bool? ?? true,
         notificationStartHour: json['notificationStartHour'] as int? ?? 8,
@@ -154,7 +159,8 @@ class VocabSetting {
       displayLanguage: displayLanguage ?? this.displayLanguage,
       notificationEnabled: notificationEnabled ?? this.notificationEnabled,
       widgetEnabled: widgetEnabled ?? this.widgetEnabled,
-      notificationStartHour: notificationStartHour ?? this.notificationStartHour,
+      notificationStartHour:
+          notificationStartHour ?? this.notificationStartHour,
       notificationEndHour: notificationEndHour ?? this.notificationEndHour,
       levels: levels ?? this.levels,
       categoryKeys: categoryKeys ?? this.categoryKeys,
@@ -163,7 +169,8 @@ class VocabSetting {
 }
 
 class DailyVocab {
-  const DailyVocab({required this.date, required this.setting, required this.words});
+  const DailyVocab(
+      {required this.date, required this.setting, required this.words});
 
   final String date;
   final VocabSetting setting;

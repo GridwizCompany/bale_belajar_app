@@ -172,6 +172,43 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
     await _syncService.openNotificationSettings();
   }
 
+  Future<void> _handleShowLockScreenNow() async {
+    final messenger = ScaffoldMessenger.of(context);
+    var status =
+        _notifStatus ?? await _syncService.notificationPermissionStatus();
+    if (!status.isGranted) {
+      status = await _syncService.requestNotificationPermission();
+      if (!mounted) return;
+      setState(() => _notifStatus = status);
+    }
+    if (!status.isGranted) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Izinkan notifikasi dulu supaya vocab bisa tampil.'),
+        ),
+      );
+      return;
+    }
+
+    final daily = await _syncService.showLockScreenNow();
+    if (!mounted) return;
+    if (daily == null || daily.words.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Belum ada kosakata harian dari backend. Jalankan seed vocab dulu.'),
+        ),
+      );
+      return;
+    }
+    setState(() => _todayWords = daily.words);
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Vocab sudah dikirim ke notifikasi lock screen.'),
+      ),
+    );
+  }
+
   Future<void> _handleAddWidget() async {
     final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
     if (!mounted) return;
@@ -349,6 +386,17 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
                     : (value) =>
                         _persist(setting.copyWith(notificationEnabled: value)),
               ),
+              if (setting.notificationEnabled) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _saving ? null : _handleShowLockScreenNow,
+                  icon: const Icon(Icons.lock_rounded),
+                  label: const Text(
+                    'Tampilkan di Lock Screen Sekarang',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Widget home-screen'),

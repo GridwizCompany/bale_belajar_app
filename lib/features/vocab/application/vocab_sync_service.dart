@@ -35,7 +35,7 @@ class VocabSyncService {
 
   static const _prefsDateKey = 'vocab_sync_date';
   static const _androidWidgetProvider = 'VocabWidgetProvider';
-  static const _notificationChannelId = 'vocab_lock_screen';
+  static const _notificationChannelId = 'vocab_lock_screen_v2';
   static const _notificationCurrentId = 6100;
   static const _notificationScheduledBaseId = 6110;
   static const _maxScheduledNotifications = 24;
@@ -195,7 +195,8 @@ class VocabSyncService {
       id: _notificationCurrentId,
       title: currentWord.korean,
       body: _lockScreenBody(currentWord),
-      notificationDetails: _lockScreenNotificationDetails(currentWord),
+      notificationDetails:
+          _lockScreenNotificationDetails(currentWord, persistent: true),
       payload: currentWord.id,
     );
 
@@ -220,7 +221,25 @@ class VocabSyncService {
     }
   }
 
-  NotificationDetails _lockScreenNotificationDetails(VocabWord word) {
+  Future<DailyVocab?> showLockScreenNow() async {
+    final status = await notificationPermissionStatus();
+    if (!status.isGranted) return null;
+    try {
+      final daily = await _repository.fetchDaily();
+      await _updateNotifications(daily);
+      return daily;
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('VocabSyncService.showLockScreenNow gagal: $error');
+      }
+      return null;
+    }
+  }
+
+  NotificationDetails _lockScreenNotificationDetails(
+    VocabWord word, {
+    bool persistent = false,
+  }) {
     final body = _lockScreenBody(word);
     return NotificationDetails(
       android: AndroidNotificationDetails(
@@ -233,10 +252,12 @@ class VocabSyncService {
         category: AndroidNotificationCategory.reminder,
         visibility: NotificationVisibility.public,
         autoCancel: false,
+        ongoing: persistent,
         channelShowBadge: false,
         onlyAlertOnce: true,
         showWhen: false,
-        timeoutAfter: const Duration(minutes: 65).inMilliseconds,
+        timeoutAfter:
+            persistent ? null : const Duration(minutes: 65).inMilliseconds,
         color: const Color(0xFFF4B400),
         ticker: word.korean,
         styleInformation: BigTextStyleInformation(

@@ -150,10 +150,14 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
   }
 
   Future<void> _handleEnableNotifications() async {
+    if (_notifStatus?.isPermanentlyDenied ?? false) {
+      await _syncService.openNotificationSettings();
+      return;
+    }
     final status = await _syncService.requestNotificationPermission();
     if (!mounted) return;
     if (status.isGranted) {
-      await _syncService.syncToday(force: true);
+      await _syncService.showLockScreenNow();
       if (!mounted) return;
     }
     setState(() => _notifStatus = status);
@@ -165,6 +169,7 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
           ),
         ),
       );
+      await _syncService.openNotificationSettings();
     }
   }
 

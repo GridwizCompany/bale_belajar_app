@@ -12,12 +12,9 @@ import '../application/vocab_sync_service.dart';
 /// screen. Begitu layar ini terbuka, dialog izin OS langsung dipicu otomatis
 /// (tidak menunggu user menekan tombol dulu) - lihat [_autoRequestOnOpen].
 ///
-/// Android/iOS tidak mengizinkan aplikasi benar-benar memaksa user memberi
-/// izin (mereka selalu bisa menolak di dialog OS), jadi "paksa" di sini
-/// berarti: selalu tampil lagi tiap kali user sampai di halaman utama sampai
-/// izin diberikan ATAU widget ditaruh - bukan cuma sekali seumur hidup app.
-/// Tombol "Lewati" tetap disediakan (Play Store melarang mengunci akses app
-/// di balik izin opsional seperti notifikasi), tapi kecil dan di bawah.
+/// Android/iOS tidak mengizinkan aplikasi menyalakan izin diam-diam. Mode
+/// "paksa" di sini berarti user ditahan di gate sampai izin notifikasi aktif;
+/// kalau OS sudah menolak permanen, tombol utama membuka Pengaturan app.
 class VocabPermissionGateScreen extends StatefulWidget {
   const VocabPermissionGateScreen({
     required this.onContinue,
@@ -100,11 +97,15 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
   }
 
   Future<void> _handleEnableNotifications() async {
+    if (_notifStatus?.isPermanentlyDenied ?? false) {
+      await _syncService.openNotificationSettings();
+      return;
+    }
     setState(() => _busy = true);
     final status = await _syncService.requestNotificationPermission();
     if (!mounted) return;
     if (status.isGranted) {
-      await _syncService.syncToday(force: true);
+      await _syncService.showLockScreenNow();
       if (!mounted) return;
     }
     setState(() {
@@ -117,6 +118,10 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
   }
 
   Future<void> _handleContinuePressed({required bool skipping}) async {
+    if (widget.needsNotification && !(_notifStatus?.isGranted ?? false)) {
+      await _handleEnableNotifications();
+      return;
+    }
     if (!skipping) {
       widget.onContinue();
       return;
@@ -242,12 +247,25 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
                                 skipping: !(notifSatisfied && widgetSatisfied),
                               ),
                               child: Text(
-                                notifSatisfied && widgetSatisfied
-                                    ? 'Lanjutkan'
-                                    : 'Lewati untuk sekarang',
+                                !notifSatisfied
+                                    ? ((notifStatus?.isPermanentlyDenied ??
+                                            false)
+                                        ? 'Buka Pengaturan Notifikasi'
+                                        : 'Aktifkan Notifikasi')
+                                    : (widgetSatisfied
+                                        ? 'Lanjutkan'
+                                        : 'Lewati Widget'),
                               ),
                             ),
-                            if (!(notifSatisfied && widgetSatisfied)) ...[
+                            if (!notifSatisfied) ...[
+                              const SizedBox(height: 6),
+                              const Text(
+                                'Notifikasi wajib aktif supaya kosakata bisa tampil di lock screen.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.black54),
+                              ),
+                            ] else if (!widgetSatisfied) ...[
                               const SizedBox(height: 6),
                               const Text(
                                 'Kamu tetap bisa mengaktifkannya nanti lewat Profil > Kosakata Korea.',

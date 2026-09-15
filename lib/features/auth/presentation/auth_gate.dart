@@ -106,11 +106,11 @@ class _AuthGateState extends State<AuthGate> with WidgetsBindingObserver {
         _vocabGateResolved = true;
       });
     } catch (_) {
-      // Jangan sampai fitur opsional kosakata menahan user di layar kosong
-      // setelah login. Settings kosakata tetap bisa dibuka ulang dari profil.
+      // Mode lock-screen vocab dipaksa: walau sync backend gagal sementara,
+      // tetap tahan di gate notifikasi agar user tidak lewat tanpa izin.
       if (!mounted) return;
       setState(() {
-        _vocabGateNeedsNotification = false;
+        _vocabGateNeedsNotification = true;
         _vocabGateNeedsWidget = false;
         _vocabGateResolved = true;
       });

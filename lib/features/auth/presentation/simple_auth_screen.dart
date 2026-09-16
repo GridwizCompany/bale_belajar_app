@@ -3875,37 +3875,26 @@ class _LoginWelcomeStep extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+          padding: const EdgeInsets.fromLTRB(22, 8, 22, 18),
           children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Kembali',
-                  onPressed: controller.isBusy ? null : onBack,
-                  icon: const Icon(Icons.arrow_back_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const _MiniBrand(),
-            const SizedBox(height: 14),
-            const Center(
-              child: _MascotStage(
-                pose: BeloPose.kedip,
-                size: 104,
-                compact: true,
-              ),
-            ),
-            const SizedBox(height: 14),
             Text(
               'Selamat datang kembali!',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontSize: 24,
+                    fontSize: 28,
                     color: BaleColors.ink,
+                    fontWeight: FontWeight.w900,
                   ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 12),
+            const Center(
+              child: _MascotStage(
+                pose: BeloPose.kedip,
+                size: 148,
+                compact: true,
+              ),
+            ),
+            const SizedBox(height: 16),
             _GoogleButton(
               loading: googleBusy,
               disabled: controller.isBusy,

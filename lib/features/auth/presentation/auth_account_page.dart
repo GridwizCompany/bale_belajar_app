@@ -82,7 +82,9 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final compact = screenHeight < 740;
-    final mascotSize = compact ? 92.0 : 118.0;
+    final isLogin = _mode == AuthAccountMode.login;
+    final mascotSize =
+        isLogin ? (compact ? 128.0 : 158.0) : (compact ? 92.0 : 118.0);
     final subtitle = _subtitle;
     final showApple = defaultTargetPlatform != TargetPlatform.android;
 
@@ -94,34 +96,45 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 520),
             child: SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(22, compact ? 12 : 20, 22, 18),
+              padding: EdgeInsets.fromLTRB(
+                22,
+                isLogin ? (compact ? 6 : 10) : (compact ? 12 : 20),
+                22,
+                18,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton(
-                        tooltip: 'Kembali',
-                        onPressed: _busy ? null : widget.onBack,
-                        icon: const Icon(Icons.arrow_back_rounded),
+                    if (!isLogin) ...[
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          tooltip: 'Kembali',
+                          onPressed: _busy ? null : widget.onBack,
+                          icon: const Icon(Icons.arrow_back_rounded),
+                        ),
                       ),
-                    ),
-                    const _MiniBrand(),
-                    SizedBox(height: compact ? 6 : 10),
-                    _LoginMascot(size: mascotSize),
-                    SizedBox(height: compact ? 4 : 8),
+                      const _MiniBrand(),
+                      SizedBox(height: compact ? 6 : 10),
+                    ],
                     Text(
                       _title,
                       textAlign: TextAlign.center,
                       style:
                           Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontSize: compact ? 22 : 26,
+                                fontSize: isLogin
+                                    ? (compact ? 25 : 29)
+                                    : (compact ? 22 : 26),
                                 color: BaleColors.ink,
                                 fontWeight: FontWeight.w900,
                               ),
                     ),
+                    SizedBox(
+                        height:
+                            isLogin ? (compact ? 8 : 12) : (compact ? 4 : 8)),
+                    _LoginMascot(size: mascotSize),
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Text(

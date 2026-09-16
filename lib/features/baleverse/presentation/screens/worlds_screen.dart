@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../vocab/presentation/vocab_settings_screen.dart';
 import '../../domain/baleverse_models.dart';
-import 'world_curriculum_screen.dart';
 
 const _worldBg = Color(0xFFFFF3C6);
 const _worldInk = Color(0xFF3B2318);
@@ -24,7 +22,10 @@ class WorldsScreen extends StatelessWidget {
   // fallback dummy. Kosong berarti belum termuat/gagal, tampilkan loading,
   // bukan daftar dunia karangan.
   final List<Map<String, dynamic>> realWorlds;
-  final ValueChanged<BaleWorldKey> onSelectWorld;
+  // Memilih dunia TIDAK langsung membuka soal - lihat baleverse_demo_screen
+  // ._selectWorldFromList, yang menandai dunia terpilih lalu kembali ke
+  // Beranda supaya user mulai misinya dari sana.
+  final ValueChanged<Map<String, dynamic>> onSelectWorld;
 
   @override
   Widget build(BuildContext context) {
@@ -72,33 +73,7 @@ class WorldsScreen extends StatelessWidget {
                 world: world,
                 selected: world['key'] == selectedKeyUpper,
                 compact: compact,
-                onTap: () {
-                  final backendKey = world['key'] as String?;
-                  if (backendKey != null && backendKey.isNotEmpty) {
-                    // Dunia berkind VOCAB (Dunia Korea/Inggris) tidak punya
-                    // Quest/Chapter - "misinya" adalah kosakata harian, jadi
-                    // dibuka langsung ke layar kosakata, bukan
-                    // WorldCurriculumScreen yang mengasumsikan ada Quest.
-                    if (world['kind'] == 'VOCAB') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const VocabSettingsScreen(),
-                        ),
-                      );
-                      return;
-                    }
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => WorldCurriculumScreen(
-                          worldKey: backendKey.toLowerCase(),
-                        ),
-                      ),
-                    );
-                    return;
-                  }
-                  final legacyKey = _worldKeyFromBackend(backendKey);
-                  if (legacyKey != null) onSelectWorld(legacyKey);
-                },
+                onTap: () => onSelectWorld(world),
               ),
               SizedBox(height: compact ? 8 : 12),
             ],
@@ -108,13 +83,6 @@ class WorldsScreen extends StatelessWidget {
     );
   }
 }
-
-BaleWorldKey? _worldKeyFromBackend(String? key) => switch (key) {
-      'NUMERIA' => BaleWorldKey.numeria,
-      'KODEX' => BaleWorldKey.kodex,
-      'DETECTIVIA' => BaleWorldKey.detectivia,
-      _ => null,
-    };
 
 class _BackendWorldCard extends StatelessWidget {
   const _BackendWorldCard({
@@ -144,7 +112,6 @@ class _BackendWorldCard extends StatelessWidget {
       _ => Icons.public_rounded,
     };
     final questions = world['activeQuestionCount'] as int? ?? 0;
-    final mission = world['exampleMission'] as String? ?? '-';
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(22),
@@ -153,7 +120,7 @@ class _BackendWorldCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
         child: Container(
-          padding: EdgeInsets.all(compact ? 10 : 16),
+          padding: EdgeInsets.all(compact ? 12 : 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(22),
             border: Border.all(
@@ -163,60 +130,31 @@ class _BackendWorldCard extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: compact ? 52 : 70,
-                    height: compact ? 52 : 70,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(compact ? 16 : 20),
-                    ),
-                    child: Icon(icon, color: color, size: compact ? 28 : 38),
-                  ),
-                  if (selected)
-                    Positioned(
-                      right: -4,
-                      top: -4,
-                      child: Container(
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.check_circle_rounded,
-                          color: _worldGreen,
-                        ),
-                      ),
-                    ),
-                ],
+              Container(
+                width: compact ? 56 : 70,
+                height: compact ? 56 : 70,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(compact ? 18 : 20),
+                ),
+                child: Icon(icon, color: color, size: compact ? 30 : 38),
               ),
-              SizedBox(width: compact ? 10 : 14),
+              SizedBox(width: compact ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            world['name'] as String? ?? 'Dunia',
-                            style: const TextStyle(
-                              color: _worldInk,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                        if (selected)
-                          _WorldChip(
-                            label: 'Aktif',
-                            color: _worldGreen,
-                            compact: compact,
-                          ),
-                      ],
+                    Text(
+                      world['name'] as String? ?? 'Dunia',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _worldInk,
+                        fontSize: 19,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
+                    const SizedBox(height: 3),
                     Text(
                       world['subject'] as String? ?? '',
                       maxLines: 1,
@@ -224,54 +162,51 @@ class _BackendWorldCard extends StatelessWidget {
                       style: TextStyle(
                         color: const Color(0xFF60646F),
                         fontSize: compact ? 12 : 14,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    SizedBox(height: compact ? 3 : 8),
-                    Text(
-                      world['description'] as String? ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: const Color(0xFF60646F),
-                        fontSize: compact ? 11 : 13,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: compact ? 3 : 8),
-                    Text(
-                      mission,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: _worldInk,
-                        fontSize: compact ? 11 : 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    SizedBox(height: compact ? 6 : 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _WorldChip(
-                          label: '$questions soal aktif',
-                          color: color,
-                          compact: compact,
-                        ),
-                        _WorldChip(
-                          label: 'Materi siap',
-                          color: _worldGreen,
-                          compact: compact,
-                        ),
-                      ],
+                    SizedBox(height: compact ? 6 : 8),
+                    _WorldChip(
+                      label: '$questions soal',
+                      color: color,
+                      compact: compact,
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: color, size: 30),
+              if (selected)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _worldGreen.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: _worldGreen,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Aktif',
+                        style: TextStyle(
+                          color: _worldGreen,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Icon(Icons.chevron_right_rounded, color: color, size: 28),
             ],
           ),
         ),
@@ -357,11 +292,9 @@ class _WorldHeader extends StatelessWidget {
                 ),
                 SizedBox(height: compact ? 4 : 8),
                 Text(
-                  compact
-                      ? 'Mulai dari satu dunia.'
-                      : 'Mulai dari satu dunia. Yang lain tetap bisa kamu buka kapan saja.',
+                  'Ketuk dunia, lanjut dari Beranda.',
                   style: TextStyle(
-                    color: Color(0xFF60646F),
+                    color: const Color(0xFF60646F),
                     fontSize: compact ? 12 : 15,
                     height: 1.25,
                     fontWeight: FontWeight.w800,

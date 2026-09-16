@@ -48,8 +48,15 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   double? _masteryAverage;
   bool _backendLoading = true;
   String? _backendError;
+  // Diisi saat user memilih dunia dari tab Dunia (lihat _selectWorldFromList).
+  // Prioritas di atas data backend supaya pilihan user langsung terlihat di
+  // Beranda tanpa menunggu backend punya konsep "dunia terpilih" per-siswa.
+  String? _manualWorldKeyOverride;
 
   String get _selectedBackendWorldKey {
+    if (_manualWorldKeyOverride case final override? when override.isNotEmpty) {
+      return override;
+    }
     final direct = _backendData?['selectedWorld'] as String?;
     final missionWorld = (_backendData?['todayMission']
         as Map<String, dynamic>?)?['worldKey'] as String?;
@@ -176,6 +183,28 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     _syncMusic();
   }
 
+  // Dipanggil saat user ketuk kartu dunia di tab Dunia. Tidak langsung buka
+  // soal/curriculum - hanya menandai dunia itu sebagai fokus lalu kembali ke
+  // Beranda, supaya user mulai misinya dari sana (lihat _startMission).
+  void _selectWorldFromList(Map<String, dynamic> world) {
+    final backendKey = world['key'] as String?;
+    if (backendKey == null || backendKey.isEmpty) return;
+    AudioScope.maybeOf(context)?.playSound(SoundEffectId.buttonTap);
+    setState(() {
+      _manualWorldKeyOverride = backendKey.toLowerCase();
+      _backendData = _backendDataForWorld(world, _realWorlds);
+    });
+    _loadMastery();
+    _loadAdaptivePlan();
+    _goToTab(BaleTab.home);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Dunia ${world['name'] ?? backendKey} dipilih.'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _startMission() {
     final backendWorldKey = _selectedBackendWorldKey;
     if (backendWorldKey.isNotEmpty) {
@@ -214,27 +243,41 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   Map<String, dynamic> _fallbackBackendData(List<Map<String, dynamic>> worlds) {
-    final selected = worlds.first;
+    return _backendDataForWorld(worlds.first, worlds);
+  }
+
+  // Bentuk todayMission/missions/learningPath untuk SATU dunia tertentu.
+  // Backend belum punya konsep "dunia terpilih" per-siswa (getBaleVerse()
+  // tidak menerima parameter world), jadi saat user ganti dunia dari tab
+  // Dunia kita rakit data ini di klien - sama seperti pola fallback yang
+  // sudah ada, supaya Peta Perjalanan di Beranda ikut berubah ke dunia yang
+  // baru dipilih alih-alih diam menampilkan misi dunia lama.
+  Map<String, dynamic> _backendDataForWorld(
+    Map<String, dynamic> selected,
+    List<Map<String, dynamic>> worlds,
+  ) {
     final selectedKey =
         (selected['key'] as String? ?? 'SCIENTIA').toLowerCase();
     final missionTitle =
         selected['exampleMission'] as String? ?? 'Misi belajar pertama';
     return {
-      'profile': {
-        'name': widget.authController?.user?.name ?? 'Pengguna',
-        'rank': 'Pemula',
-        'level': 7,
-        'foundation': 'FOUNDATION_1',
-      },
-      'stats': {
-        'xp': _gameProfile?.accountXp ?? 0,
-        'streak': _gameProfile?.streakCurrent ?? 0,
-        'weeklyCompleted': 0,
-        'weeklyTarget': 3,
-      },
+      'profile': _backendData?['profile'] ??
+          {
+            'name': widget.authController?.user?.name ?? 'Pengguna',
+            'rank': 'Pemula',
+            'level': 7,
+            'foundation': 'FOUNDATION_1',
+          },
+      'stats': _backendData?['stats'] ??
+          {
+            'xp': _gameProfile?.accountXp ?? 0,
+            'streak': _gameProfile?.streakCurrent ?? 0,
+            'weeklyCompleted': 0,
+            'weeklyTarget': 3,
+          },
       'selectedWorld': selectedKey,
       'todayMission': {
-        'id': 'fallback-$selectedKey',
+        'id': 'world-$selectedKey',
         'worldKey': selectedKey,
         'title': missionTitle,
         'durationMinutes': 10,
@@ -244,7 +287,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       'worlds': worlds,
       'missions': [
         {
-          'id': 'fallback-$selectedKey',
+          'id': 'world-$selectedKey',
           'worldKey': selectedKey,
           'title': missionTitle,
           'description': selected['description'] as String? ?? '',
@@ -376,7 +419,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         selectedWorld: _selectedWorld,
         selectedBackendWorldKey: _selectedBackendWorldKey,
         realWorlds: _realWorlds,
-        onSelectWorld: (_) {},
+        onSelectWorld: _selectWorldFromList,
       );
     }
 

@@ -41,9 +41,11 @@ class CurriculumModule {
     required this.estimatedMinutes,
     required this.lessons,
     required this.caseStudies,
+    this.competencyId,
   });
 
   factory CurriculumModule.fromJson(Map<String, dynamic> json) {
+    final competency = json['competency'] as Map<String, dynamic>?;
     return CurriculumModule(
       id: json['id'] as String? ?? '',
       title: json['title'] as String? ?? 'Materi',
@@ -58,6 +60,7 @@ class CurriculumModule {
           .cast<Map<String, dynamic>>()
           .map(CurriculumCaseStudy.fromJson)
           .toList(),
+      competencyId: competency?['id'] as String?,
     );
   }
 
@@ -127,6 +130,9 @@ class CurriculumModule {
   final int estimatedMinutes;
   final List<CurriculumLesson> lessons;
   final List<CurriculumCaseStudy> caseStudies;
+  // Dipakai world_detail_screen.dart untuk mencocokkan mastery per topik -
+  // null kalau modul belum dipetakan ke kompetensi mana pun di backend.
+  final String? competencyId;
 }
 
 class CurriculumLesson {

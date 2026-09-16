@@ -38,6 +38,29 @@ Color _statusColor(String status) => switch (status) {
       _ => const Color(0xFF8B8179),
     };
 
+// Untuk kartu topik kurikulum (bukan baris rincian kompetensi) - "belum
+// mulai" lebih pas daripada "belum ada data" di konteks daftar topik.
+String _topicStatusLabel(String? status) => switch (status) {
+      'MASTERED' => 'Dikuasai',
+      'DEVELOPING' => 'Berkembang',
+      'NEEDS_PRACTICE' => 'Perlu latihan',
+      _ => 'Belum mulai',
+    };
+
+IconData _topicStatusIcon(String? status) => switch (status) {
+      'MASTERED' => Icons.check_circle_rounded,
+      'DEVELOPING' => Icons.trending_up_rounded,
+      'NEEDS_PRACTICE' => Icons.refresh_rounded,
+      _ => Icons.radio_button_unchecked_rounded,
+    };
+
+Color _topicStatusColor(String? status) => switch (status) {
+      'MASTERED' => _green,
+      'DEVELOPING' => const Color(0xFF2D8CFF),
+      'NEEDS_PRACTICE' => const Color(0xFFF57C00),
+      _ => const Color(0xFF8B8179),
+    };
+
 /// Detail satu dunia - kurikulum (materi apa saja) dan progres penguasaan
 /// per kompetensi. Murni informasi (tidak mengganti dunia aktif) - ganti
 /// dunia aktif dilakukan lewat Peta Perjalanan di Beranda.
@@ -90,6 +113,10 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
     final color = _worldColor(widget.world['key']);
     final icon = _worldIcon(widget.world['key']);
     final questionCount = widget.world['activeQuestionCount'] as int? ?? 0;
+    final masteryByCompetency = {
+      for (final competency in _mastery ?? const <CompetencyMastery>[])
+        competency.competencyId: competency,
+    };
 
     return Container(
       color: _bg,
@@ -126,6 +153,7 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
               return _CurriculumSection(
                 modules: snapshot.data!.modules,
                 color: color,
+                masteryByCompetency: masteryByCompetency,
               );
             },
           ),
@@ -387,20 +415,30 @@ class _CompetencyRow extends StatelessWidget {
 }
 
 class _CurriculumSection extends StatelessWidget {
-  const _CurriculumSection({required this.modules, required this.color});
+  const _CurriculumSection({
+    required this.modules,
+    required this.color,
+    required this.masteryByCompetency,
+  });
 
   final List<CurriculumModule> modules;
   final Color color;
+  final Map<String, CompetencyMastery> masteryByCompetency;
 
   @override
   Widget build(BuildContext context) {
+    final masteredCount = modules
+        .where((module) =>
+            masteryByCompetency[module.competencyId]?.status == 'MASTERED')
+        .length;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Kurikulum · ${modules.length} topik',
+            'Kurikulum · $masteredCount/${modules.length} dikuasai',
             style: const TextStyle(
               color: _ink,
               fontSize: 16,
@@ -410,7 +448,11 @@ class _CurriculumSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         for (final module in modules) ...[
-          _ModuleTile(module: module, color: color),
+          _ModuleTile(
+            module: module,
+            color: color,
+            mastery: masteryByCompetency[module.competencyId],
+          ),
           const SizedBox(height: 10),
         ],
       ],
@@ -418,13 +460,19 @@ class _CurriculumSection extends StatelessWidget {
   }
 }
 
-/// Satu topik kurikulum - collapsed hanya judul + durasi, ketuk untuk buka
-/// tujuan belajarnya. Tidak menampilkan semua teks sekaligus.
+/// Satu topik kurikulum - collapsed hanya judul + durasi + status
+/// penguasaan, ketuk untuk buka tujuan belajarnya. Tidak menampilkan semua
+/// teks sekaligus.
 class _ModuleTile extends StatefulWidget {
-  const _ModuleTile({required this.module, required this.color});
+  const _ModuleTile({
+    required this.module,
+    required this.color,
+    required this.mastery,
+  });
 
   final CurriculumModule module;
   final Color color;
+  final CompetencyMastery? mastery;
 
   @override
   State<_ModuleTile> createState() => _ModuleTileState();
@@ -437,6 +485,8 @@ class _ModuleTileState extends State<_ModuleTile> {
   Widget build(BuildContext context) {
     final module = widget.module;
     final hasGoal = module.simpleGoal.isNotEmpty;
+    final status = widget.mastery?.status;
+    final statusColor = _topicStatusColor(status);
 
     return Material(
       color: Colors.white,
@@ -448,7 +498,11 @@ class _ModuleTileState extends State<_ModuleTile> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFFFE0A1)),
+            border: Border.all(
+              color: status == 'MASTERED'
+                  ? _green.withValues(alpha: 0.4)
+                  : const Color(0xFFFFE0A1),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,12 +513,12 @@ class _ModuleTileState extends State<_ModuleTile> {
                     width: 34,
                     height: 34,
                     decoration: BoxDecoration(
-                      color: widget.color.withValues(alpha: 0.14),
+                      color: statusColor.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      Icons.menu_book_rounded,
-                      color: widget.color,
+                      _topicStatusIcon(status),
+                      color: statusColor,
                       size: 18,
                     ),
                   ),
@@ -481,16 +535,27 @@ class _ModuleTileState extends State<_ModuleTile> {
                       ),
                     ),
                   ),
-                  Text(
-                    '${module.estimatedMinutes}m',
-                    style: const TextStyle(
-                      color: _muted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 7,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      _topicStatusLabel(status),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   if (hasGoal) ...[
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 2),
                     AnimatedRotation(
                       turns: _expanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
@@ -512,14 +577,28 @@ class _ModuleTileState extends State<_ModuleTile> {
                   firstChild: const SizedBox(width: double.infinity),
                   secondChild: Padding(
                     padding: const EdgeInsets.only(top: 8, left: 44),
-                    child: Text(
-                      module.simpleGoal,
-                      style: const TextStyle(
-                        color: _muted,
-                        fontSize: 12,
-                        height: 1.3,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          module.simpleGoal,
+                          style: const TextStyle(
+                            color: _muted,
+                            fontSize: 12,
+                            height: 1.3,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${module.estimatedMinutes} menit belajar',
+                          style: const TextStyle(
+                            color: Color(0xFF8B8179),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

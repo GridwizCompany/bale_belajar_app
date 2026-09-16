@@ -8,6 +8,7 @@ const _bg = Color(0xFFFFF3C6);
 const _ink = Color(0xFF3B2318);
 const _yellow = Color(0xFFF4B400);
 const _green = Color(0xFF4CAF50);
+const _muted = Color(0xFF60646F);
 
 Color _worldColor(Object? key) => switch (key) {
       'NUMERIA' => const Color(0xFF2D8CFF),
@@ -40,6 +41,10 @@ Color _statusColor(String status) => switch (status) {
 /// Detail satu dunia - kurikulum (materi apa saja) dan progres penguasaan
 /// per kompetensi. Murni informasi (tidak mengganti dunia aktif) - ganti
 /// dunia aktif dilakukan lewat Peta Perjalanan di Beranda.
+///
+/// Sengaja dibuat ringkas dan bisa diketuk (bukan tembok teks) - kartu topik
+/// dan rincian penguasaan sama-sama collapsed by default, terbuka saat
+/// diketuk.
 class WorldDetailScreen extends StatefulWidget {
   const WorldDetailScreen({required this.world, super.key});
 
@@ -96,14 +101,14 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
             color: color,
             icon: icon,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           _ProgressCard(
             color: color,
             loading: _masteryLoading,
             mastery: _mastery,
             questionCount: questionCount,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           FutureBuilder<WorldCurriculum>(
             future: _curriculumFuture,
             builder: (context, snapshot) {
@@ -145,16 +150,15 @@ class _WorldHeaderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _Panel(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: color, size: 30),
+            child: Icon(icon, color: color, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -163,33 +167,24 @@ class _WorldHeaderCard extends StatelessWidget {
               children: [
                 Text(
                   world['name'] as String? ?? 'Dunia',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _ink,
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
                 Text(
                   world['subject'] as String? ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Color(0xFF60646F),
+                    color: _muted,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                if ((world['description'] as String?)?.isNotEmpty ?? false) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    world['description'] as String,
-                    style: const TextStyle(
-                      color: Color(0xFF60646F),
-                      fontSize: 13,
-                      height: 1.3,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -199,7 +194,9 @@ class _WorldHeaderCard extends StatelessWidget {
   }
 }
 
-class _ProgressCard extends StatelessWidget {
+/// Kartu progres - ringkas by default (angka rata-rata + jumlah soal saja).
+/// Ketuk untuk membuka rincian per topik, supaya tidak jadi tembok teks.
+class _ProgressCard extends StatefulWidget {
   const _ProgressCard({
     required this.color,
     required this.loading,
@@ -213,97 +210,121 @@ class _ProgressCard extends StatelessWidget {
   final int questionCount;
 
   @override
+  State<_ProgressCard> createState() => _ProgressCardState();
+}
+
+class _ProgressCardState extends State<_ProgressCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final competencies = mastery ?? const <CompetencyMastery>[];
+    final competencies = widget.mastery ?? const <CompetencyMastery>[];
     final average = competencies.isEmpty
         ? 0.0
         : competencies.fold<double>(0, (sum, c) => sum + c.masteryScore) /
             competencies.length;
+    final canExpand = !widget.loading && competencies.isNotEmpty;
 
-    return _Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.insights_rounded, color: _green),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'Progres Penguasaan',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: canExpand ? () => setState(() => _expanded = !_expanded) : null,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFFFE0A1)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x10000000),
+                blurRadius: 14,
+                offset: Offset(0, 7),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  '$questionCount soal aktif',
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  if (widget.loading)
+                    const SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: CircularProgressIndicator(
+                        color: _yellow,
+                        strokeWidth: 3,
+                      ),
+                    )
+                  else
+                    Text(
+                      '${average.round()}%',
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Penguasaan rata-rata',
+                          style: TextStyle(
+                            color: _ink,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          '${widget.questionCount} soal aktif',
+                          style: const TextStyle(
+                            color: _muted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (canExpand)
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF8B8179),
+                      ),
+                    ),
+                ],
+              ),
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState:
+                    _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                firstChild: const SizedBox(width: double.infinity),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 14),
+                  child: Column(
+                    children: [
+                      for (final competency in competencies) ...[
+                        _CompetencyRow(
+                          competency: competency,
+                          color: widget.color,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          if (loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Center(
-                child: CircularProgressIndicator(color: _yellow),
-              ),
-            )
-          else if (competencies.isEmpty)
-            const Text(
-              'Belum ada data penguasaan untuk dunia ini.',
-              style: TextStyle(
-                color: Color(0xFF60646F),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            )
-          else ...[
-            Row(
-              children: [
-                Text(
-                  '${average.round()}%',
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'rata-rata',
-                  style: TextStyle(
-                    color: Color(0xFF60646F),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            for (final competency in competencies) ...[
-              _CompetencyRow(competency: competency, color: color),
-              const SizedBox(height: 8),
-            ],
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -333,7 +354,7 @@ class _CompetencyRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         SizedBox(
-          width: 60,
+          width: 50,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
@@ -376,11 +397,11 @@ class _CurriculumSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Kurikulum',
-            style: TextStyle(
+            'Kurikulum · ${modules.length} topik',
+            style: const TextStyle(
               color: _ink,
               fontSize: 16,
               fontWeight: FontWeight.w900,
@@ -389,7 +410,7 @@ class _CurriculumSection extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         for (final module in modules) ...[
-          _ModuleRow(module: module, color: color),
+          _ModuleTile(module: module, color: color),
           const SizedBox(height: 10),
         ],
       ],
@@ -397,55 +418,114 @@ class _CurriculumSection extends StatelessWidget {
   }
 }
 
-class _ModuleRow extends StatelessWidget {
-  const _ModuleRow({required this.module, required this.color});
+/// Satu topik kurikulum - collapsed hanya judul + durasi, ketuk untuk buka
+/// tujuan belajarnya. Tidak menampilkan semua teks sekaligus.
+class _ModuleTile extends StatefulWidget {
+  const _ModuleTile({required this.module, required this.color});
 
   final CurriculumModule module;
   final Color color;
 
   @override
+  State<_ModuleTile> createState() => _ModuleTileState();
+}
+
+class _ModuleTileState extends State<_ModuleTile> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    return _Panel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    final module = widget.module;
+    final hasGoal = module.simpleGoal.isNotEmpty;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: hasGoal ? () => setState(() => _expanded = !_expanded) : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFFFE0A1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.menu_book_rounded, color: color, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  module.title,
-                  style: const TextStyle(
-                    color: _ink,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w900,
+              Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: widget.color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      color: widget.color,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      module.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${module.estimatedMinutes}m',
+                    style: const TextStyle(
+                      color: _muted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  if (hasGoal) ...[
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(
+                        Icons.expand_more_rounded,
+                        color: Color(0xFF8B8179),
+                        size: 20,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (hasGoal)
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 200),
+                  crossFadeState: _expanded
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  firstChild: const SizedBox(width: double.infinity),
+                  secondChild: Padding(
+                    padding: const EdgeInsets.only(top: 8, left: 44),
+                    child: Text(
+                      module.simpleGoal,
+                      style: const TextStyle(
+                        color: _muted,
+                        fontSize: 12,
+                        height: 1.3,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                '${module.estimatedMinutes}m',
-                style: const TextStyle(
-                  color: Color(0xFF60646F),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
             ],
           ),
-          if (module.simpleGoal.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              module.simpleGoal,
-              style: const TextStyle(
-                color: Color(0xFF60646F),
-                fontSize: 12,
-                height: 1.3,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -496,7 +576,7 @@ class _StatePanel extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color(0xFF60646F),
+              color: _muted,
               fontWeight: FontWeight.w800,
             ),
           ),

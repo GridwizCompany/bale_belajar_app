@@ -15,7 +15,10 @@ class DashboardScreen extends StatelessWidget {
     required this.realUserName,
     required this.gameProfile,
     required this.masteryAverage,
-    required this.onSwitchWorld,
+    required this.realWorlds,
+    required this.worldMasteryAverages,
+    required this.selectedBackendWorldKey,
+    required this.onSelectWorld,
     super.key,
   });
 
@@ -27,18 +30,18 @@ class DashboardScreen extends StatelessWidget {
   final String? realUserName;
   final GameProfileSummary? gameProfile;
   final double? masteryAverage;
-  // Beranda tidak lagi punya CTA untuk langsung mulai quest (itu tugas tab
-  // Misi) - tombol di kartu langkah aktif sekarang jadi jalan pintas ganti
-  // dunia lewat tab Dunia.
-  final VoidCallback onSwitchWorld;
+  // Daftar dunia dari GET /student/worlds, dan rata-rata mastery PER dunia
+  // (key lowercase) dari GET /student/mastery per dunia - Peta Perjalanan
+  // menampilkan progres di semua dunia, bukan langkah di satu dunia saja.
+  final List<Map<String, dynamic>> realWorlds;
+  final Map<String, double> worldMasteryAverages;
+  final String selectedBackendWorldKey;
+  final ValueChanged<Map<String, dynamic>> onSelectWorld;
 
   @override
   Widget build(BuildContext context) {
     final backendProfile = backendData?['profile'] as Map<String, dynamic>?;
     final backendStats = backendData?['stats'] as Map<String, dynamic>?;
-    final learningPath =
-        (backendData?['learningPath'] as List?)?.cast<Map<String, dynamic>>() ??
-            const <Map<String, dynamic>>[];
     final compact = MediaQuery.sizeOf(context).height < 900;
 
     return Container(
@@ -58,9 +61,11 @@ class DashboardScreen extends StatelessWidget {
             SizedBox(height: compact ? 8 : 14),
             Expanded(
               child: _JourneyMapCard(
-                path: learningPath,
+                worlds: realWorlds,
+                masteryAverages: worldMasteryAverages,
+                selectedBackendWorldKey: selectedBackendWorldKey,
                 compact: compact,
-                onSwitchWorld: onSwitchWorld,
+                onSelectWorld: onSelectWorld,
               ),
             ),
           ],
@@ -288,32 +293,21 @@ class _StatDivider extends StatelessWidget {
 
 class _JourneyMapCard extends StatelessWidget {
   const _JourneyMapCard({
-    required this.path,
+    required this.worlds,
+    required this.masteryAverages,
+    required this.selectedBackendWorldKey,
     required this.compact,
-    required this.onSwitchWorld,
+    required this.onSelectWorld,
   });
 
-  final List<Map<String, dynamic>> path;
+  final List<Map<String, dynamic>> worlds;
+  final Map<String, double> masteryAverages;
+  final String selectedBackendWorldKey;
   final bool compact;
-  final VoidCallback onSwitchWorld;
+  final ValueChanged<Map<String, dynamic>> onSelectWorld;
 
   @override
   Widget build(BuildContext context) {
-    final nodes = path.isEmpty
-        ? const [
-            {
-              'step': 1,
-              'title': 'Misi pertama',
-              'completed': false,
-              'active': true,
-              'locked': false,
-              'stars': 0,
-            },
-          ]
-        : path;
-    final completedCount =
-        nodes.where((node) => node['completed'] == true).length;
-    final progress = nodes.isEmpty ? 0.0 : completedCount / nodes.length;
     return Container(
       padding: EdgeInsets.fromLTRB(16, compact ? 12 : 16, 16, 10),
       decoration: BoxDecoration(
@@ -361,7 +355,7 @@ class _JourneyMapCard extends StatelessWidget {
                     ),
                     if (!compact)
                       const Text(
-                        'Ikuti node aktif, kumpulkan bintang.',
+                        'Progresmu di setiap dunia.',
                         style: TextStyle(
                           color: Color(0xFF60646F),
                           fontSize: 12,
@@ -373,108 +367,112 @@ class _JourneyMapCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: compact ? 8 : 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress.clamp(0, 1),
-              minHeight: 8,
-              color: _homeGreen,
-              backgroundColor: const Color(0xFFFFE8A8),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$completedCount/${nodes.length} langkah selesai',
-            style: const TextStyle(
-              color: Color(0xFF60646F),
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          SizedBox(height: compact ? 6 : 10),
-          Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                const minNodeHeight = 54.0;
-                const maxNodeHeight = 110.0;
-                const baseNodeHeight = 96.0;
-                var visibleCount = nodes.length.clamp(1, 6);
-                var nodeHeight = constraints.maxHeight / visibleCount;
-                while (nodeHeight < minNodeHeight && visibleCount > 1) {
-                  visibleCount--;
-                  nodeHeight = constraints.maxHeight / visibleCount;
-                }
-                nodeHeight = nodeHeight.clamp(minNodeHeight, maxNodeHeight);
-                final scale = (nodeHeight / baseNodeHeight).clamp(0.58, 1.15);
-                final visibleNodes = nodes.take(visibleCount).toList();
-                return Column(
-                  children: [
-                    for (final entry in visibleNodes.asMap().entries)
-                      SizedBox(
-                        height: nodeHeight,
-                        child: _JourneyNode(
-                          data: entry.value,
-                          index: entry.key,
-                          isLast: entry.key == visibleNodes.length - 1,
-                          scale: scale,
-                          onSwitchWorld: onSwitchWorld,
+          SizedBox(height: compact ? 8 : 14),
+          if (worlds.isEmpty)
+            const Expanded(
+              child: Center(
+                child: CircularProgressIndicator(color: _homeYellow),
+              ),
+            )
+          else
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  const minNodeHeight = 54.0;
+                  const maxNodeHeight = 110.0;
+                  const baseNodeHeight = 96.0;
+                  var visibleCount = worlds.length.clamp(1, 6);
+                  var nodeHeight = constraints.maxHeight / visibleCount;
+                  while (nodeHeight < minNodeHeight && visibleCount > 1) {
+                    visibleCount--;
+                    nodeHeight = constraints.maxHeight / visibleCount;
+                  }
+                  nodeHeight = nodeHeight.clamp(minNodeHeight, maxNodeHeight);
+                  final scale =
+                      (nodeHeight / baseNodeHeight).clamp(0.58, 1.15);
+                  final visibleWorlds = worlds.take(visibleCount).toList();
+                  return Column(
+                    children: [
+                      for (final entry in visibleWorlds.asMap().entries)
+                        SizedBox(
+                          height: nodeHeight,
+                          child: _JourneyNode(
+                            world: entry.value,
+                            index: entry.key,
+                            isLast: entry.key == visibleWorlds.length - 1,
+                            scale: scale,
+                            selected: (entry.value['key'] as String?)
+                                    ?.toLowerCase() ==
+                                selectedBackendWorldKey,
+                            masteryPercent: masteryAverages[
+                                    (entry.value['key'] as String?)
+                                            ?.toLowerCase() ??
+                                        '']
+                                ?.round(),
+                            onTap: () => onSelectWorld(entry.value),
+                          ),
                         ),
-                      ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
+Color _worldColor(Object? key) => switch (key) {
+      'NUMERIA' => const Color(0xFF2D8CFF),
+      'KODEX' => const Color(0xFF4CAF50),
+      'DETECTIVIA' => const Color(0xFF8D5E34),
+      _ => _homeYellow,
+    };
+
+IconData _worldIcon(Object? key) => switch (key) {
+      'NUMERIA' => Icons.calculate_rounded,
+      'KODEX' => Icons.code_rounded,
+      'DETECTIVIA' => Icons.search_rounded,
+      _ => Icons.public_rounded,
+    };
+
 class _JourneyNode extends StatelessWidget {
   const _JourneyNode({
-    required this.data,
+    required this.world,
     required this.index,
     required this.isLast,
     required this.scale,
-    required this.onSwitchWorld,
+    required this.selected,
+    required this.masteryPercent,
+    required this.onTap,
   });
 
-  final Map<String, dynamic> data;
+  final Map<String, dynamic> world;
   final int index;
   final bool isLast;
   final double scale;
-  final VoidCallback onSwitchWorld;
+  final bool selected;
+  final int? masteryPercent;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final completed = data['completed'] == true;
-    final active = data['active'] == true;
-    final locked = data['locked'] == true;
-    final stars = data['stars'] is int ? data['stars'] as int : 0;
-    final color = locked
-        ? const Color(0xFF9AA0AA)
-        : completed
-            ? _homeGreen
-            : active
-                ? _homeYellow
-                : const Color(0xFF2D8CFF);
+    final color = _worldColor(world['key']);
+    final started = (masteryPercent ?? 0) > 0;
     final alignRight = index.isOdd;
-    final title = data['title'] as String? ?? 'Langkah ${index + 1}';
-    final step = data['step'] ?? index + 1;
+    final name = world['name'] as String? ?? 'Dunia';
+    final subject = world['subject'] as String? ?? '';
     final node = _JourneyBubble(
       color: color,
-      locked: locked,
-      completed: completed,
-      active: active,
-      step: step,
+      icon: _worldIcon(world['key']),
+      selected: selected,
       scale: scale,
     );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _handleTap(context, title: title, stars: stars),
+      onTap: onTap,
       child: Stack(
         children: [
           if (!isLast)
@@ -487,7 +485,7 @@ class _JourneyNode extends StatelessWidget {
                   width: 6,
                   height: 58 * scale,
                   decoration: BoxDecoration(
-                    color: active || completed
+                    color: started
                         ? color.withValues(alpha: 0.36)
                         : const Color(0xFFFFE0A1),
                     borderRadius: BorderRadius.circular(99),
@@ -510,16 +508,15 @@ class _JourneyNode extends StatelessWidget {
                     child: Container(
                       padding: EdgeInsets.all(10 * scale),
                       decoration: BoxDecoration(
-                        color: locked
-                            ? const Color(0xFFF1F2F5)
-                            : active
-                                ? const Color(0xFFFFF7D6)
-                                : const Color(0xFFFFFAEA),
+                        color: selected
+                            ? const Color(0xFFFFF7D6)
+                            : const Color(0xFFFFFAEA),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color:
-                              active ? _homeYellow : const Color(0xFFFFE0A1),
-                          width: active ? 1.6 : 1,
+                          color: selected
+                              ? _homeYellow
+                              : const Color(0xFFFFE0A1),
+                          width: selected ? 1.6 : 1,
                         ),
                       ),
                       child: Column(
@@ -529,18 +526,31 @@ class _JourneyNode extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            title,
+                            name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign:
                                 alignRight ? TextAlign.right : TextAlign.left,
                             style: TextStyle(
-                              color:
-                                  locked ? const Color(0xFF777C86) : _homeInk,
-                              fontSize: (13 * scale).clamp(10.0, 15.0),
+                              color: _homeInk,
+                              fontSize: (14 * scale).clamp(11.0, 16.0),
                               fontWeight: FontWeight.w900,
                             ),
                           ),
+                          if (subject.isNotEmpty)
+                            Text(
+                              subject,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: alignRight
+                                  ? TextAlign.right
+                                  : TextAlign.left,
+                              style: TextStyle(
+                                color: const Color(0xFF60646F),
+                                fontSize: (11 * scale).clamp(9.0, 12.0),
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           SizedBox(height: 5 * scale),
                           Row(
                             mainAxisSize: MainAxisSize.min,
@@ -548,49 +558,55 @@ class _JourneyNode extends StatelessWidget {
                                 ? TextDirection.rtl
                                 : TextDirection.ltr,
                             children: [
-                              for (var i = 0; i < 3; i++)
-                                Icon(
-                                  i < stars
-                                      ? Icons.star_rounded
-                                      : Icons.star_border_rounded,
-                                  color: i < stars
-                                      ? _homeYellow
-                                      : const Color(0xFFC9CDD5),
-                                  size: (17 * scale).clamp(12.0, 17.0),
+                              SizedBox(
+                                width: 46 * scale,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: LinearProgressIndicator(
+                                    value:
+                                        ((masteryPercent ?? 0) / 100).clamp(
+                                      0,
+                                      1,
+                                    ),
+                                    minHeight: 6 * scale,
+                                    color: color,
+                                    backgroundColor:
+                                        const Color(0xFFFFE0A1),
+                                  ),
                                 ),
-                              if (active) ...[
-                                SizedBox(width: 8 * scale),
-                                GestureDetector(
-                                  onTap: onSwitchWorld,
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8 * scale,
-                                      vertical: 4 * scale,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _homeGreen,
-                                      borderRadius:
-                                          BorderRadius.circular(999),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.swap_horiz_rounded,
-                                          color: Colors.white,
-                                          size: (15 * scale).clamp(11.0, 15.0),
-                                        ),
-                                        SizedBox(width: 2 * scale),
-                                        Text(
-                                          'Ganti Dunia',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize:
-                                                (11 * scale).clamp(9.0, 11.0),
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                      ],
+                              ),
+                              SizedBox(width: 6 * scale),
+                              Text(
+                                masteryPercent == null
+                                    ? '-'
+                                    : started
+                                        ? '$masteryPercent%'
+                                        : 'Belum mulai',
+                                style: TextStyle(
+                                  color: _homeInk,
+                                  fontSize: (10 * scale).clamp(8.0, 11.0),
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              if (selected) ...[
+                                SizedBox(width: 6 * scale),
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 6 * scale,
+                                    vertical: 2 * scale,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _homeGreen,
+                                    borderRadius:
+                                        BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    'Aktif',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize:
+                                          (9 * scale).clamp(8.0, 10.0),
+                                      fontWeight: FontWeight.w900,
                                     ),
                                   ),
                                 ),
@@ -609,86 +625,68 @@ class _JourneyNode extends StatelessWidget {
       ),
     );
   }
-
-  // Ketuk kartu langkah hanya membuka info singkat. Beranda tidak lagi
-  // membuka quest sama sekali (itu tugas tab Misi) - tombol "Ganti Dunia"
-  // di kartu aktif cuma jalan pintas balik ke tab Dunia.
-  void _handleTap(BuildContext context,
-      {required String title, required int stars}) {
-    final completed = data['completed'] == true;
-    final active = data['active'] == true;
-    final locked = data['locked'] == true;
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(
-          locked
-              ? 'Langkah ini masih terkunci. Selesaikan langkah sebelumnya dulu ya.'
-              : completed
-                  ? 'Kamu sudah menyelesaikan langkah ini dengan $stars dari 3 bintang.'
-                  : active
-                      ? 'Ini langkah aktifmu sekarang. Untuk mengerjakan soal, buka tab Misi.'
-                      : 'Langkah ini belum bisa dimulai sekarang.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _JourneyBubble extends StatelessWidget {
   const _JourneyBubble({
     required this.color,
-    required this.locked,
-    required this.completed,
-    required this.active,
-    required this.step,
+    required this.icon,
+    required this.selected,
     required this.scale,
   });
 
   final Color color;
-  final bool locked;
-  final bool completed;
-  final bool active;
-  final Object step;
+  final IconData icon;
+  final bool selected;
   final double scale;
 
   @override
   Widget build(BuildContext context) {
     final size = (62 * scale).clamp(40.0, 62.0);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: (4 * scale).clamp(2.0, 4.0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 12,
-            offset: Offset(0, 6),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white,
+              width: (4 * scale).clamp(2.0, 4.0),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x22000000),
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Icon(
-        locked
-            ? Icons.lock_rounded
-            : completed
-                ? Icons.check_rounded
-                : active
-                    ? Icons.play_arrow_rounded
-                    : Icons.flag_rounded,
-        color: Colors.white,
-        size: ((active ? 32 : 28) * scale).clamp(20.0, 32.0),
-      ),
+          child: Icon(
+            icon,
+            color: Colors.white,
+            size: (30 * scale).clamp(20.0, 30.0),
+          ),
+        ),
+        if (selected)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.check_circle_rounded,
+                color: _homeGreen,
+                size: (18 * scale).clamp(14.0, 18.0),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

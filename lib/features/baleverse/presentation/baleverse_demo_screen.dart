@@ -14,9 +14,9 @@ import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/mission_hub_screen.dart';
 import 'screens/world_curriculum_screen.dart';
-import 'screens/worlds_screen.dart';
+import 'screens/world_detail_screen.dart';
 
-enum BaleTab { home, worlds, mission, profile }
+enum BaleTab { home, curriculum, mission, profile }
 
 class BaleVerseDemoScreen extends StatefulWidget {
   const BaleVerseDemoScreen({
@@ -46,6 +46,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   List<Map<String, dynamic>> _realWorlds = [];
   GameProfileSummary? _gameProfile;
   double? _masteryAverage;
+  // Rata-rata mastery PER dunia (key lowercase) - dipakai Peta Perjalanan di
+  // Beranda untuk menampilkan progres di semua dunia sekaligus, bukan cuma
+  // dunia yang sedang aktif (lihat _loadAllWorldsMastery).
+  final Map<String, double> _worldMasteryAverages = {};
   bool _backendLoading = true;
   String? _backendError;
   // Diisi saat user memilih dunia dari tab Dunia (lihat _selectWorldFromList).
@@ -96,6 +100,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       _loadMastery(),
       _loadAdaptivePlan(),
     ]);
+    await _loadAllWorldsMastery();
     // Kalau user sudah manual pilih dunia (lihat _selectWorldFromList), data
     // blob dari backend di atas bisa menimpa balik ke dunia default backend -
     // rakit ulang data dunia yang dipilih supaya Beranda tidak "lompat" balik
@@ -159,6 +164,30 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     if (_realWorlds.isEmpty) {
       setState(() => _backendError ??= 'Daftar dunia belum bisa dimuat.');
     }
+  }
+
+  // Dipanggil setelah _realWorlds terisi - ambil mastery TIAP dunia sekaligus
+  // (bukan cuma dunia aktif) supaya Peta Perjalanan bisa menunjukkan progres
+  // semua dunia. Satu dunia gagal dimuat tidak menggagalkan yang lain.
+  Future<void> _loadAllWorldsMastery() async {
+    if (_realWorlds.isEmpty) return;
+    final results = await Future.wait(_realWorlds.map((world) async {
+      final key = (world['key'] as String? ?? '').toLowerCase();
+      if (key.isEmpty) return null;
+      try {
+        final competencies =
+            await _masteryRepository.fetchGrowthMap(worldKey: key);
+        return MapEntry(key, averageMasteryScore(competencies));
+      } catch (_) {
+        return null;
+      }
+    }));
+    if (!mounted) return;
+    setState(() {
+      for (final entry in results) {
+        if (entry != null) _worldMasteryAverages[entry.key] = entry.value;
+      }
+    });
   }
 
   Future<void> _loadGameProfile() async {
@@ -264,12 +293,11 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     return _backendDataForWorld(worlds.first, worlds);
   }
 
-  // Bentuk todayMission/missions/learningPath untuk SATU dunia tertentu.
-  // Backend belum punya konsep "dunia terpilih" per-siswa (getBaleVerse()
-  // tidak menerima parameter world), jadi saat user ganti dunia dari tab
-  // Dunia kita rakit data ini di klien - sama seperti pola fallback yang
-  // sudah ada, supaya Peta Perjalanan di Beranda ikut berubah ke dunia yang
-  // baru dipilih alih-alih diam menampilkan misi dunia lama.
+  // Bentuk todayMission/missions untuk SATU dunia tertentu (dipakai tab
+  // Misi). Backend belum punya konsep "dunia terpilih" per-siswa
+  // (getBaleVerse() tidak menerima parameter world), jadi saat user ganti
+  // dunia dari tab Dunia kita rakit data ini di klien - sama seperti pola
+  // fallback yang sudah ada.
   Map<String, dynamic> _backendDataForWorld(
     Map<String, dynamic> selected,
     List<Map<String, dynamic>> worlds,
@@ -313,16 +341,6 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
           'rewardXp': 25,
           'questionCount': 10,
           'active': true,
-        },
-      ],
-      'learningPath': [
-        {
-          'step': 1,
-          'title': selected['name'] as String? ?? 'Materi awal',
-          'completed': false,
-          'active': true,
-          'locked': false,
-          'stars': 0,
         },
       ],
     };
@@ -378,8 +396,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
             label: 'Beranda',
           ),
           NavigationDestination(
-            icon: Icon(Icons.public_rounded),
-            label: 'Dunia',
+            icon: Icon(Icons.menu_book_rounded),
+            label: 'Kurikulum',
           ),
           NavigationDestination(
             icon: Icon(Icons.flag_rounded),
@@ -437,17 +455,32 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         realUserName: widget.authController?.user?.name,
         gameProfile: _gameProfile,
         masteryAverage: _masteryAverage,
-        onSwitchWorld: () => _goToTab(BaleTab.worlds),
+        realWorlds: _realWorlds,
+        worldMasteryAverages: _worldMasteryAverages,
+        selectedBackendWorldKey: _selectedBackendWorldKey,
+        onSelectWorld: _selectWorldFromList,
       );
     }
 
-    if (_tab == BaleTab.worlds) {
-      return WorldsScreen(
-        key: const ValueKey('worlds'),
-        selectedWorld: _selectedWorld,
-        selectedBackendWorldKey: _selectedBackendWorldKey,
-        realWorlds: _realWorlds,
-        onSelectWorld: _selectWorldFromList,
+    if (_tab == BaleTab.curriculum) {
+      final selectedWorldData = _realWorlds.firstWhere(
+        (world) =>
+            (world['key'] as String?)?.toLowerCase() ==
+            _selectedBackendWorldKey,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (selectedWorldData.isEmpty) {
+        return const ColoredBox(
+          key: ValueKey('curriculum-loading'),
+          color: Color(0xFFFFF3C6),
+          child: Center(
+            child: CircularProgressIndicator(color: Color(0xFFF4B400)),
+          ),
+        );
+      }
+      return WorldDetailScreen(
+        key: ValueKey('curriculum-$_selectedBackendWorldKey'),
+        world: selectedWorldData,
       );
     }
 
@@ -459,7 +492,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         gameProfile: _gameProfile,
         masteryAverage: _masteryAverage,
         onSignOut: widget.authController?.signOut,
-        onOpenWorlds: () => _goToTab(BaleTab.worlds),
+        onOpenWorlds: () => _goToTab(BaleTab.curriculum),
         authService: widget.authController?.authService,
       );
     }

@@ -366,7 +366,7 @@ class _QuestRewardScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('Kembali ke Materi'),
+                  child: const Text('Kembali ke Beranda'),
                 ),
               ),
             ],

@@ -66,17 +66,27 @@ class _WorldCurriculumScreenState extends State<WorldCurriculumScreen> {
     }
   }
 
+  // Selesai satu Quest (lihat QuestScreen._QuestRewardScreen.onDone) langsung
+  // pop layar ini juga - user diarahkan balik ke Beranda, bukan berhenti di
+  // materi/curriculum ini dulu. `true` diteruskan supaya pemanggil
+  // (_startMission di baleverse_demo_screen.dart) tahu harus refresh data.
   void _openQuest({required bool requestNext}) {
     Navigator.of(context)
-        .push<void>(
-          MaterialPageRoute<void>(
+        .push<bool>(
+          MaterialPageRoute<bool>(
             builder: (_) => QuestScreen(
               worldKey: widget.worldKey,
               requestNext: requestNext,
             ),
           ),
         )
-        .then((_) => _loadDailyProgress());
+        .then((completed) {
+      if (!mounted) return;
+      _loadDailyProgress();
+      if (completed == true) {
+        Navigator.of(context).pop(true);
+      }
+    });
   }
 
   @override

@@ -15,7 +15,7 @@ class DashboardScreen extends StatelessWidget {
     required this.realUserName,
     required this.gameProfile,
     required this.masteryAverage,
-    required this.onStartMission,
+    required this.onSwitchWorld,
     super.key,
   });
 
@@ -27,7 +27,10 @@ class DashboardScreen extends StatelessWidget {
   final String? realUserName;
   final GameProfileSummary? gameProfile;
   final double? masteryAverage;
-  final VoidCallback onStartMission;
+  // Beranda tidak lagi punya CTA untuk langsung mulai quest (itu tugas tab
+  // Misi) - tombol di kartu langkah aktif sekarang jadi jalan pintas ganti
+  // dunia lewat tab Dunia.
+  final VoidCallback onSwitchWorld;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +60,7 @@ class DashboardScreen extends StatelessWidget {
               child: _JourneyMapCard(
                 path: learningPath,
                 compact: compact,
-                onStartMission: onStartMission,
+                onSwitchWorld: onSwitchWorld,
               ),
             ),
           ],
@@ -287,12 +290,12 @@ class _JourneyMapCard extends StatelessWidget {
   const _JourneyMapCard({
     required this.path,
     required this.compact,
-    required this.onStartMission,
+    required this.onSwitchWorld,
   });
 
   final List<Map<String, dynamic>> path;
   final bool compact;
-  final VoidCallback onStartMission;
+  final VoidCallback onSwitchWorld;
 
   @override
   Widget build(BuildContext context) {
@@ -415,7 +418,7 @@ class _JourneyMapCard extends StatelessWidget {
                           index: entry.key,
                           isLast: entry.key == visibleNodes.length - 1,
                           scale: scale,
-                          onStartMission: onStartMission,
+                          onSwitchWorld: onSwitchWorld,
                         ),
                       ),
                   ],
@@ -435,14 +438,14 @@ class _JourneyNode extends StatelessWidget {
     required this.index,
     required this.isLast,
     required this.scale,
-    required this.onStartMission,
+    required this.onSwitchWorld,
   });
 
   final Map<String, dynamic> data;
   final int index;
   final bool isLast;
   final double scale;
-  final VoidCallback onStartMission;
+  final VoidCallback onSwitchWorld;
 
   @override
   Widget build(BuildContext context) {
@@ -558,7 +561,7 @@ class _JourneyNode extends StatelessWidget {
                               if (active) ...[
                                 SizedBox(width: 8 * scale),
                                 GestureDetector(
-                                  onTap: onStartMission,
+                                  onTap: onSwitchWorld,
                                   child: Container(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: 8 * scale,
@@ -573,13 +576,13 @@ class _JourneyNode extends StatelessWidget {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
-                                          Icons.play_arrow_rounded,
+                                          Icons.swap_horiz_rounded,
                                           color: Colors.white,
                                           size: (15 * scale).clamp(11.0, 15.0),
                                         ),
                                         SizedBox(width: 2 * scale),
                                         Text(
-                                          'Mulai',
+                                          'Ganti Dunia',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize:
@@ -607,16 +610,14 @@ class _JourneyNode extends StatelessWidget {
     );
   }
 
+  // Ketuk kartu langkah hanya membuka info singkat. Beranda tidak lagi
+  // membuka quest sama sekali (itu tugas tab Misi) - tombol "Ganti Dunia"
+  // di kartu aktif cuma jalan pintas balik ke tab Dunia.
   void _handleTap(BuildContext context,
       {required String title, required int stars}) {
     final completed = data['completed'] == true;
     final active = data['active'] == true;
     final locked = data['locked'] == true;
-
-    if (active) {
-      onStartMission();
-      return;
-    }
 
     showDialog<void>(
       context: context,
@@ -627,7 +628,9 @@ class _JourneyNode extends StatelessWidget {
               ? 'Langkah ini masih terkunci. Selesaikan langkah sebelumnya dulu ya.'
               : completed
                   ? 'Kamu sudah menyelesaikan langkah ini dengan $stars dari 3 bintang.'
-                  : 'Langkah ini belum bisa dimulai sekarang.',
+                  : active
+                      ? 'Ini langkah aktifmu sekarang. Untuk mengerjakan soal, buka tab Misi.'
+                      : 'Langkah ini belum bisa dimulai sekarang.',
         ),
         actions: [
           TextButton(

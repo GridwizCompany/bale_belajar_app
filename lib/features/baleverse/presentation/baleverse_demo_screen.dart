@@ -52,6 +52,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   // Prioritas di atas data backend supaya pilihan user langsung terlihat di
   // Beranda tanpa menunggu backend punya konsep "dunia terpilih" per-siswa.
   String? _manualWorldKeyOverride;
+  // true sebentar saat pindah dunia - menampilkan splash loading alih-alih
+  // langsung "melompat" ke Beranda tanpa transisi.
+  bool _worldSwitching = false;
 
   String get _selectedBackendWorldKey {
     if (_manualWorldKeyOverride case final override? when override.isNotEmpty) {
@@ -93,6 +96,19 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       _loadMastery(),
       _loadAdaptivePlan(),
     ]);
+    // Kalau user sudah manual pilih dunia (lihat _selectWorldFromList), data
+    // blob dari backend di atas bisa menimpa balik ke dunia default backend -
+    // rakit ulang data dunia yang dipilih supaya Beranda tidak "lompat" balik
+    // ke dunia lain setelah reload (mis. sehabis selesai satu quest).
+    if (_manualWorldKeyOverride case final overrideKey? when overrideKey.isNotEmpty) {
+      final world = _realWorlds.firstWhere(
+        (w) => (w['key'] as String?)?.toLowerCase() == overrideKey,
+        orElse: () => const <String, dynamic>{},
+      );
+      if (world.isNotEmpty) {
+        _backendData = _backendDataForWorld(world, _realWorlds);
+      }
+    }
     if (mounted) {
       setState(() => _backendLoading = false);
     }
@@ -186,16 +202,18 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   // Dipanggil saat user ketuk kartu dunia di tab Dunia. Tidak langsung buka
   // soal/curriculum - hanya menandai dunia itu sebagai fokus lalu kembali ke
   // Beranda, supaya user mulai misinya dari sana (lihat _startMission).
-  void _selectWorldFromList(Map<String, dynamic> world) {
+  Future<void> _selectWorldFromList(Map<String, dynamic> world) async {
     final backendKey = world['key'] as String?;
     if (backendKey == null || backendKey.isEmpty) return;
     AudioScope.maybeOf(context)?.playSound(SoundEffectId.buttonTap);
     setState(() {
+      _worldSwitching = true;
       _manualWorldKeyOverride = backendKey.toLowerCase();
       _backendData = _backendDataForWorld(world, _realWorlds);
     });
-    _loadMastery();
-    _loadAdaptivePlan();
+    await Future.wait([_loadMastery(), _loadAdaptivePlan()]);
+    if (!mounted) return;
+    setState(() => _worldSwitching = false);
     _goToTab(BaleTab.home);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -377,6 +395,16 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   }
 
   Widget _buildBody() {
+    if (_worldSwitching) {
+      return const ColoredBox(
+        key: ValueKey('baleverse-world-switching'),
+        color: Color(0xFFFFF3C6),
+        child: Center(
+          child: CircularProgressIndicator(color: Color(0xFFF4B400)),
+        ),
+      );
+    }
+
     if ((widget.prototypeStudentProfileId != null ||
             widget.authController?.user != null) &&
         _backendData == null &&
@@ -409,7 +437,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         realUserName: widget.authController?.user?.name,
         gameProfile: _gameProfile,
         masteryAverage: _masteryAverage,
-        onStartMission: _startMission,
+        onSwitchWorld: () => _goToTab(BaleTab.worlds),
       );
     }
 

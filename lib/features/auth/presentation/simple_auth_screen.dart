@@ -619,15 +619,6 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                     ? null
                     : () => _goTo(_switchTarget),
               ),
-              if (_mode == AuthMode.login) ...[
-                const SizedBox(height: 2),
-                _SecondaryAction(
-                  label: 'Masuk dengan kode siswa',
-                  onPressed: widget.controller.isBusy || _googleBusy
-                      ? null
-                      : () => _goTo(AuthMode.code),
-                ),
-              ],
             ],
           ),
         );
@@ -692,7 +683,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.analysis => 'Kami sedang menganalisis jawabanmu.',
         AuthMode.account =>
           'Masuk dulu supaya hasil cek awal tersimpan ke akunmu.',
-        AuthMode.login => 'Lanjutkan progres belajar yang sudah tersimpan.',
+        AuthMode.login => '',
         AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
       };
 
@@ -1393,9 +1384,11 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
     matchingPairs: _jsonList(json['matchingPairs']).map((item) {
       return MatchingPair(
         leftId: _templateJsonText(item, ['leftId', 'left_id']),
-        leftLabel: _templateJsonText(item, ['leftLabel', 'left_label', 'label']),
+        leftLabel:
+            _templateJsonText(item, ['leftLabel', 'left_label', 'label']),
         rightId: _templateJsonText(item, ['rightId', 'right_id']),
-        rightLabel: _templateJsonText(item, ['rightLabel', 'right_label', 'answer']),
+        rightLabel:
+            _templateJsonText(item, ['rightLabel', 'right_label', 'answer']),
       );
     }).toList(growable: false),
     orderingItems: _jsonList(json['orderingItems']).map((item) {
@@ -1421,7 +1414,8 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
     timelineItems: _jsonList(json['timelineItems']).map((item) {
       return TimelineItem(
         id: _templateJsonText(item, ['id', 'itemId', 'item_id']),
-        label: _templateJsonText(item, ['label', 'text', 'title', 'name', 'description']),
+        label: _templateJsonText(
+            item, ['label', 'text', 'title', 'name', 'description']),
         timeLabel: item['timeLabel'] as String?,
         description: item['description'] as String?,
       );
@@ -3890,20 +3884,19 @@ class _LoginWelcomeStep extends StatelessWidget {
                   onPressed: controller.isBusy ? null : onBack,
                   icon: const Icon(Icons.arrow_back_rounded),
                 ),
-                const Expanded(child: _FiveStepProgress(currentStep: 2)),
               ],
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 12),
             const _MiniBrand(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
             const Center(
               child: _MascotStage(
                 pose: BeloPose.kedip,
-                size: 136,
+                size: 104,
                 compact: true,
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 14),
             Text(
               'Selamat datang kembali!',
               textAlign: TextAlign.center,
@@ -3912,17 +3905,7 @@ class _LoginWelcomeStep extends StatelessWidget {
                     color: BaleColors.ink,
                   ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Lanjutkan petualangan belajarmu',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF7A8796),
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 18),
             _GoogleButton(
               loading: googleBusy,
               disabled: controller.isBusy,

@@ -49,7 +49,9 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.initialMode;
+    _mode = widget.initialMode == AuthAccountMode.code
+        ? AuthAccountMode.login
+        : widget.initialMode;
     _name = TextEditingController(text: widget.initialName);
     _grade = _normalizedGrade(widget.initialGrade);
   }
@@ -58,7 +60,9 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   void didUpdateWidget(covariant AuthAccountPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialMode != widget.initialMode) {
-      _mode = widget.initialMode;
+      _mode = widget.initialMode == AuthAccountMode.code
+          ? AuthAccountMode.login
+          : widget.initialMode;
     }
     if (oldWidget.initialGrade != widget.initialGrade) {
       _grade = _normalizedGrade(widget.initialGrade);
@@ -78,7 +82,9 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final compact = screenHeight < 740;
-    final mascotSize = compact ? 116.0 : 154.0;
+    final mascotSize = compact ? 92.0 : 118.0;
+    final subtitle = _subtitle;
+    final showApple = defaultTargetPlatform != TargetPlatform.android;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -103,44 +109,49 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
                       ),
                     ),
                     const _MiniBrand(),
-                    SizedBox(height: compact ? 8 : 14),
-                    _LoginMascot(size: mascotSize),
                     SizedBox(height: compact ? 6 : 10),
+                    _LoginMascot(size: mascotSize),
+                    SizedBox(height: compact ? 4 : 8),
                     Text(
                       _title,
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontSize: compact ? 22 : 26,
-                            color: BaleColors.ink,
-                            fontWeight: FontWeight.w900,
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontSize: compact ? 22 : 26,
+                                color: BaleColors.ink,
+                                fontWeight: FontWeight.w900,
+                              ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _subtitle,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF7A8796),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF7A8796),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: compact ? 16 : 22),
+                    ],
+                    SizedBox(height: compact ? 12 : 16),
                     if (_mode != AuthAccountMode.code) ...[
                       _GoogleLoginButton(
                         loading: _googleBusy,
                         disabled: _busy || _appleBusy,
                         onPressed: _continueWithGoogle,
                       ),
-                      const SizedBox(height: 10),
-                      _AppleLoginButton(
-                        loading: _appleBusy,
-                        disabled: _busy || _googleBusy,
-                        onPressed: _continueWithApple,
-                      ),
-                      const SizedBox(height: 16),
+                      if (showApple) ...[
+                        const SizedBox(height: 10),
+                        _AppleLoginButton(
+                          loading: _appleBusy,
+                          disabled: _busy || _googleBusy,
+                          onPressed: _continueWithApple,
+                        ),
+                      ],
+                      const SizedBox(height: 14),
                       const _DividerLabel(label: 'atau'),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 14),
                     ],
                     if (_mode == AuthAccountMode.register) ...[
                       _AccountField(
@@ -240,31 +251,6 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
                       action: _switchAction,
                       onPressed: _busy ? null : _switchMode,
                     ),
-                    if (_mode == AuthAccountMode.login) ...[
-                      const SizedBox(height: 2),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => setState(() => _mode = AuthAccountMode.code),
-                        child: const Text(
-                          'Masuk dengan kode siswa',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ],
-                    if (_mode == AuthAccountMode.code) ...[
-                      const SizedBox(height: 2),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () =>
-                                setState(() => _mode = AuthAccountMode.login),
-                        child: const Text(
-                          'Masuk pakai email',
-                          style: TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -284,7 +270,7 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
       };
 
   String get _subtitle => switch (_mode) {
-        AuthAccountMode.login => 'Lanjutkan progres belajar yang tersimpan.',
+        AuthAccountMode.login => '',
         AuthAccountMode.register =>
           'Simpan hasil cek awal dan mulai dari level yang pas.',
         AuthAccountMode.code => 'Masukkan kode dari sekolah atau mentor.',

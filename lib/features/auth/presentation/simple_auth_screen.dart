@@ -1096,42 +1096,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   Future<void> _continueWithGoogle() async {
-    if (!FirebaseBootstrap.isConfigured) {
-      widget.controller.setError(
-        'Login Google belum aktif. Lengkapi konfigurasi Firebase dulu.',
-      );
-      return;
-    }
-
-    final shouldContinuePlacement = _shouldContinuePlacementAfterAuth;
-    if (shouldContinuePlacement) {
-      widget.onAuthenticatedFlowLockChanged?.call(true);
-    }
-    setState(() => _googleBusy = true);
-    try {
-      final provider = GoogleAuthProvider();
-      final credential = kIsWeb
-          ? await FirebaseAuth.instance.signInWithPopup(provider)
-          : await FirebaseAuth.instance.signInWithProvider(provider);
-      final idToken = await credential.user?.getIdToken();
-      if (idToken == null || idToken.isEmpty) {
-        widget.controller.setError('Token Google tidak diterima. Coba lagi.');
-        return;
-      }
-      await widget.controller.loginWithGoogleToken(idToken);
-      if (_shouldContinuePlacementAfterAuth) {
-        await _continueAuthenticatedPlacementFlow();
-      }
-    } on FirebaseAuthException catch (error) {
-      widget.controller.setError(_googleError(error));
-    } catch (_) {
-      widget.controller.setError('Login Google gagal. Coba lagi.');
-    } finally {
-      if (shouldContinuePlacement && widget.controller.errorMessage != null) {
-        widget.onAuthenticatedFlowLockChanged?.call(false);
-      }
-      if (mounted) setState(() => _googleBusy = false);
-    }
+    await _showGoogleComingSoonDialog();
   }
 
   Future<void> _submit() async {
@@ -1221,6 +1186,76 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       'invalid-api-key' => 'Konfigurasi Firebase belum benar.',
       _ => 'Login Google gagal (${error.code}). Coba lagi.',
     };
+  }
+
+  Future<void> _showGoogleComingSoonDialog() {
+    return showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          backgroundColor: Colors.white,
+          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF3C6),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: const Icon(
+                  Icons.g_mobiledata_rounded,
+                  color: BaleColors.warning,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 14),
+              const Text(
+                'Login Google belum aktif',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: BaleColors.ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Untuk sementara, masuk atau daftar pakai email dan password dulu.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF7A8796),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(24, 4, 24, 20),
+          actions: [
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(50),
+                  backgroundColor: BaleColors.warning,
+                  foregroundColor: BaleColors.ink,
+                  textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                child: const Text('PAKAI EMAIL DULU'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 

@@ -479,7 +479,7 @@ class _CurriculumSection extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),
           child: Text(
-            'Kurikulum · $masteredCount/${modules.length} dikuasai',
+            'Kurikulum - $masteredCount/${modules.length} dikuasai',
             style: const TextStyle(
               color: _ink,
               fontSize: 16,
@@ -571,13 +571,28 @@ class _ModuleTileState extends State<_ModuleTile> {
                   Expanded(
                     child: Text(
                       module.title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: _ink,
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
                       ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Detail topik',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () => _showCurriculumDetail(
+                      context,
+                      title: module.title,
+                      body:
+                          '${_topicStatusLabel(mastery)}\n${module.estimatedMinutes} menit belajar${module.simpleGoal.isEmpty ? '' : '\n\n${module.simpleGoal}'}',
+                    ),
+                    icon: const Icon(
+                      Icons.info_outline_rounded,
+                      color: Color(0xFF8B8179),
+                      size: 19,
                     ),
                   ),
                   const SizedBox(width: 6),
@@ -688,6 +703,50 @@ class _ModuleTileState extends State<_ModuleTile> {
       ),
     );
   }
+}
+
+void _showCurriculumDetail(
+  BuildContext context, {
+  required String title,
+  required String body,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) => SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: _ink,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              body,
+              style: const TextStyle(
+                color: _muted,
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _Panel extends StatelessWidget {

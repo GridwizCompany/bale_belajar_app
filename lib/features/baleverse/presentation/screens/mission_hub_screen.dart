@@ -192,7 +192,7 @@ class _ProgressHeader extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '$worldName • Level ${gameProfile?.accountLevel ?? 1}',
+                  '$worldName - Level ${gameProfile?.accountLevel ?? 1}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -387,6 +387,8 @@ class _PriorityPanel extends StatelessWidget {
                 title: item.competencyName,
                 subtitle: '${item.masteryScore.round()}% penguasaan',
                 color: _progressGreen,
+                detail:
+                    'Penguasaan: ${item.masteryScore.round()}%\nStatus: ${_masteryStatusLabel(item.status)}\nBukti latihan: ${item.evidenceCount}',
               ),
             for (final item in weakSpots.take(3 - items.length))
               _FocusTile(
@@ -394,6 +396,8 @@ class _PriorityPanel extends StatelessWidget {
                 title: item.label,
                 subtitle: '${item.count} kali perlu diulang',
                 color: const Color(0xFFF57C00),
+                detail:
+                    'Muncul ${item.count} kali di jawaban yang perlu diulang.',
               ),
           ],
         ],
@@ -484,53 +488,67 @@ class _FocusTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.color,
+    required this.detail,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final Color color;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _showDetailSheet(context, title: title, body: detail),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
               children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _progressInk,
-                    fontWeight: FontWeight.w900,
+                Icon(icon, color: color, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _progressInk,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _progressMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _progressMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                  ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: _progressMuted,
+                  size: 18,
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -548,60 +566,77 @@ class _HistoryTile extends StatelessWidget {
         : attempt.score >= 60
             ? _progressYellow
             : const Color(0xFFF57C00);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
         color: const Color(0xFFFFFBF0),
         borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              '${attempt.score}',
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => _showDetailSheet(
+            context,
+            title: attempt.title,
+            body:
+                'Skor: ${attempt.score}\nBenar: ${attempt.correctAnswers}/${attempt.totalQuestions}\nWaktu: ${_shortDate(attempt.submittedAt)}',
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
               children: [
-                Text(
-                  attempt.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _progressInk,
-                    fontWeight: FontWeight.w900,
+                Container(
+                  width: 46,
+                  height: 46,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    '${attempt.score}',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${attempt.correctAnswers}/${attempt.totalQuestions} benar • ${_shortDate(attempt.submittedAt)}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: _progressMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        attempt.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _progressInk,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${attempt.correctAnswers}/${attempt.totalQuestions} benar - ${_shortDate(attempt.submittedAt)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: _progressMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: _progressMuted,
+                  size: 18,
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -668,6 +703,59 @@ class _SoftMessage extends StatelessWidget {
       ),
     );
   }
+}
+
+String _masteryStatusLabel(String status) {
+  return switch (status) {
+    'MASTERED' => 'Menguasai',
+    'DEVELOPING' => 'Berkembang',
+    'NEEDS_PRACTICE' => 'Perlu latihan',
+    _ => 'Sedang dikumpulkan',
+  };
+}
+
+void _showDetailSheet(
+  BuildContext context, {
+  required String title,
+  required String body,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (context) => SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: _progressInk,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              body,
+              style: const TextStyle(
+                color: _progressMuted,
+                height: 1.45,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _EmptyStateCard extends StatelessWidget {

@@ -24,42 +24,67 @@ IconData _worldIcon(Object? key) => switch (key) {
       _ => Icons.public_rounded,
     };
 
-String _statusLabel(String status) => switch (status) {
-      'MASTERED' => 'Menguasai',
-      'DEVELOPING' => 'Berkembang',
-      'NEEDS_PRACTICE' => 'Perlu latihan',
-      _ => 'Belum ada data',
-    };
+// Backend butuh evidenceCount minimum sebelum status naik dari
+// INSUFFICIENT_EVIDENCE (lihat mastery.util.ts) - evidenceCount > 0 dengan
+// status itu berarti siswa SUDAH coba, cuma buktinya belum cukup untuk
+// menilai penguasaan. Beda dengan "belum pernah dikerjakan sama sekali".
+bool _isCollectingEvidence(CompetencyMastery competency) =>
+    competency.status == 'INSUFFICIENT_EVIDENCE' &&
+    competency.evidenceCount > 0;
 
-Color _statusColor(String status) => switch (status) {
-      'MASTERED' => _green,
-      'DEVELOPING' => const Color(0xFF2D8CFF),
-      'NEEDS_PRACTICE' => const Color(0xFFF57C00),
-      _ => const Color(0xFF8B8179),
-    };
+String _statusLabel(CompetencyMastery competency) {
+  if (_isCollectingEvidence(competency)) return 'Sedang dikerjakan';
+  return switch (competency.status) {
+    'MASTERED' => 'Menguasai',
+    'DEVELOPING' => 'Berkembang',
+    'NEEDS_PRACTICE' => 'Perlu latihan',
+    _ => 'Belum mulai',
+  };
+}
 
-// Untuk kartu topik kurikulum (bukan baris rincian kompetensi) - "belum
-// mulai" lebih pas daripada "belum ada data" di konteks daftar topik.
-String _topicStatusLabel(String? status) => switch (status) {
-      'MASTERED' => 'Dikuasai',
-      'DEVELOPING' => 'Berkembang',
-      'NEEDS_PRACTICE' => 'Perlu latihan',
-      _ => 'Belum mulai',
-    };
+Color _statusColor(CompetencyMastery competency) {
+  if (_isCollectingEvidence(competency)) return const Color(0xFF2D8CFF);
+  return switch (competency.status) {
+    'MASTERED' => _green,
+    'DEVELOPING' => const Color(0xFF2D8CFF),
+    'NEEDS_PRACTICE' => const Color(0xFFF57C00),
+    _ => const Color(0xFF8B8179),
+  };
+}
 
-IconData _topicStatusIcon(String? status) => switch (status) {
-      'MASTERED' => Icons.check_circle_rounded,
-      'DEVELOPING' => Icons.trending_up_rounded,
-      'NEEDS_PRACTICE' => Icons.refresh_rounded,
-      _ => Icons.radio_button_unchecked_rounded,
-    };
+// Untuk kartu topik kurikulum (bukan baris rincian kompetensi).
+String _topicStatusLabel(CompetencyMastery? mastery) {
+  if (mastery == null) return 'Belum mulai';
+  if (_isCollectingEvidence(mastery)) return 'Sedang dikerjakan';
+  return switch (mastery.status) {
+    'MASTERED' => 'Dikuasai',
+    'DEVELOPING' => 'Berkembang',
+    'NEEDS_PRACTICE' => 'Perlu latihan',
+    _ => 'Belum mulai',
+  };
+}
 
-Color _topicStatusColor(String? status) => switch (status) {
-      'MASTERED' => _green,
-      'DEVELOPING' => const Color(0xFF2D8CFF),
-      'NEEDS_PRACTICE' => const Color(0xFFF57C00),
-      _ => const Color(0xFF8B8179),
-    };
+IconData _topicStatusIcon(CompetencyMastery? mastery) {
+  if (mastery == null) return Icons.radio_button_unchecked_rounded;
+  if (_isCollectingEvidence(mastery)) return Icons.hourglass_top_rounded;
+  return switch (mastery.status) {
+    'MASTERED' => Icons.check_circle_rounded,
+    'DEVELOPING' => Icons.trending_up_rounded,
+    'NEEDS_PRACTICE' => Icons.refresh_rounded,
+    _ => Icons.radio_button_unchecked_rounded,
+  };
+}
+
+Color _topicStatusColor(CompetencyMastery? mastery) {
+  if (mastery == null) return const Color(0xFF8B8179);
+  if (_isCollectingEvidence(mastery)) return const Color(0xFF2D8CFF);
+  return switch (mastery.status) {
+    'MASTERED' => _green,
+    'DEVELOPING' => const Color(0xFF2D8CFF),
+    'NEEDS_PRACTICE' => const Color(0xFFF57C00),
+    _ => const Color(0xFF8B8179),
+  };
+}
 
 /// Detail satu dunia - kurikulum (materi apa saja) dan progres penguasaan
 /// per kompetensi. Murni informasi (tidak mengganti dunia aktif) - ganti
@@ -67,11 +92,18 @@ Color _topicStatusColor(String? status) => switch (status) {
 ///
 /// Sengaja dibuat ringkas dan bisa diketuk (bukan tembok teks) - kartu topik
 /// dan rincian penguasaan sama-sama collapsed by default, terbuka saat
-/// diketuk.
+/// diketuk. Topik yang belum dikuasai punya tombol "Kerjakan" - backend
+/// belum bisa menargetkan quest ke satu topik spesifik, jadi ini membuka
+/// quest hari ini untuk dunia ini (sama seperti tab Misi / WorldCurriculumScreen).
 class WorldDetailScreen extends StatefulWidget {
-  const WorldDetailScreen({required this.world, super.key});
+  const WorldDetailScreen({
+    required this.world,
+    required this.onStartMission,
+    super.key,
+  });
 
   final Map<String, dynamic> world;
+  final ValueChanged<String?> onStartMission;
 
   @override
   State<WorldDetailScreen> createState() => _WorldDetailScreenState();
@@ -103,7 +135,9 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
         _mastery = competencies;
         _masteryLoading = false;
       });
-    } catch (_) {
+    } catch (error) {
+      debugPrint(
+          '[WorldDetailScreen] fetchGrowthMap($_worldKey) failed: $error');
       if (mounted) setState(() => _masteryLoading = false);
     }
   }
@@ -146,6 +180,9 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
                 );
               }
               if (snapshot.hasError || snapshot.data == null) {
+                debugPrint(
+                  '[WorldDetailScreen] fetchCurriculum($_worldKey) failed: ${snapshot.error}',
+                );
                 return const _StatePanel(
                   message: 'Kurikulum belum bisa dimuat.',
                 );
@@ -154,6 +191,7 @@ class _WorldDetailScreenState extends State<WorldDetailScreen> {
                 modules: snapshot.data!.modules,
                 color: color,
                 masteryByCompetency: masteryByCompetency,
+                onStartMission: widget.onStartMission,
               );
             },
           ),
@@ -332,8 +370,9 @@ class _ProgressCardState extends State<_ProgressCard> {
               ),
               AnimatedCrossFade(
                 duration: const Duration(milliseconds: 200),
-                crossFadeState:
-                    _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                crossFadeState: _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
                 firstChild: const SizedBox(width: double.infinity),
                 secondChild: Padding(
                   padding: const EdgeInsets.only(top: 14),
@@ -397,13 +436,13 @@ class _CompetencyRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
           decoration: BoxDecoration(
-            color: _statusColor(competency.status).withValues(alpha: 0.12),
+            color: _statusColor(competency).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            _statusLabel(competency.status),
+            _statusLabel(competency),
             style: TextStyle(
-              color: _statusColor(competency.status),
+              color: _statusColor(competency),
               fontSize: 10,
               fontWeight: FontWeight.w900,
             ),
@@ -419,11 +458,13 @@ class _CurriculumSection extends StatelessWidget {
     required this.modules,
     required this.color,
     required this.masteryByCompetency,
+    required this.onStartMission,
   });
 
   final List<CurriculumModule> modules;
   final Color color;
   final Map<String, CompetencyMastery> masteryByCompetency;
+  final ValueChanged<String?> onStartMission;
 
   @override
   Widget build(BuildContext context) {
@@ -452,6 +493,7 @@ class _CurriculumSection extends StatelessWidget {
             module: module,
             color: color,
             mastery: masteryByCompetency[module.competencyId],
+            onStartMission: onStartMission,
           ),
           const SizedBox(height: 10),
         ],
@@ -468,11 +510,13 @@ class _ModuleTile extends StatefulWidget {
     required this.module,
     required this.color,
     required this.mastery,
+    required this.onStartMission,
   });
 
   final CurriculumModule module;
   final Color color;
   final CompetencyMastery? mastery;
+  final ValueChanged<String?> onStartMission;
 
   @override
   State<_ModuleTile> createState() => _ModuleTileState();
@@ -485,21 +529,22 @@ class _ModuleTileState extends State<_ModuleTile> {
   Widget build(BuildContext context) {
     final module = widget.module;
     final hasGoal = module.simpleGoal.isNotEmpty;
-    final status = widget.mastery?.status;
-    final statusColor = _topicStatusColor(status);
+    final mastery = widget.mastery;
+    final statusColor = _topicStatusColor(mastery);
+    final needsWork = mastery?.status != 'MASTERED';
 
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: hasGoal ? () => setState(() => _expanded = !_expanded) : null,
+        onTap: () => setState(() => _expanded = !_expanded),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: status == 'MASTERED'
+              color: mastery?.status == 'MASTERED'
                   ? _green.withValues(alpha: 0.4)
                   : const Color(0xFFFFE0A1),
             ),
@@ -517,7 +562,7 @@ class _ModuleTileState extends State<_ModuleTile> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      _topicStatusIcon(status),
+                      _topicStatusIcon(mastery),
                       color: statusColor,
                       size: 18,
                     ),
@@ -546,7 +591,7 @@ class _ModuleTileState extends State<_ModuleTile> {
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
-                      _topicStatusLabel(status),
+                      _topicStatusLabel(mastery),
                       style: TextStyle(
                         color: statusColor,
                         fontSize: 10,
@@ -554,32 +599,30 @@ class _ModuleTileState extends State<_ModuleTile> {
                       ),
                     ),
                   ),
-                  if (hasGoal) ...[
-                    const SizedBox(width: 2),
-                    AnimatedRotation(
-                      turns: _expanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 200),
-                      child: const Icon(
-                        Icons.expand_more_rounded,
-                        color: Color(0xFF8B8179),
-                        size: 20,
-                      ),
+                  const SizedBox(width: 2),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(
+                      Icons.expand_more_rounded,
+                      color: Color(0xFF8B8179),
+                      size: 20,
                     ),
-                  ],
+                  ),
                 ],
               ),
-              if (hasGoal)
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 200),
-                  crossFadeState: _expanded
-                      ? CrossFadeState.showSecond
-                      : CrossFadeState.showFirst,
-                  firstChild: const SizedBox(width: double.infinity),
-                  secondChild: Padding(
-                    padding: const EdgeInsets.only(top: 8, left: 44),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+              AnimatedCrossFade(
+                duration: const Duration(milliseconds: 200),
+                crossFadeState: _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                firstChild: const SizedBox(width: double.infinity),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: 8, left: 44),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (hasGoal) ...[
                         Text(
                           module.simpleGoal,
                           style: const TextStyle(
@@ -590,18 +633,55 @@ class _ModuleTileState extends State<_ModuleTile> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '${module.estimatedMinutes} menit belajar',
-                          style: const TextStyle(
-                            color: Color(0xFF8B8179),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
+                      ],
+                      Text(
+                        '${module.estimatedMinutes} menit belajar',
+                        style: const TextStyle(
+                          color: Color(0xFF8B8179),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      if (needsWork) ...[
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: () =>
+                              widget.onStartMission(module.competencyId),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _green,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.play_arrow_rounded,
+                                  color: Colors.white,
+                                  size: 15,
+                                ),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Kerjakan',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
         ),

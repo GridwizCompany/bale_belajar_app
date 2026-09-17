@@ -1,12 +1,17 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../shared/widgets/bale_card.dart';
 import '../../../theme/bale_theme.dart';
 import '../application/vocab_sync_service.dart';
 import '../data/vocab_repository.dart';
 import '../domain/vocab_models.dart';
+
+const _knownVocabKey = 'known_vocab_word_ids';
 
 class VocabSettingsScreen extends StatefulWidget {
   const VocabSettingsScreen({
@@ -35,13 +40,17 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
   String? _error;
 
   VocabSetting? _setting;
+  DailyVocab? _daily;
   List<VocabCategory> _categories = const [];
   List<VocabWord> _todayWords = const [];
+  Set<String> _knownWordIds = {};
 
   PermissionStatus? _notifStatus;
   bool _widgetPinned = false;
   bool _widgetPinSupported = true;
-  bool _checkingPermissions = false;
+
+  List<VocabWord> get _visibleWords =>
+      _todayWords.where((word) => !_knownWordIds.contains(word.id)).toList();
 
   @override
   void initState() {
@@ -58,15 +67,20 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // User mungkin baru balik dari system settings (izin notifikasi) atau
-    // dari home screen (setelah nambah widget) - cek ulang statusnya.
-    if (state == AppLifecycleState.resumed) {
-      _refreshPermissionStatus();
-    }
+    if (state == AppLifecycleState.resumed) _refreshPermissionStatus();
+  }
+
+  Future<void> _loadKnownWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    _knownWordIds = (prefs.getStringList(_knownVocabKey) ?? const []).toSet();
+  }
+
+  Future<void> _saveKnownWords() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_knownVocabKey, _knownWordIds.toList());
   }
 
   Future<void> _refreshPermissionStatus() async {
-    setState(() => _checkingPermissions = true);
     final status = await _syncService.notificationPermissionStatus();
     final supported = await HomeWidget.isRequestPinWidgetSupported() ?? false;
     final pinned = await _syncService.isWidgetPinned();
@@ -75,7 +89,6 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
       _notifStatus = status;
       _widgetPinSupported = supported;
       _widgetPinned = pinned;
-      _checkingPermissions = false;
     });
   }
 
@@ -85,19 +98,24 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
       _error = null;
     });
     try {
+      await _loadKnownWords();
       final results = await Future.wait([
         _repository.fetchSettings(),
         _repository.fetchCategories(),
         _repository.fetchDaily(),
       ]);
+      final daily = results[2] as DailyVocab;
+      if (!mounted) return;
       setState(() {
         _setting = results[0] as VocabSetting;
         _categories = results[1] as List<VocabCategory>;
-        _todayWords = (results[2] as DailyVocab).words;
+        _daily = daily;
+        _todayWords = daily.words;
       });
+      await _syncVisibleWords();
       await _refreshPermissionStatus();
     } catch (error) {
-      setState(() => _error = 'Gagal memuat pengaturan kosakata: $error');
+      if (mounted) setState(() => _error = 'Kosakata belum bisa dimuat.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -120,16 +138,20 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
         levels: updated.levels,
         categoryKeys: updated.categoryKeys,
       );
-      setState(() => _setting = saved);
-      await _syncService.syncToday(force: true);
       final daily = await _repository.fetchDaily();
-      if (mounted) setState(() => _todayWords = daily.words);
+      if (!mounted) return;
+      setState(() {
+        _setting = saved;
+        _daily = daily;
+        _todayWords = daily.words;
+      });
+      await _syncVisibleWords();
       await _refreshPermissionStatus();
     } catch (error) {
-      setState(() => _setting = previous);
       if (mounted) {
+        setState(() => _setting = previous);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal menyimpan pengaturan: $error')),
+          const SnackBar(content: Text('Pengaturan belum tersimpan.')),
         );
       }
     } finally {
@@ -137,16 +159,28 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Kosakata Korea')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? _ErrorState(message: _error!, onRetry: _load)
-              : _buildContent(context),
-    );
+  Future<void> _syncVisibleWords() async {
+    final daily = _daily;
+    if (daily == null) return;
+    await _syncService.syncWords(daily, _visibleWords);
+  }
+
+  Future<void> _shuffleWords() async {
+    final next = [..._todayWords]..shuffle(Random());
+    setState(() => _todayWords = next);
+    await _syncVisibleWords();
+  }
+
+  Future<void> _markKnown(VocabWord word) async {
+    setState(() => _knownWordIds = {..._knownWordIds, word.id});
+    await _saveKnownWords();
+    await _syncVisibleWords();
+  }
+
+  Future<void> _resetKnown() async {
+    setState(() => _knownWordIds = {});
+    await _saveKnownWords();
+    await _syncVisibleWords();
   }
 
   Future<void> _handleEnableNotifications() async {
@@ -156,46 +190,10 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
     }
     final status = await _syncService.requestNotificationPermission();
     if (!mounted) return;
-    if (status.isGranted) {
-      await _syncService.showLockScreenNow();
-      if (!mounted) return;
-    }
     setState(() => _notifStatus = status);
     if (status.isPermanentlyDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Notifikasi ditolak permanen. Aktifkan manual lewat Pengaturan.',
-          ),
-        ),
-      );
       await _syncService.openNotificationSettings();
     }
-  }
-
-  Future<void> _handleOpenNotificationSettings() async {
-    await _syncService.openNotificationSettings();
-  }
-
-  Future<void> _handleShowLockScreenNow() async {
-    final messenger = ScaffoldMessenger.of(context);
-    final daily = await _syncService.showLockScreenNow();
-    if (!mounted) return;
-    if (daily == null || daily.words.isEmpty) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Belum ada kosakata harian dari backend. Jalankan seed vocab dulu.'),
-        ),
-      );
-      return;
-    }
-    setState(() => _todayWords = daily.words);
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text('Wallpaper lock screen kosakata sudah dipasang.'),
-      ),
-    );
   }
 
   Future<void> _handleAddWidget() async {
@@ -204,149 +202,94 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
     if (!supported) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Tambahkan manual: tekan lama layar utama > Widget > Bale Belajar.',
-          ),
+          content: Text('Tekan lama layar utama > Widget > Bale Belajar.'),
         ),
       );
       return;
     }
     await _syncService.requestPinWidget();
-    // Pemasangan widget dikonfirmasi user di dialog OS, bukan langsung -
-    // status baru bisa dicek ulang begitu app kembali ke foreground
-    // (lihat didChangeAppLifecycleState).
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: BaleColors.soft,
+      appBar: AppBar(title: const Text('Pengingat Kosakata')),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _ErrorState(message: _error!, onRetry: _load)
+              : _buildContent(context),
+    );
   }
 
   Widget _buildContent(BuildContext context) {
     final setting = _setting!;
-    final notifStatus = _notifStatus;
-    final showNotifBanner = !_checkingPermissions &&
-        setting.notificationEnabled &&
-        notifStatus != null &&
-        !notifStatus.isGranted;
-    final showWidgetBanner = !_checkingPermissions &&
-        setting.widgetEnabled &&
-        _widgetPinSupported &&
-        !_widgetPinned;
+    final visibleWords = _visibleWords;
+    final primaryWord = visibleWords.isEmpty ? null : visibleWords.first;
+    final notifAllowed = _notifStatus?.isGranted ?? false;
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
       children: [
-        if (showNotifBanner)
-          _PermissionBanner(
-            title: 'Notifikasi belum diizinkan',
-            message: notifStatus.isPermanentlyDenied
-                ? 'Kamu menolak izin notifikasi. Aktifkan manual lewat Pengaturan HP supaya pengingat kosakata harian bisa muncul.'
-                : 'Izinkan notifikasi supaya kosakata harian bisa mengingatkanmu lewat notifikasi.',
-            actionLabel: notifStatus.isPermanentlyDenied
-                ? 'Buka Pengaturan'
-                : 'Izinkan Notifikasi',
-            onAction: notifStatus.isPermanentlyDenied
-                ? _handleOpenNotificationSettings
-                : _handleEnableNotifications,
-          ),
-        if (showWidgetBanner)
-          _PermissionBanner(
-            title: 'Widget belum ditambahkan',
-            message:
-                'Tambahkan widget kosakata ke home screen supaya kata hari ini selalu kelihatan tanpa buka app.',
-            actionLabel: 'Tambahkan Widget',
-            onAction: _handleAddWidget,
-          ),
-        if (showNotifBanner || showWidgetBanner) const SizedBox(height: 14),
-        if (_todayWords.isNotEmpty) _TodayPreviewCard(words: _todayWords),
-        const SizedBox(height: 14),
-        BaleCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Jumlah & Jadwal',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 6),
-              Text(
-                'Berapa kosakata baru muncul tiap hari, dan di jam berapa saja notifikasinya dikirim.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 12),
-              Text('Kosakata per hari: ${setting.dailyCount}',
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              Slider(
-                min: 1,
-                max: 24,
-                divisions: 23,
-                value: setting.dailyCount.toDouble(),
-                label: '${setting.dailyCount}',
-                onChanged: _saving
-                    ? null
-                    : (value) => setState(() {
-                          _setting =
-                              setting.copyWith(dailyCount: value.round());
-                        }),
-                onChangeEnd: (value) =>
-                    _persist(setting.copyWith(dailyCount: value.round())),
-              ),
-              const SizedBox(height: 8),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final start = _HourDropdown(
-                    label: 'Mulai jam',
-                    value: setting.notificationStartHour,
-                    onChanged: _saving
-                        ? null
-                        : (hour) => _persist(
-                            setting.copyWith(notificationStartHour: hour)),
-                  );
-                  final end = _HourDropdown(
-                    label: 'Sampai jam',
-                    value: setting.notificationEndHour,
-                    onChanged: _saving
-                        ? null
-                        : (hour) => _persist(
-                            setting.copyWith(notificationEndHour: hour)),
-                  );
-
-                  if (constraints.maxWidth < 360) {
-                    return Column(
-                      children: [
-                        start,
-                        const SizedBox(height: 10),
-                        end,
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(child: start),
-                      const SizedBox(width: 12),
-                      Expanded(child: end),
-                    ],
-                  );
-                },
-              ),
-            ],
-          ),
+        _HeroVocabCard(
+          word: primaryWord,
+          knownCount: _knownWordIds.length,
+          onShuffle: _shuffleWords,
+          onKnown: primaryWord == null ? null : () => _markKnown(primaryWord),
+          onReset: _resetKnown,
         ),
         const SizedBox(height: 14),
         BaleCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Tampilan', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              _SettingSwitch(
+                icon: Icons.notifications_active_rounded,
+                title: 'Muncul di lock screen',
+                subtitle: notifAllowed
+                    ? 'Aktif, kata berganti otomatis.'
+                    : 'Butuh izin notifikasi.',
+                value: setting.notificationEnabled,
+                onChanged: _saving
+                    ? null
+                    : (value) async {
+                        await _persist(
+                          setting.copyWith(notificationEnabled: value),
+                        );
+                        if (value && !notifAllowed) {
+                          await _handleEnableNotifications();
+                        }
+                      },
+              ),
+              const SizedBox(height: 8),
+              Row(
                 children: [
-                  for (final lang in VocabDisplayLanguage.values)
-                    ChoiceChip(
-                      label: Text(lang.label),
-                      selected: setting.displayLanguage == lang,
-                      onSelected: _saving || setting.displayLanguage == lang
+                  Expanded(
+                    child: _HourDropdown(
+                      label: 'Mulai',
+                      value: setting.notificationStartHour,
+                      onChanged: _saving
                           ? null
-                          : (_) =>
-                              _persist(setting.copyWith(displayLanguage: lang)),
+                          : (hour) => _persist(
+                                setting.copyWith(
+                                  notificationStartHour: hour,
+                                ),
+                              ),
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _HourDropdown(
+                      label: 'Sampai',
+                      value: setting.notificationEndHour,
+                      onChanged: _saving
+                          ? null
+                          : (hour) => _persist(
+                                setting.copyWith(notificationEndHour: hour),
+                              ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -357,68 +300,29 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Lock Screen & Widget',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              if (_todayWords.isNotEmpty) ...[
-                _NotificationWidgetPreview(word: _todayWords.first),
-                const SizedBox(height: 10),
-              ],
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Wallpaper lock screen harian'),
-                subtitle: const Text(
-                    'Pasang kosakata Korea di lock screen dan ganti per jam'),
-                value: setting.notificationEnabled,
-                onChanged: _saving
-                    ? null
-                    : (value) =>
-                        _persist(setting.copyWith(notificationEnabled: value)),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: _saving ? null : _handleShowLockScreenNow,
-                icon: const Icon(Icons.wallpaper_rounded),
-                label: const Text(
-                  'Pasang Wallpaper Lock Screen',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Widget home-screen'),
-                subtitle:
-                    const Text('Tampilkan kosakata hari ini di widget Android'),
+              _SettingSwitch(
+                icon: Icons.widgets_rounded,
+                title: 'Widget home screen',
+                subtitle: _widgetPinned
+                    ? 'Sudah terpasang.'
+                    : 'Tampilkan kata tanpa buka app.',
                 value: setting.widgetEnabled,
                 onChanged: _saving
                     ? null
                     : (value) =>
                         _persist(setting.copyWith(widgetEnabled: value)),
               ),
-              if (setting.widgetEnabled) ...[
-                const SizedBox(height: 8),
-                if (_widgetPinned)
-                  const Row(
-                    children: [
-                      Icon(Icons.check_circle_rounded,
-                          color: BaleColors.success, size: 18),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text('Widget sudah terpasang di home screen'),
-                      ),
-                    ],
-                  )
-                else if (!_widgetPinSupported)
-                  const _WidgetManualHint()
-                else
-                  OutlinedButton.icon(
-                    onPressed: _handleAddWidget,
-                    icon: const Icon(Icons.add_to_home_screen_rounded),
-                    label: const Text(
-                      'Tambahkan Widget ke Home Screen',
-                      overflow: TextOverflow.ellipsis,
-                    ),
+              if (setting.widgetEnabled && !_widgetPinned) ...[
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _widgetPinSupported ? _handleAddWidget : null,
+                  icon: const Icon(Icons.add_to_home_screen_rounded),
+                  label: Text(
+                    _widgetPinSupported
+                        ? 'Tambahkan widget'
+                        : 'Tambah manual dari home screen',
                   ),
+                ),
               ],
             ],
           ),
@@ -428,299 +332,356 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Tingkat Kesulitan',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(
-                'Kosongkan semua untuk memakai semua tingkat.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              Row(
                 children: [
-                  for (final level in VocabLevel.values)
-                    FilterChip(
-                      label: Text(level.label),
-                      selected: setting.levels.contains(level),
-                      onSelected: _saving
-                          ? null
-                          : (selected) {
-                              final next = [...setting.levels];
-                              if (selected) {
-                                next.add(level);
-                              } else {
-                                next.remove(level);
-                              }
-                              _persist(setting.copyWith(levels: next));
-                            },
+                  const Icon(Icons.tune_rounded, color: BaleColors.warning),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Materi kosakata',
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
+                  ),
+                  TextButton(
+                    onPressed: _saving ? null : _openMaterialSheet,
+                    child: const Text('Atur'),
+                  ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${setting.dailyCount} kata per hari - ${_levelSummary(setting)}',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ],
           ),
         ),
-        const SizedBox(height: 14),
-        BaleCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('Kategori Kosakata',
-                  style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 4),
-              Text(
-                'Pilih topik yang mau dipelajari. Kosongkan semua untuk semua topik.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final category in _categories)
-                    FilterChip(
-                      label: Text(category.name),
-                      selected: setting.categoryKeys.contains(category.key),
-                      onSelected: _saving
-                          ? null
-                          : (selected) {
-                              final next = [...setting.categoryKeys];
-                              if (selected) {
-                                next.add(category.key);
-                              } else {
-                                next.remove(category.key);
-                              }
-                              _persist(setting.copyWith(categoryKeys: next));
-                            },
-                    ),
-                ],
-              ),
-            ],
+        if (visibleWords.length > 1) ...[
+          const SizedBox(height: 14),
+          _SmallWordList(
+            words: visibleWords.skip(1).take(5).toList(),
+            onKnown: _markKnown,
           ),
-        ),
+        ],
       ],
     );
   }
-}
 
-class _PermissionBanner extends StatelessWidget {
-  const _PermissionBanner({
-    required this.title,
-    required this.message,
-    required this.actionLabel,
-    required this.onAction,
-  });
+  Future<void> _openMaterialSheet() async {
+    final base = _setting!;
+    var dailyCount = base.dailyCount;
+    var levels = [...base.levels];
+    var categories = [...base.categoryKeys];
 
-  final String title;
-  final String message;
-  final String actionLabel;
-  final VoidCallback onAction;
+    final sheetMaxHeight = MediaQuery.sizeOf(context).height * 0.82;
+    final topicMaxHeight = MediaQuery.sizeOf(context).height * 0.24;
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: BaleCard(
-        color: const Color(0xFFFFF1E0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.notifications_active_rounded,
-                    color: BaleColors.warning),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+    final updated = await showModalBottomSheet<VocabSetting>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(maxHeight: sheetMaxHeight),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Materi kosakata',
+                    style: TextStyle(
+                      color: BaleColors.ink,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(message, style: Theme.of(context).textTheme.bodyMedium),
-            const SizedBox(height: 10),
-            FilledButton(onPressed: onAction, child: Text(actionLabel)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _WidgetManualHint extends StatelessWidget {
-  const _WidgetManualHint();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF7EC),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: BaleColors.success.withValues(alpha: 0.35)),
-      ),
-      child: const Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.widgets_rounded, color: BaleColors.success, size: 20),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Launcher HP ini tidak bisa ditambah widget otomatis. '
-              'Tekan lama layar utama > Widget > Bale Belajar untuk menambahkannya manual.',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NotificationWidgetPreview extends StatelessWidget {
-  const _NotificationWidgetPreview({required this.word});
-
-  final VocabWord word;
-
-  @override
-  Widget build(BuildContext context) {
-    final koreanText = word.koreanRomanized != null
-        ? '${word.korean} (${word.koreanRomanized})'
-        : word.korean;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEAF7EC), Color(0xFFFFF7D6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: BaleColors.warning),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: BaleColors.warning,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Text(
-              '한',
-              style: TextStyle(
-                color: BaleColors.ink,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
+                  const SizedBox(height: 14),
+                  Text('Kata per hari: $dailyCount'),
+                  Slider(
+                    min: 1,
+                    max: 12,
+                    divisions: 11,
+                    value: dailyCount.toDouble(),
+                    label: '$dailyCount',
+                    onChanged: (value) =>
+                        setSheetState(() => dailyCount = value.round()),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Level'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final level in VocabLevel.values)
+                        FilterChip(
+                          label: Text(level.label),
+                          selected: levels.contains(level),
+                          onSelected: (selected) {
+                            setSheetState(() {
+                              levels = [...levels];
+                              if (selected) {
+                                if (!levels.contains(level)) levels.add(level);
+                              } else {
+                                levels.remove(level);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Topik'),
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: topicMaxHeight),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final category in _categories)
+                            FilterChip(
+                              label: Text(category.name),
+                              selected: categories.contains(category.key),
+                              onSelected: (selected) {
+                                setSheetState(() {
+                                  categories = [...categories];
+                                  if (selected) {
+                                    if (!categories.contains(category.key)) {
+                                      categories.add(category.key);
+                                    }
+                                  } else {
+                                    categories.remove(category.key);
+                                  }
+                                });
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).pop(
+                      base.copyWith(
+                        dailyCount: dailyCount,
+                        levels: levels,
+                        categoryKeys: categories,
+                      ),
+                    ),
+                    child: const Text('Simpan'),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          );
+        },
+      ),
+    );
+
+    if (updated != null) await _persist(updated);
+  }
+
+  String _levelSummary(VocabSetting setting) {
+    if (setting.levels.isEmpty) return 'semua level';
+    return setting.levels.map((level) => level.label).join(', ');
+  }
+}
+
+class _HeroVocabCard extends StatelessWidget {
+  const _HeroVocabCard({
+    required this.word,
+    required this.knownCount,
+    required this.onShuffle,
+    required this.onKnown,
+    required this.onReset,
+  });
+
+  final VocabWord? word;
+  final int knownCount;
+  final VoidCallback onShuffle;
+  final VoidCallback? onKnown;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final item = word;
+    return BaleCard(
+      color: const Color(0xFFFFFBF0),
+      child: item == null
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: BaleColors.success, size: 46),
+                const SizedBox(height: 8),
                 const Text(
-                  'Preview pengingat',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
+                  'Semua kata hari ini sudah kamu tahu.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton(
+                  onPressed: onReset,
+                  child: const Text('Tampilkan lagi'),
+                ),
+              ],
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: BaleColors.warning,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text(
+                        'K',
+                        style: TextStyle(
+                          color: BaleColors.ink,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        knownCount == 0
+                            ? 'Kata hari ini'
+                            : '$knownCount kata disembunyikan',
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  item.korean,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
                     color: BaleColors.ink,
+                    fontSize: 42,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${word.english} ↔ $koreanText',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF5F4A2C),
-                    fontWeight: FontWeight.w700,
+                if (item.koreanRomanized?.isNotEmpty ?? false)
+                  Text(
+                    item.koreanRomanized!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF6F655D),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
+                const SizedBox(height: 8),
+                Text(
+                  '${item.english} - ${item.indonesian ?? item.english}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: BaleColors.ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: onShuffle,
+                        icon: const Icon(Icons.shuffle_rounded),
+                        label: const Text('Acak'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: onKnown,
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('Sudah tahu'),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(Icons.notifications_active_rounded,
-              color: BaleColors.warning),
-        ],
-      ),
     );
   }
 }
 
-class _TodayPreviewCard extends StatelessWidget {
-  const _TodayPreviewCard({required this.words});
+class _SmallWordList extends StatelessWidget {
+  const _SmallWordList({required this.words, required this.onKnown});
 
   final List<VocabWord> words;
+  final ValueChanged<VocabWord> onKnown;
 
   @override
   Widget build(BuildContext context) {
     return BaleCard(
-      color: BaleColors.soft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Kosakata Hari Ini',
-              style: Theme.of(context).textTheme.titleMedium),
+          const Text(
+            'Berikutnya',
+            style: TextStyle(fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 8),
           for (final word in words)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final koreanText = word.koreanRomanized != null
-                      ? '${word.korean} (${word.koreanRomanized})'
-                      : word.korean;
-
-                  if (constraints.maxWidth < 340) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          word.english,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(koreanText),
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          word.english,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                      ),
-                      const Icon(Icons.sync_alt_rounded, size: 16),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          koreanText,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(word.korean),
+              subtitle:
+                  Text('${word.english} - ${word.indonesian ?? word.english}'),
+              trailing: IconButton(
+                tooltip: 'Sudah tahu',
+                onPressed: () => onKnown(word),
+                icon: const Icon(Icons.check_circle_outline_rounded),
               ),
             ),
         ],
       ),
+    );
+  }
+}
+
+class _SettingSwitch extends StatelessWidget {
+  const _SettingSwitch({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      secondary: Icon(icon, color: BaleColors.warning),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+      subtitle: Text(subtitle),
+      value: value,
+      onChanged: onChanged,
     );
   }
 }
@@ -743,7 +704,7 @@ class _HourDropdown extends StatelessWidget {
       isExpanded: true,
       decoration: InputDecoration(
         labelText: label,
-        border: const OutlineInputBorder(),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
       ),
       items: [
         for (var hour = 0; hour < 24; hour++)

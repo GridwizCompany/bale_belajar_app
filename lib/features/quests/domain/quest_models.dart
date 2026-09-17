@@ -86,6 +86,124 @@ class QuestDailyProgress {
       assignments.where((a) => a.attemptStatus == 'SUBMITTED').length;
 }
 
+class QuestHistorySummary {
+  const QuestHistorySummary({
+    required this.totalAttempts,
+    required this.completedAttempts,
+    required this.totalQuestions,
+    required this.correctAnswers,
+    required this.reviewQuestions,
+    required this.accuracy,
+    required this.averageScore,
+  });
+
+  factory QuestHistorySummary.fromJson(Map<String, dynamic> json) {
+    return QuestHistorySummary(
+      totalAttempts: json['totalAttempts'] as int? ?? 0,
+      completedAttempts: json['completedAttempts'] as int? ?? 0,
+      totalQuestions: json['totalQuestions'] as int? ?? 0,
+      correctAnswers: json['correctAnswers'] as int? ?? 0,
+      reviewQuestions: json['reviewQuestions'] as int? ?? 0,
+      accuracy: json['accuracy'] as int? ?? 0,
+      averageScore: json['averageScore'] as int? ?? 0,
+    );
+  }
+
+  final int totalAttempts;
+  final int completedAttempts;
+  final int totalQuestions;
+  final int correctAnswers;
+  final int reviewQuestions;
+  final int accuracy;
+  final int averageScore;
+}
+
+class QuestWeakSpot {
+  const QuestWeakSpot({
+    required this.label,
+    required this.detail,
+    required this.count,
+  });
+
+  factory QuestWeakSpot.fromJson(Map<String, dynamic> json) {
+    return QuestWeakSpot(
+      label: json['label'] as String? ?? 'Latihan',
+      detail: json['detail'] as String? ?? '',
+      count: json['count'] as int? ?? 0,
+    );
+  }
+
+  final String label;
+  final String detail;
+  final int count;
+}
+
+class QuestHistoryAttempt {
+  const QuestHistoryAttempt({
+    required this.id,
+    required this.title,
+    required this.worldKey,
+    required this.worldName,
+    required this.submittedAt,
+    required this.score,
+    required this.totalQuestions,
+    required this.correctAnswers,
+    required this.reviewQuestions,
+  });
+
+  factory QuestHistoryAttempt.fromJson(Map<String, dynamic> json) {
+    return QuestHistoryAttempt(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Latihan',
+      worldKey: json['worldKey'] as String? ?? '',
+      worldName: json['worldName'] as String? ?? 'Dunia',
+      submittedAt: DateTime.tryParse(json['submittedAt'] as String? ?? ''),
+      score: json['score'] as int? ?? 0,
+      totalQuestions: json['totalQuestions'] as int? ?? 0,
+      correctAnswers: json['correctAnswers'] as int? ?? 0,
+      reviewQuestions: json['reviewQuestions'] as int? ?? 0,
+    );
+  }
+
+  final String id;
+  final String title;
+  final String worldKey;
+  final String worldName;
+  final DateTime? submittedAt;
+  final int score;
+  final int totalQuestions;
+  final int correctAnswers;
+  final int reviewQuestions;
+}
+
+class QuestHistory {
+  const QuestHistory({
+    required this.summary,
+    required this.weakSpots,
+    required this.recentAttempts,
+  });
+
+  factory QuestHistory.fromJson(Map<String, dynamic> json) {
+    return QuestHistory(
+      summary: QuestHistorySummary.fromJson(
+        json['summary'] as Map<String, dynamic>? ?? const {},
+      ),
+      weakSpots: (json['weakSpots'] as List? ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map(QuestWeakSpot.fromJson)
+          .toList(),
+      recentAttempts: (json['recentAttempts'] as List? ?? const [])
+          .cast<Map<String, dynamic>>()
+          .map(QuestHistoryAttempt.fromJson)
+          .toList(),
+    );
+  }
+
+  final QuestHistorySummary summary;
+  final List<QuestWeakSpot> weakSpots;
+  final List<QuestHistoryAttempt> recentAttempts;
+}
+
 /// Hasil satu soal setelah submit (kunci jawaban sudah boleh terlihat).
 class QuestQuestionResult {
   const QuestQuestionResult({

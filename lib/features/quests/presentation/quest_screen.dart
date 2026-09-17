@@ -17,13 +17,18 @@ const _questGreen = Color(0xFF4CAF50);
 /// (yang khusus 3-activity-type Numeria) supaya tidak mengganggu alur lama
 /// yang sudah berjalan.
 class QuestScreen extends StatefulWidget {
-  const QuestScreen(
-      {required this.worldKey, this.requestNext = false, super.key});
+  const QuestScreen({
+    required this.worldKey,
+    this.requestNext = false,
+    this.competencyId,
+    super.key,
+  });
 
   final String worldKey;
   // true = ambil misi tambahan hari ini alih-alih misi utama - lihat
   // QuestAttemptController.requestNext.
   final bool requestNext;
+  final String? competencyId;
 
   @override
   State<QuestScreen> createState() => _QuestScreenState();
@@ -38,6 +43,7 @@ class _QuestScreenState extends State<QuestScreen> {
     _controller = QuestAttemptController(
       worldKey: widget.worldKey,
       requestNext: widget.requestNext,
+      competencyId: widget.competencyId,
     );
     _controller.addListener(_onChange);
     _controller.load();

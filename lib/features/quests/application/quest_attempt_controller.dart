@@ -18,10 +18,12 @@ class QuestAttemptController extends ChangeNotifier {
   QuestAttemptController({
     required this.worldKey,
     this.requestNext = false,
+    this.competencyId,
     QuestRepository? repository,
   }) : _repository = repository ?? QuestRepository();
 
   final String worldKey;
+  final String? competencyId;
   // true = ambil misi TAMBAHAN hari ini (POST /student/quests/next) alih-alih
   // misi utama hari ini (GET /student/quests/today) - dipakai tombol "Misi
   // Lagi" di WorldCurriculumScreen setelah StudentQuestSetting.dailyQuestCount
@@ -74,15 +76,20 @@ class QuestAttemptController extends ChangeNotifier {
   }
 
   Future<QuestSummary> _loadQuestSummary() async {
-    if (!requestNext) return _repository.getTodayQuest(worldKey);
+    if (!requestNext) {
+      return _repository.getTodayQuest(worldKey, competencyId: competencyId);
+    }
 
     try {
-      return await _repository.requestNextQuest(worldKey);
+      return await _repository.requestNextQuest(
+        worldKey,
+        competencyId: competencyId,
+      );
     } on BaleApiException catch (error) {
       final shouldFallback =
           error.statusCode == 400 && error.message.contains('misi hari ini');
       if (!shouldFallback) rethrow;
-      return _repository.getTodayQuest(worldKey);
+      return _repository.getTodayQuest(worldKey, competencyId: competencyId);
     }
   }
 

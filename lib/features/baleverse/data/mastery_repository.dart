@@ -13,6 +13,7 @@ class CompetencyMastery {
     required this.competencyName,
     required this.masteryScore,
     required this.status,
+    required this.evidenceCount,
   });
 
   factory CompetencyMastery.fromJson(Map<String, dynamic> json) {
@@ -21,6 +22,7 @@ class CompetencyMastery {
       competencyName: json['competencyName'] as String? ?? '',
       masteryScore: (json['masteryScore'] as num?)?.toDouble() ?? 0,
       status: json['status'] as String? ?? 'INSUFFICIENT_EVIDENCE',
+      evidenceCount: json['evidenceCount'] as int? ?? 0,
     );
   }
 
@@ -28,6 +30,11 @@ class CompetencyMastery {
   final String competencyName;
   final double masteryScore;
   final String status;
+  // > 0 berarti siswa sudah menjawab soal untuk kompetensi ini, walau status
+  // masih INSUFFICIENT_EVIDENCE (backend butuh evidence minimum sebelum
+  // menaikkan status) - dipakai buat bedain "belum mulai" vs "sudah coba,
+  // masih dikumpulkan buktinya" di world_detail_screen.dart.
+  final int evidenceCount;
 }
 
 class MasteryRepository {

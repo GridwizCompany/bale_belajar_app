@@ -6,15 +6,22 @@ import '../domain/quest_models.dart';
 /// `BALE_BELAJAR_BE/src/modules/student-quests`.
 class QuestRepository {
   QuestRepository({ApiClient? apiClient})
-      : _apiClient =
-            apiClient ?? ApiClient(tokenProvider: const SecureTokenStore().read);
+      : _apiClient = apiClient ??
+            ApiClient(tokenProvider: const SecureTokenStore().read);
 
   final ApiClient _apiClient;
 
-  Future<QuestSummary> getTodayQuest(String worldKey) async {
+  Future<QuestSummary> getTodayQuest(
+    String worldKey, {
+    String? competencyId,
+  }) async {
     final data = await _apiClient.get(
       '/student/quests/today',
-      query: {'worldKey': worldKey},
+      query: {
+        'worldKey': worldKey,
+        if (competencyId != null && competencyId.isNotEmpty)
+          'competencyId': competencyId,
+      },
     );
     return QuestSummary.fromJson(data as Map<String, dynamic>);
   }
@@ -42,12 +49,29 @@ class QuestRepository {
     return QuestDailyProgress.fromJson(data as Map<String, dynamic>);
   }
 
+  Future<QuestHistory> fetchHistory({String? worldKey}) async {
+    final data = await _apiClient.get(
+      '/student/quests/history',
+      query: {
+        if (worldKey != null && worldKey.isNotEmpty) 'worldKey': worldKey,
+      },
+    );
+    return QuestHistory.fromJson(data as Map<String, dynamic>);
+  }
+
   /// Minta misi tambahan hari ini (sequence 2+) - backend menolak (400) kalau
   /// sudah menyentuh dailyQuestCount atau misi terakhir belum SUBMITTED.
-  Future<QuestSummary> requestNextQuest(String worldKey) async {
+  Future<QuestSummary> requestNextQuest(
+    String worldKey, {
+    String? competencyId,
+  }) async {
     final data = await _apiClient.post(
       '/student/quests/next',
-      query: {'worldKey': worldKey},
+      query: {
+        'worldKey': worldKey,
+        if (competencyId != null && competencyId.isNotEmpty)
+          'competencyId': competencyId,
+      },
     );
     return QuestSummary.fromJson(data as Map<String, dynamic>);
   }
@@ -69,12 +93,14 @@ class QuestRepository {
   }
 
   Future<QuestSubmitResult> submitAttempt(String attemptId) async {
-    final data = await _apiClient.post('/student/quest-attempts/$attemptId/submit');
+    final data =
+        await _apiClient.post('/student/quest-attempts/$attemptId/submit');
     return QuestSubmitResult.fromJson(data as Map<String, dynamic>);
   }
 
   Future<QuestSubmitResult> getResult(String attemptId) async {
-    final data = await _apiClient.get('/student/quest-attempts/$attemptId/result');
+    final data =
+        await _apiClient.get('/student/quest-attempts/$attemptId/result');
     return QuestSubmitResult.fromJson(data as Map<String, dynamic>);
   }
 }

@@ -9,6 +9,7 @@ import '../data/game_profile_repository.dart';
 import '../data/mastery_repository.dart';
 import '../data/worlds_repository.dart';
 import '../domain/baleverse_models.dart';
+import '../../quests/presentation/quest_screen.dart';
 import '../../vocab/presentation/vocab_settings_screen.dart';
 import 'screens/bale_profile_page.dart';
 import 'screens/dashboard_screen.dart';
@@ -59,6 +60,12 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
   // true sebentar saat pindah dunia - menampilkan splash loading alih-alih
   // langsung "melompat" ke Beranda tanpa transisi.
   bool _worldSwitching = false;
+  // Naik setiap _loadBackendData() selesai - dipakai sebagai bagian dari Key
+  // WorldDetailScreen (tab Kurikulum) supaya widget itu dibuat ulang dan
+  // fetch ulang kurikulum/mastery-nya sendiri setelah selesai satu quest,
+  // bukan diam menampilkan status lama (StatefulWidget cuma fetch sekali
+  // di initState, dan key-nya tidak berubah kalau dunia aktif tetap sama).
+  int _dataRevision = 0;
 
   String get _selectedBackendWorldKey {
     if (_manualWorldKeyOverride case final override? when override.isNotEmpty) {
@@ -105,7 +112,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     // blob dari backend di atas bisa menimpa balik ke dunia default backend -
     // rakit ulang data dunia yang dipilih supaya Beranda tidak "lompat" balik
     // ke dunia lain setelah reload (mis. sehabis selesai satu quest).
-    if (_manualWorldKeyOverride case final overrideKey? when overrideKey.isNotEmpty) {
+    if (_manualWorldKeyOverride case final overrideKey?
+        when overrideKey.isNotEmpty) {
       final world = _realWorlds.firstWhere(
         (w) => (w['key'] as String?)?.toLowerCase() == overrideKey,
         orElse: () => const <String, dynamic>{},
@@ -115,7 +123,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       }
     }
     if (mounted) {
-      setState(() => _backendLoading = false);
+      setState(() {
+        _backendLoading = false;
+        _dataRevision++;
+      });
     }
   }
 
@@ -178,7 +189,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         final competencies =
             await _masteryRepository.fetchGrowthMap(worldKey: key);
         return MapEntry(key, averageMasteryScore(competencies));
-      } catch (_) {
+      } catch (error) {
+        debugPrint(
+            '[_loadAllWorldsMastery] fetchGrowthMap($key) failed: $error');
         return null;
       }
     }));
@@ -252,7 +265,7 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
     );
   }
 
-  void _startMission() {
+  void _startMission([String? competencyId]) {
     final backendWorldKey = _selectedBackendWorldKey;
     if (backendWorldKey.isNotEmpty) {
       AudioScope.maybeOf(context)?.playSound(SoundEffectId.pageTransition);
@@ -267,6 +280,22 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const VocabSettingsScreen()),
         );
+        return;
+      }
+      if (competencyId != null && competencyId.isNotEmpty) {
+        Navigator.of(context)
+            .push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => QuestScreen(
+              worldKey: backendWorldKey,
+              competencyId: competencyId,
+            ),
+          ),
+        )
+            .then((completed) {
+          if (!mounted || completed != true) return;
+          _loadBackendData();
+        });
         return;
       }
       Navigator.of(context)
@@ -400,8 +429,8 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
             label: 'Kurikulum',
           ),
           NavigationDestination(
-            icon: Icon(Icons.flag_rounded),
-            label: 'Misi',
+            icon: Icon(Icons.insights_rounded),
+            label: 'Progress',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_rounded),
@@ -479,8 +508,9 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
         );
       }
       return WorldDetailScreen(
-        key: ValueKey('curriculum-$_selectedBackendWorldKey'),
+        key: ValueKey('curriculum-$_selectedBackendWorldKey-$_dataRevision'),
         world: selectedWorldData,
+        onStartMission: _startMission,
       );
     }
 
@@ -501,7 +531,10 @@ class _BaleVerseDemoScreenState extends State<BaleVerseDemoScreen> {
       key: const ValueKey('missionHub'),
       backendData: _backendData,
       adaptivePlan: _adaptivePlan,
-      onStartMission: _startMission,
+      gameProfile: _gameProfile,
+      masteryAverage: _masteryAverage,
+      worldKey: _selectedBackendWorldKey,
+      onOpenCurriculum: () => _goToTab(BaleTab.curriculum),
     );
   }
 }

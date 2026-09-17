@@ -199,6 +199,18 @@ class VocabSyncService {
     }
   }
 
+  Future<void> syncWords(DailyVocab daily, List<VocabWord> words) async {
+    final scopedDaily = DailyVocab(
+      date: daily.date,
+      setting: daily.setting,
+      words: words,
+    );
+    final wordsJson = _encodeWords(scopedDaily);
+    await _updateWidget(scopedDaily, wordsJson: wordsJson);
+    await _updateLockWallpaper(scopedDaily, wordsJson: wordsJson);
+    await _cancelNotifications();
+  }
+
   Future<void> _updateLockWallpaper(
     DailyVocab daily, {
     required String wordsJson,

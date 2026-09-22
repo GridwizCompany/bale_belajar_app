@@ -206,16 +206,16 @@ class _BaleProfilePageState extends State<BaleProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: const Text('Bale Pro'),
+        title: const Text('Bale Pro masih gratis'),
         content: const Text(
-          'Bale Pro membuka semua dunia, lock screen kosakata, widget, '
-          'notifikasi, dan riwayat belajar lengkap. Harga dan pembayaran '
-          'sebaiknya diatur dari website agar bisa berubah tanpa update app.',
+          'Kabar baik: untuk saat ini semua fitur BaleBelajar masih bisa '
+          'dipakai gratis. Nikmati semua dunia, pengingat kosakata, widget, '
+          'dan progress belajar tanpa biaya dulu ya.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Nanti'),
+            child: const Text('Tutup'),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -223,7 +223,7 @@ class _BaleProfilePageState extends State<BaleProfilePage> {
               backgroundColor: _profileYellow,
               foregroundColor: _profileInk,
             ),
-            child: const Text('Mengerti'),
+            child: const Text('Siap belajar'),
           ),
         ],
       ),
@@ -612,7 +612,7 @@ class _ProPlanCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Bale Free',
+                      'Bale Pro Gratis',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 17,
@@ -621,7 +621,7 @@ class _ProPlanCard extends StatelessWidget {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Upgrade Pro untuk semua dunia dan fitur pengingat.',
+                      'Semua fitur utama bisa dipakai gratis untuk saat ini.',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -644,7 +644,7 @@ class _ProPlanCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  'PRO',
+                  'GRATIS',
                   style: TextStyle(
                     color: _profileInk,
                     fontWeight: FontWeight.w900,

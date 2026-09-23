@@ -36,6 +36,7 @@ class QuestScreen extends StatefulWidget {
 
 class _QuestScreenState extends State<QuestScreen> {
   late final QuestAttemptController _controller;
+  bool _hasOpenedMaterial = false;
 
   @override
   void initState() {
@@ -90,6 +91,13 @@ class _QuestScreenState extends State<QuestScreen> {
             onRetry: _controller.load,
           );
         }
+        if (widget.worldKey.toLowerCase() == 'detectivia' &&
+            !_hasOpenedMaterial) {
+          return _DetectiveMaterialScreen(
+            quest: _controller.quest!,
+            onStart: () => setState(() => _hasOpenedMaterial = true),
+          );
+        }
         return Stack(
           children: [
             IgnorePointer(
@@ -118,6 +126,199 @@ class _QuestScreenState extends State<QuestScreen> {
           ],
         );
     }
+  }
+}
+
+class _DetectiveMaterialScreen extends StatelessWidget {
+  const _DetectiveMaterialScreen({required this.quest, required this.onStart});
+
+  final QuestSummary quest;
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _questBg,
+      appBar: AppBar(
+        backgroundColor: _questBg,
+        foregroundColor: _questInk,
+        elevation: 0,
+        title: const Text(
+          'Materi sebelum tes',
+          style: TextStyle(fontWeight: FontWeight.w900),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(18, 8, 18, 20),
+                children: [
+                  Text(
+                    quest.title,
+                    style: const TextStyle(
+                      color: _questInk,
+                      fontSize: 24,
+                      height: 1.15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    quest.objective,
+                    style: const TextStyle(
+                      color: Color(0xFF665248),
+                      fontSize: 14,
+                      height: 1.4,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const _MaterialConcept(
+                    icon: Icons.fact_check_rounded,
+                    title: 'Fakta dan dugaan',
+                    body:
+                        'Fakta dapat diperiksa melalui catatan, waktu, benda, atau sumber lain. Dugaan masih berupa kemungkinan dan belum boleh dianggap benar.',
+                  ),
+                  const SizedBox(height: 10),
+                  const _MaterialConcept(
+                    icon: Icons.manage_search_rounded,
+                    title: 'Kekuatan bukti',
+                    body:
+                        'Bukti lebih kuat jika sumbernya jelas, waktunya spesifik, dan dapat dicek ulang. Ingatan atau kesan seseorang perlu dibandingkan dengan bukti lain.',
+                  ),
+                  const SizedBox(height: 10),
+                  const _MaterialConcept(
+                    icon: Icons.balance_rounded,
+                    title: 'Kesimpulan yang adil',
+                    body:
+                        'Kesimpulan hanya boleh sejauh yang didukung bukti. Jika informasi belum cukup, sebutkan apa yang masih perlu diperiksa.',
+                  ),
+                  if (quest.story.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFFFD76B)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Contoh kasus',
+                            style: TextStyle(
+                              color: _questInk,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            quest.story,
+                            style: const TextStyle(
+                              color: Color(0xFF665248),
+                              height: 1.4,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+              child: SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  onPressed: onStart,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _questYellow,
+                    foregroundColor: _questInk,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text(
+                    'SAYA PAHAM, MULAI TES',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MaterialConcept extends StatelessWidget {
+  const _MaterialConcept({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFE0A1)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF2C7),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: _questYellow, size: 21),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: _questInk,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: const TextStyle(
+                    color: Color(0xFF665248),
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

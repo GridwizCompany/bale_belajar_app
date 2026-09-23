@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 
 import '../../../core/audio/audio_scope.dart';
 import '../../../core/audio/audio_types.dart';
-import '../../../core/firebase/firebase_bootstrap.dart';
 import '../../../shared/widgets/bale_card.dart';
 import '../../../shared/widgets/belo_mascot.dart';
 import '../../../theme/bale_theme.dart';
@@ -139,14 +138,14 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     _flowStep = widget.initialMode == AuthMode.world
         ? 2
         : widget.initialMode == AuthMode.grade
-            ? 3
-            : widget.initialMode == AuthMode.level
-                ? 4
-                : widget.initialMode == AuthMode.format
-                    ? 5
-                    : widget.initialMode == AuthMode.duration
-                        ? 6
-                        : 1;
+        ? 3
+        : widget.initialMode == AuthMode.level
+        ? 4
+        : widget.initialMode == AuthMode.format
+        ? 5
+        : widget.initialMode == AuthMode.duration
+        ? 6
+        : 1;
     _googleBusy = false;
     _showPassword = false;
     _prototypePlacementAttemptId = null;
@@ -250,8 +249,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                             end: Offset.zero,
                           ).animate(curved),
                           child: ScaleTransition(
-                            scale: Tween<double>(begin: 0.98, end: 1)
-                                .animate(curved),
+                            scale: Tween<double>(
+                              begin: 0.98,
+                              end: 1,
+                            ).animate(curved),
                             child: child,
                           ),
                         ),
@@ -265,244 +266,162 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
                             onLogin: () => _goTo(AuthMode.login),
                           )
                         : _mode == AuthMode.login
-                            ? _LoginWelcomeStep(
-                                key: const ValueKey('login-welcome-step'),
-                                controller: widget.controller,
-                                googleBusy: _googleBusy,
-                                showPassword: _showPassword,
-                                emailController: _email,
-                                passwordController: _password,
-                                errorMessage: widget.controller.errorMessage,
-                                onBack: widget.onBackToLanding ??
-                                    () => _goTo(AuthMode.welcome),
-                                onTogglePassword: () => setState(
-                                  () => _showPassword = !_showPassword,
-                                ),
-                                onGoogle: _continueWithGoogle,
-                                onSubmit: _submit,
-                                onRegister: () => _goTo(AuthMode.register),
-                              )
-                            : _mode == AuthMode.register
-                                ? _LearningGoalStep(
-                                    key: const ValueKey('learning-goal-step'),
-                                    selectedGoal: _learningGoal,
-                                    onBack: widget.onBackToLanding ??
-                                        () => _goTo(AuthMode.welcome),
-                                    onSelected: (goal) {
-                                      setState(() => _learningGoal = goal);
-                                    },
-                                    onContinue: _learningGoal == null
-                                        ? null
-                                        : () => _goTo(AuthMode.world),
-                                    onSkip: () => _goTo(AuthMode.world),
-                                  )
-                                : _mode == AuthMode.world
-                                    ? _LearningWorldStep(
-                                        key: const ValueKey(
-                                          'learning-world-step',
-                                        ),
-                                        selectedWorld: _learningWorld,
-                                        onBack: () => _goTo(AuthMode.register),
-                                        onSelected: (world) {
-                                          setState(
-                                              () => _learningWorld = world);
-                                        },
-                                        onContinue: _learningWorld == null
-                                            ? null
-                                            : () => _goTo(AuthMode.grade),
-                                        onSkip: () => _goTo(AuthMode.grade),
-                                      )
-                                    : _mode == AuthMode.grade
-                                        ? _GradeStep(
-                                            key: const ValueKey('grade-step'),
-                                            selectedGrade: _gradeChoice,
-                                            onBack: () => _goTo(AuthMode.world),
-                                            onSelected: (grade) {
-                                              setState(() {
-                                                _gradeChoice = grade;
-                                                if (grade.gradeLevel != null) {
-                                                  _grade = grade.gradeLevel!;
-                                                }
-                                              });
-                                            },
-                                            onContinue: _gradeChoice == null
-                                                ? null
-                                                : () => _goTo(AuthMode.level),
-                                            onSkip: () => _goTo(AuthMode.level),
-                                          )
-                                        : _mode == AuthMode.level
-                                            ? _SelfReportedLevelStep(
-                                                key: const ValueKey(
-                                                  'self-reported-level-step',
-                                                ),
-                                                selectedLevel:
-                                                    _selfReportedLevel,
-                                                onBack: () =>
-                                                    _goTo(AuthMode.grade),
-                                                onSelected: (level) {
-                                                  setState(() =>
-                                                      _selfReportedLevel =
-                                                          level);
-                                                },
-                                                onContinue:
-                                                    _selfReportedLevel == null
-                                                        ? null
-                                                        : () => _goTo(
-                                                              AuthMode.format,
-                                                            ),
-                                                onSkip: () =>
-                                                    _goTo(AuthMode.format),
-                                              )
-                                            : _mode == AuthMode.format
-                                                ? _LearningFormatStep(
-                                                    key: const ValueKey(
-                                                      'learning-format-step',
-                                                    ),
-                                                    selectedFormats:
-                                                        _learningFormats,
-                                                    onBack: () =>
-                                                        _goTo(AuthMode.level),
-                                                    onToggle: _toggleFormat,
-                                                    onContinue: _learningFormats
-                                                            .isEmpty
-                                                        ? null
-                                                        : () => _goTo(
-                                                              AuthMode.duration,
-                                                            ),
-                                                    onSkip: () => _goTo(
-                                                        AuthMode.duration),
-                                                  )
-                                                : _mode == AuthMode.duration
-                                                    ? _DailyDurationStep(
-                                                        key: const ValueKey(
-                                                          'daily-duration-step',
-                                                        ),
-                                                        selectedDuration:
-                                                            _dailyDuration,
-                                                        onBack: () => _goTo(
-                                                          AuthMode.format,
-                                                        ),
-                                                        onSelected: (duration) {
-                                                          setState(() {
-                                                            _dailyDuration =
-                                                                duration;
-                                                          });
-                                                        },
-                                                        onContinue:
-                                                            _dailyDuration ==
-                                                                    null
-                                                                ? null
-                                                                : () => _goTo(
-                                                                      AuthMode
-                                                                          .studyTime,
-                                                                    ),
-                                                        onSkip: () => _goTo(
-                                                          AuthMode.studyTime,
-                                                        ),
-                                                      )
-                                                    : _mode ==
-                                                            AuthMode.studyTime
-                                                        ? _StudyTimeStep(
-                                                            key: const ValueKey(
-                                                              'study-time-step',
-                                                            ),
-                                                            selectedTime:
-                                                                _studyTime,
-                                                            onBack: () => _goTo(
-                                                              AuthMode.duration,
-                                                            ),
-                                                            onSelected: (time) {
-                                                              setState(() {
-                                                                _studyTime =
-                                                                    time;
-                                                              });
-                                                            },
-                                                            onContinue:
-                                                                _studyTime ==
-                                                                        null
-                                                                    ? null
-                                                                    : _showRecommendation,
-                                                            onSkip:
-                                                                _showRecommendation,
-                                                          )
-                                                        : _mode ==
-                                                                AuthMode
-                                                                    .recommendation
-                                                            ? _RecommendationSplash(
-                                                                key:
-                                                                    const ValueKey(
-                                                                  'recommendation-splash',
-                                                                ),
-                                                                world:
-                                                                    _learningWorld,
-                                                                onPreviewAnalysis:
-                                                                    _showAnalysis,
-                                                              )
-                                                            : _mode ==
-                                                                    AuthMode
-                                                                        .placement
-                                                                ? _PlacementTestFlow(
-                                                                    key:
-                                                                        const ValueKey(
-                                                                      'placement-test-flow',
-                                                                    ),
-                                                                    world:
-                                                                        _learningWorld,
-                                                                    questions:
-                                                                        _backendPlacementQuestions,
-                                                                    currentIndex:
-                                                                        _placementQuestionIndex,
-                                                                    onBack:
-                                                                        _previousPlacementQuestion,
-                                                                    onNext:
-                                                                        _nextPlacementQuestion,
-                                                                    onShowAnalysis:
-                                                                        _showAnalysis,
-                                                                    onQuestionCompleted:
-                                                                        _completePrototypePlacementQuestion,
-                                                                    loadFailed:
-                                                                        _placementLoadFailed,
-                                                                    onRetry: () =>
-                                                                        unawaited(
-                                                                            _ensurePrototypePlacementAttempt()),
-                                                                  )
-                                                                : _mode ==
-                                                                        AuthMode
-                                                                            .analysis
-                                                                    ? AnalisisHasilPage(
-                                                                        key:
-                                                                            const ValueKey(
-                                                                          'analysis-page',
-                                                                        ),
-                                                                        onBack:
-                                                                            _previousPlacementQuestion,
-                                                                        onContinue:
-                                                                            _goToBaleVerseHome,
-                                                                      )
-                                                                    : _AuthStep(
-                                                                        key:
-                                                                            ValueKey(
-                                                                          _mode,
-                                                                        ),
-                                                                        controller:
-                                                                            widget.controller,
-                                                                        flowStep:
-                                                                            _flowStep,
-                                                                        title:
-                                                                            _title,
-                                                                        helper:
-                                                                            _helper,
-                                                                        mascotPose:
-                                                                            _mascotPose,
-                                                                        onBack: widget
-                                                                                .onBackToLanding ??
-                                                                            () =>
-                                                                                _goTo(
-                                                                                  AuthMode.welcome,
-                                                                                ),
-                                                                        child:
-                                                                            _form(),
-                                                                      ),
+                        ? _LoginWelcomeStep(
+                            key: const ValueKey('login-welcome-step'),
+                            controller: widget.controller,
+                            googleBusy: _googleBusy,
+                            showPassword: _showPassword,
+                            emailController: _email,
+                            passwordController: _password,
+                            errorMessage: widget.controller.errorMessage,
+                            onBack:
+                                widget.onBackToLanding ??
+                                () => _goTo(AuthMode.welcome),
+                            onTogglePassword: () =>
+                                setState(() => _showPassword = !_showPassword),
+                            onGoogle: _continueWithGoogle,
+                            onSubmit: _submit,
+                            onRegister: () => _goTo(AuthMode.register),
+                          )
+                        : _mode == AuthMode.register
+                        ? _LearningGoalStep(
+                            key: const ValueKey('learning-goal-step'),
+                            selectedGoal: _learningGoal,
+                            onBack:
+                                widget.onBackToLanding ??
+                                () => _goTo(AuthMode.welcome),
+                            onSelected: (goal) {
+                              setState(() => _learningGoal = goal);
+                            },
+                            onContinue: _learningGoal == null
+                                ? null
+                                : () => _goTo(AuthMode.world),
+                            onSkip: () => _goTo(AuthMode.world),
+                          )
+                        : _mode == AuthMode.world
+                        ? _LearningWorldStep(
+                            key: const ValueKey('learning-world-step'),
+                            selectedWorld: _learningWorld,
+                            onBack: () => _goTo(AuthMode.register),
+                            onSelected: (world) {
+                              setState(() => _learningWorld = world);
+                            },
+                            onContinue: _learningWorld == null
+                                ? null
+                                : () => _goTo(AuthMode.grade),
+                            onSkip: () => _goTo(AuthMode.grade),
+                          )
+                        : _mode == AuthMode.grade
+                        ? _GradeStep(
+                            key: const ValueKey('grade-step'),
+                            selectedGrade: _gradeChoice,
+                            onBack: () => _goTo(AuthMode.world),
+                            onSelected: (grade) {
+                              setState(() {
+                                _gradeChoice = grade;
+                                if (grade.gradeLevel != null) {
+                                  _grade = grade.gradeLevel!;
+                                }
+                              });
+                            },
+                            onContinue: _gradeChoice == null
+                                ? null
+                                : () => _goTo(AuthMode.level),
+                            onSkip: () => _goTo(AuthMode.level),
+                          )
+                        : _mode == AuthMode.level
+                        ? _SelfReportedLevelStep(
+                            key: const ValueKey('self-reported-level-step'),
+                            selectedLevel: _selfReportedLevel,
+                            onBack: () => _goTo(AuthMode.grade),
+                            onSelected: (level) {
+                              setState(() => _selfReportedLevel = level);
+                            },
+                            onContinue: _selfReportedLevel == null
+                                ? null
+                                : () => _goTo(AuthMode.format),
+                            onSkip: () => _goTo(AuthMode.format),
+                          )
+                        : _mode == AuthMode.format
+                        ? _LearningFormatStep(
+                            key: const ValueKey('learning-format-step'),
+                            selectedFormats: _learningFormats,
+                            onBack: () => _goTo(AuthMode.level),
+                            onToggle: _toggleFormat,
+                            onContinue: _learningFormats.isEmpty
+                                ? null
+                                : () => _goTo(AuthMode.duration),
+                            onSkip: () => _goTo(AuthMode.duration),
+                          )
+                        : _mode == AuthMode.duration
+                        ? _DailyDurationStep(
+                            key: const ValueKey('daily-duration-step'),
+                            selectedDuration: _dailyDuration,
+                            onBack: () => _goTo(AuthMode.format),
+                            onSelected: (duration) {
+                              setState(() {
+                                _dailyDuration = duration;
+                              });
+                            },
+                            onContinue: _dailyDuration == null
+                                ? null
+                                : () => _goTo(AuthMode.studyTime),
+                            onSkip: () => _goTo(AuthMode.studyTime),
+                          )
+                        : _mode == AuthMode.studyTime
+                        ? _StudyTimeStep(
+                            key: const ValueKey('study-time-step'),
+                            selectedTime: _studyTime,
+                            onBack: () => _goTo(AuthMode.duration),
+                            onSelected: (time) {
+                              setState(() {
+                                _studyTime = time;
+                              });
+                            },
+                            onContinue: _studyTime == null
+                                ? null
+                                : _showRecommendation,
+                            onSkip: _showRecommendation,
+                          )
+                        : _mode == AuthMode.recommendation
+                        ? _RecommendationSplash(
+                            key: const ValueKey('recommendation-splash'),
+                            world: _learningWorld,
+                            onPreviewAnalysis: _showAnalysis,
+                          )
+                        : _mode == AuthMode.placement
+                        ? _PlacementTestFlow(
+                            key: const ValueKey('placement-test-flow'),
+                            world: _learningWorld,
+                            questions: _backendPlacementQuestions,
+                            currentIndex: _placementQuestionIndex,
+                            onBack: _previousPlacementQuestion,
+                            onNext: _nextPlacementQuestion,
+                            onShowAnalysis: _showAnalysis,
+                            onQuestionCompleted:
+                                _completePrototypePlacementQuestion,
+                            loadFailed: _placementLoadFailed,
+                            onRetry: () =>
+                                unawaited(_ensurePrototypePlacementAttempt()),
+                          )
+                        : _mode == AuthMode.analysis
+                        ? AnalisisHasilPage(
+                            key: const ValueKey('analysis-page'),
+                            onBack: _previousPlacementQuestion,
+                            onContinue: _goToBaleVerseHome,
+                          )
+                        : _AuthStep(
+                            key: ValueKey(_mode),
+                            controller: widget.controller,
+                            flowStep: _flowStep,
+                            title: _title,
+                            helper: _helper,
+                            mascotPose: _mascotPose,
+                            onBack:
+                                widget.onBackToLanding ??
+                                () => _goTo(AuthMode.welcome),
+                            child: _form(),
+                          ),
                   ),
                 ),
               ),
@@ -627,21 +546,21 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   BeloPose get _mascotPose => switch (_mode) {
-        AuthMode.register => BeloPose.lompatKegirangan,
-        AuthMode.world => BeloPose.lompatKegirangan,
-        AuthMode.grade => BeloPose.lompatKegirangan,
-        AuthMode.level => BeloPose.lompatKegirangan,
-        AuthMode.format => BeloPose.lompatKegirangan,
-        AuthMode.duration => BeloPose.lompatKegirangan,
-        AuthMode.studyTime => BeloPose.lompatKegirangan,
-        AuthMode.recommendation => BeloPose.lompatKegirangan,
-        AuthMode.placement => BeloPose.lompatKegirangan,
-        AuthMode.analysis => BeloPose.lompatKegirangan,
-        AuthMode.account => BeloPose.lompatKegirangan,
-        AuthMode.login => BeloPose.kedip,
-        AuthMode.code => BeloPose.jempolOke,
-        AuthMode.welcome => BeloPose.jatuhCinta,
-      };
+    AuthMode.register => BeloPose.lompatKegirangan,
+    AuthMode.world => BeloPose.lompatKegirangan,
+    AuthMode.grade => BeloPose.lompatKegirangan,
+    AuthMode.level => BeloPose.lompatKegirangan,
+    AuthMode.format => BeloPose.lompatKegirangan,
+    AuthMode.duration => BeloPose.lompatKegirangan,
+    AuthMode.studyTime => BeloPose.lompatKegirangan,
+    AuthMode.recommendation => BeloPose.lompatKegirangan,
+    AuthMode.placement => BeloPose.lompatKegirangan,
+    AuthMode.analysis => BeloPose.lompatKegirangan,
+    AuthMode.account => BeloPose.lompatKegirangan,
+    AuthMode.login => BeloPose.kedip,
+    AuthMode.code => BeloPose.jempolOke,
+    AuthMode.welcome => BeloPose.jatuhCinta,
+  };
 
   int get _normalizedGrade {
     if (_grade >= 7 && _grade <= 12) return _grade;
@@ -653,107 +572,106 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
   }
 
   String get _title => switch (_mode) {
-        AuthMode.welcome => 'BaleBelajar',
-        AuthMode.register => learningGoalQuestion.title,
-        AuthMode.world => learningWorldQuestion.title,
-        AuthMode.grade => gradeQuestion.title,
-        AuthMode.level => selfReportedLevelQuestion.title,
-        AuthMode.format => learningFormatQuestion.title,
-        AuthMode.duration => dailyDurationQuestion.title,
-        AuthMode.studyTime => studyTimeQuestion.title,
-        AuthMode.recommendation => 'Menyiapkan rekomendasi',
-        AuthMode.placement => 'Cek Awal',
-        AuthMode.analysis => 'Analisis',
-        AuthMode.account => 'Simpan progresmu',
-        AuthMode.login => 'Masuk lagi',
-        AuthMode.code => 'Pakai kode siswa',
-      };
+    AuthMode.welcome => 'BaleBelajar',
+    AuthMode.register => learningGoalQuestion.title,
+    AuthMode.world => learningWorldQuestion.title,
+    AuthMode.grade => gradeQuestion.title,
+    AuthMode.level => selfReportedLevelQuestion.title,
+    AuthMode.format => learningFormatQuestion.title,
+    AuthMode.duration => dailyDurationQuestion.title,
+    AuthMode.studyTime => studyTimeQuestion.title,
+    AuthMode.recommendation => 'Menyiapkan rekomendasi',
+    AuthMode.placement => 'Cek Awal',
+    AuthMode.analysis => 'Analisis',
+    AuthMode.account => 'Simpan progresmu',
+    AuthMode.login => 'Masuk lagi',
+    AuthMode.code => 'Pakai kode siswa',
+  };
 
   String get _helper => switch (_mode) {
-        AuthMode.welcome => '',
-        AuthMode.register => 'Pilih tujuan yang paling cocok.',
-        AuthMode.world => 'Pilih satu dunia untuk mulai.',
-        AuthMode.grade => 'Ini hanya untuk memilih materi awal.',
-        AuthMode.level => 'Ini bukan ujian, hanya titik awal.',
-        AuthMode.format => 'Pilih sampai tiga cara belajar.',
-        AuthMode.duration => 'Pilih target yang realistis.',
-        AuthMode.studyTime => 'Pilih waktu yang cocok.',
-        AuthMode.recommendation => 'Sebentar, Bale sedang menyiapkan jalurmu.',
-        AuthMode.placement => 'Mulai dari tes singkat sesuai dunia pilihanmu.',
-        AuthMode.analysis => 'Kami sedang menganalisis jawabanmu.',
-        AuthMode.account =>
-          'Masuk dulu supaya hasil cek awal tersimpan ke akunmu.',
-        AuthMode.login => '',
-        AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
-      };
+    AuthMode.welcome => '',
+    AuthMode.register => 'Pilih tujuan yang paling cocok.',
+    AuthMode.world => 'Pilih satu dunia untuk mulai.',
+    AuthMode.grade => 'Ini hanya untuk memilih materi awal.',
+    AuthMode.level => 'Ini bukan ujian, hanya titik awal.',
+    AuthMode.format => 'Pilih sampai tiga cara belajar.',
+    AuthMode.duration => 'Pilih target yang realistis.',
+    AuthMode.studyTime => 'Pilih waktu yang cocok.',
+    AuthMode.recommendation => 'Sebentar, Bale sedang menyiapkan jalurmu.',
+    AuthMode.placement => 'Mulai dari tes singkat sesuai dunia pilihanmu.',
+    AuthMode.analysis => 'Kami sedang menganalisis jawabanmu.',
+    AuthMode.account => 'Masuk dulu supaya hasil cek awal tersimpan ke akunmu.',
+    AuthMode.login => '',
+    AuthMode.code => 'Masukkan kode dari sekolah atau mentor.',
+  };
 
   String get _switchLabel => switch (_mode) {
-        AuthMode.register => 'Sudah punya akun? Masuk',
-        AuthMode.world => 'Sudah punya akun? Masuk',
-        AuthMode.grade => 'Sudah punya akun? Masuk',
-        AuthMode.level => 'Sudah punya akun? Masuk',
-        AuthMode.format => 'Sudah punya akun? Masuk',
-        AuthMode.duration => 'Sudah punya akun? Masuk',
-        AuthMode.studyTime => 'Sudah punya akun? Masuk',
-        AuthMode.recommendation => '',
-        AuthMode.placement => 'Sudah punya akun? Masuk',
-        AuthMode.analysis => '',
-        AuthMode.account => 'Sudah punya akun? Masuk',
-        AuthMode.login => 'Belum punya akun? Mulai belajar',
-        AuthMode.code => 'Masuk pakai email',
-        AuthMode.welcome => '',
-      };
+    AuthMode.register => 'Sudah punya akun? Masuk',
+    AuthMode.world => 'Sudah punya akun? Masuk',
+    AuthMode.grade => 'Sudah punya akun? Masuk',
+    AuthMode.level => 'Sudah punya akun? Masuk',
+    AuthMode.format => 'Sudah punya akun? Masuk',
+    AuthMode.duration => 'Sudah punya akun? Masuk',
+    AuthMode.studyTime => 'Sudah punya akun? Masuk',
+    AuthMode.recommendation => '',
+    AuthMode.placement => 'Sudah punya akun? Masuk',
+    AuthMode.analysis => '',
+    AuthMode.account => 'Sudah punya akun? Masuk',
+    AuthMode.login => 'Belum punya akun? Mulai belajar',
+    AuthMode.code => 'Masuk pakai email',
+    AuthMode.welcome => '',
+  };
 
   AuthMode get _switchTarget => switch (_mode) {
-        AuthMode.register => AuthMode.login,
-        AuthMode.world => AuthMode.login,
-        AuthMode.grade => AuthMode.login,
-        AuthMode.level => AuthMode.login,
-        AuthMode.format => AuthMode.login,
-        AuthMode.duration => AuthMode.login,
-        AuthMode.studyTime => AuthMode.login,
-        AuthMode.recommendation => AuthMode.login,
-        AuthMode.placement => AuthMode.login,
-        AuthMode.analysis => AuthMode.login,
-        AuthMode.account => AuthMode.login,
-        AuthMode.login => AuthMode.register,
-        AuthMode.code => AuthMode.login,
-        AuthMode.welcome => AuthMode.register,
-      };
+    AuthMode.register => AuthMode.login,
+    AuthMode.world => AuthMode.login,
+    AuthMode.grade => AuthMode.login,
+    AuthMode.level => AuthMode.login,
+    AuthMode.format => AuthMode.login,
+    AuthMode.duration => AuthMode.login,
+    AuthMode.studyTime => AuthMode.login,
+    AuthMode.recommendation => AuthMode.login,
+    AuthMode.placement => AuthMode.login,
+    AuthMode.analysis => AuthMode.login,
+    AuthMode.account => AuthMode.login,
+    AuthMode.login => AuthMode.register,
+    AuthMode.code => AuthMode.login,
+    AuthMode.welcome => AuthMode.register,
+  };
 
   IconData get _buttonIcon => switch (_mode) {
-        AuthMode.register => Icons.arrow_forward_rounded,
-        AuthMode.world => Icons.arrow_forward_rounded,
-        AuthMode.grade => Icons.arrow_forward_rounded,
-        AuthMode.level => Icons.arrow_forward_rounded,
-        AuthMode.format => Icons.arrow_forward_rounded,
-        AuthMode.duration => Icons.arrow_forward_rounded,
-        AuthMode.studyTime => Icons.arrow_forward_rounded,
-        AuthMode.recommendation => Icons.auto_awesome_rounded,
-        AuthMode.placement => Icons.quiz_rounded,
-        AuthMode.analysis => Icons.auto_graph_rounded,
-        AuthMode.account => Icons.person_add_alt_1_rounded,
-        AuthMode.login => Icons.login_rounded,
-        AuthMode.code => Icons.qr_code_2_rounded,
-        AuthMode.welcome => Icons.play_arrow_rounded,
-      };
+    AuthMode.register => Icons.arrow_forward_rounded,
+    AuthMode.world => Icons.arrow_forward_rounded,
+    AuthMode.grade => Icons.arrow_forward_rounded,
+    AuthMode.level => Icons.arrow_forward_rounded,
+    AuthMode.format => Icons.arrow_forward_rounded,
+    AuthMode.duration => Icons.arrow_forward_rounded,
+    AuthMode.studyTime => Icons.arrow_forward_rounded,
+    AuthMode.recommendation => Icons.auto_awesome_rounded,
+    AuthMode.placement => Icons.quiz_rounded,
+    AuthMode.analysis => Icons.auto_graph_rounded,
+    AuthMode.account => Icons.person_add_alt_1_rounded,
+    AuthMode.login => Icons.login_rounded,
+    AuthMode.code => Icons.qr_code_2_rounded,
+    AuthMode.welcome => Icons.play_arrow_rounded,
+  };
 
   String get _buttonLabel => switch (_mode) {
-        AuthMode.register => 'Lanjutkan',
-        AuthMode.world => 'Lanjutkan',
-        AuthMode.grade => 'Lanjutkan',
-        AuthMode.level => 'Lanjutkan',
-        AuthMode.format => 'Lanjutkan',
-        AuthMode.duration => 'Lanjutkan',
-        AuthMode.studyTime => 'Lihat rekomendasiku',
-        AuthMode.recommendation => 'Menyiapkan',
-        AuthMode.placement => 'Mulai Cek Awal',
-        AuthMode.analysis => 'Menganalisis',
-        AuthMode.account => 'Buat Akun dan Lanjut Tes',
-        AuthMode.login => 'Masuk',
-        AuthMode.code => 'Masuk dengan Kode',
-        AuthMode.welcome => 'Mulai',
-      };
+    AuthMode.register => 'Lanjutkan',
+    AuthMode.world => 'Lanjutkan',
+    AuthMode.grade => 'Lanjutkan',
+    AuthMode.level => 'Lanjutkan',
+    AuthMode.format => 'Lanjutkan',
+    AuthMode.duration => 'Lanjutkan',
+    AuthMode.studyTime => 'Lihat rekomendasiku',
+    AuthMode.recommendation => 'Menyiapkan',
+    AuthMode.placement => 'Mulai Cek Awal',
+    AuthMode.analysis => 'Menganalisis',
+    AuthMode.account => 'Buat Akun dan Lanjut Tes',
+    AuthMode.login => 'Masuk',
+    AuthMode.code => 'Masuk dengan Kode',
+    AuthMode.welcome => 'Mulai',
+  };
 
   void _goTo(AuthMode mode) {
     if (mode == AuthMode.login &&
@@ -784,8 +702,7 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         AuthMode.studyTime ||
         AuthMode.recommendation ||
         AuthMode.placement ||
-        AuthMode.analysis =>
-          7,
+        AuthMode.analysis => 7,
         AuthMode.account || AuthMode.login || AuthMode.code => 7,
       };
       if (mode == AuthMode.placement) {
@@ -858,8 +775,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     if (!_prototypeFallbackAllowed) return;
     if (_prototypeStudentProfileId != null) return;
     try {
-      _prototypeStudentProfileId =
-          await widget.controller.authService.startPrototypeSession();
+      _prototypeStudentProfileId = await widget.controller.authService
+          .startPrototypeSession();
     } catch (_) {
       // Prototype UI tetap bisa dipakai ketika backend belum aktif.
     }
@@ -888,12 +805,10 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     if (mounted) setState(() => _placementLoadFailed = false);
     if (widget.controller.user != null) {
       try {
-        _prototypePlacementAttemptId =
-            await widget.controller.authService.startPlacement(
-          worldKey: _learningWorldPayload(_learningWorld),
-        );
-        final questionJson =
-            await widget.controller.authService.getPlacementQuestions();
+        _prototypePlacementAttemptId = await widget.controller.authService
+            .startPlacement(worldKey: _learningWorldPayload(_learningWorld));
+        final questionJson = await widget.controller.authService
+            .getPlacementQuestions();
         if (!mounted) return;
         setState(() {
           _backendPlacementQuestions = questionJson
@@ -916,19 +831,18 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
       return;
     }
     try {
-      _prototypePlacementAttemptId =
-          await widget.controller.authService.startPrototypePlacement(
-        studentProfileId: studentProfileId,
-        worldKey: _learningWorldPayload(_learningWorld),
-      );
-      final questionJson =
-          await widget.controller.authService.getPrototypePlacementQuestions(
-        studentProfileId: studentProfileId,
-      );
+      _prototypePlacementAttemptId = await widget.controller.authService
+          .startPrototypePlacement(
+            studentProfileId: studentProfileId,
+            worldKey: _learningWorldPayload(_learningWorld),
+          );
+      final questionJson = await widget.controller.authService
+          .getPrototypePlacementQuestions(studentProfileId: studentProfileId);
       if (!mounted) return;
       setState(() {
-        _backendPlacementQuestions =
-            questionJson.map(_templateQuestionFromJson).toList(growable: false);
+        _backendPlacementQuestions = questionJson
+            .map(_templateQuestionFromJson)
+            .toList(growable: false);
       });
     } catch (_) {
       if (mounted) setState(() => _placementLoadFailed = true);
@@ -986,7 +900,8 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
     required bool skipped,
   }) {
     unawaited(
-        _savePrototypePlacementAnswer(question, answer, skipped: skipped));
+      _savePrototypePlacementAnswer(question, answer, skipped: skipped),
+    );
   }
 
   Future<void> _submitPlacementAttempt() async {
@@ -1027,8 +942,9 @@ class _SimpleAuthScreenState extends State<SimpleAuthScreen> {
         'learningWorld': _learningWorld?.name,
         'gradeChoice': _gradeChoice?.name,
         'selfReportedLevel': _selfReportedLevel?.name,
-        'learningFormats':
-            _learningFormats.map((format) => format.name).toList(),
+        'learningFormats': _learningFormats
+            .map((format) => format.name)
+            .toList(),
         'dailyDuration': _dailyDuration?.name,
         'studyTime': _studyTime?.name,
       },
@@ -1294,15 +1210,13 @@ class _OnboardingViewState extends State<_OnboardingView>
       begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _buttonsOffset = Tween<Offset>(
-      begin: const Offset(0, 0.18),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: const Interval(0.25, 1, curve: Curves.easeOutBack),
-      ),
-    );
+    _buttonsOffset =
+        Tween<Offset>(begin: const Offset(0, 0.18), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(0.25, 1, curve: Curves.easeOutBack),
+          ),
+        );
   }
 
   @override
@@ -1332,12 +1246,12 @@ class _OnboardingViewState extends State<_OnboardingView>
                     Text(
                       'BaleBelajar',
                       textAlign: TextAlign.center,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: _authDark,
-                                fontSize: 36,
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            color: _authDark,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                     const SizedBox(height: 10),
                     const Text(
@@ -1382,14 +1296,14 @@ class _OnboardingViewState extends State<_OnboardingView>
 }
 
 String? _learningWorldPayload(LearningWorld? world) => switch (world) {
-      LearningWorld.numeria => 'NUMERIA',
-      LearningWorld.kodex => 'KODEX',
-      LearningWorld.detectivia => 'DETECTIVIA',
-      LearningWorld.bahasa => 'BAHASA',
-      LearningWorld.sains => 'SAINS',
-      LearningWorld.tryAll => 'TRY_ALL',
-      null => null,
-    };
+  LearningWorld.numeria => 'NUMERIA',
+  LearningWorld.kodex => 'KODEX',
+  LearningWorld.detectivia => 'DETECTIVIA',
+  LearningWorld.bahasa => 'BAHASA',
+  LearningWorld.sains => 'SAINS',
+  LearningWorld.tryAll => 'TRY_ALL',
+  null => null,
+};
 
 TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
   final questionType = QuestionType.values.firstWhere(
@@ -1401,68 +1315,94 @@ TemplateQuestion _templateQuestionFromJson(Map<String, dynamic> json) {
     questionType: questionType,
     prompt: json['prompt'] as String,
     instruction: json['instruction'] as String?,
-    options: _jsonList(json['options']).map((item) {
-      return TemplateOption(
-        id: _templateJsonText(item, ['id', 'optionId', 'key']),
-        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
-        imageUrl: item['imageUrl'] as String?,
-        description: item['description'] as String?,
-      );
-    }).toList(growable: false),
+    options: _jsonList(json['options'])
+        .map((item) {
+          return TemplateOption(
+            id: _templateJsonText(item, ['id', 'optionId', 'key']),
+            label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
+            imageUrl: item['imageUrl'] as String?,
+            description: item['description'] as String?,
+          );
+        })
+        .toList(growable: false),
     media: json['media'] is Map<String, dynamic>
         ? _templateMediaFromJson(json['media'] as Map<String, dynamic>)
         : null,
     responseConfig: json['responseConfig'] is Map<String, dynamic>
         ? _responseConfigFromJson(
-            json['responseConfig'] as Map<String, dynamic>)
+            json['responseConfig'] as Map<String, dynamic>,
+          )
         : null,
-    matchingPairs: _jsonList(json['matchingPairs']).map((item) {
-      return MatchingPair(
-        leftId: _templateJsonText(item, ['leftId', 'left_id']),
-        leftLabel:
-            _templateJsonText(item, ['leftLabel', 'left_label', 'label']),
-        rightId: _templateJsonText(item, ['rightId', 'right_id']),
-        rightLabel:
-            _templateJsonText(item, ['rightLabel', 'right_label', 'answer']),
-      );
-    }).toList(growable: false),
-    orderingItems: _jsonList(json['orderingItems']).map((item) {
-      final id = _templateJsonText(item, ['id', 'itemId', 'item_id']);
-      return OrderingItem(
-        id: id,
-        label: _templateJsonText(
-          item,
-          ['label', 'text', 'title', 'name', 'description'],
-          fallback: id,
-        ),
-      );
-    }).toList(growable: false),
-    hotspotAreas: _jsonList(json['hotspotAreas']).map((item) {
-      return HotspotArea(
-        id: _templateJsonText(item, ['id', 'hotspotId', 'hotspot_id']),
-        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
-        x: (item['x'] as num).toDouble(),
-        y: (item['y'] as num).toDouble(),
-        radius: ((item['radius'] as num?) ?? 0.08).toDouble(),
-      );
-    }).toList(growable: false),
-    timelineItems: _jsonList(json['timelineItems']).map((item) {
-      return TimelineItem(
-        id: _templateJsonText(item, ['id', 'itemId', 'item_id']),
-        label: _templateJsonText(
-            item, ['label', 'text', 'title', 'name', 'description']),
-        timeLabel: item['timeLabel'] as String?,
-        description: item['description'] as String?,
-      );
-    }).toList(growable: false),
-    evidenceItems: _jsonList(json['evidenceItems']).map((item) {
-      return EvidenceItem(
-        id: _templateJsonText(item, ['id', 'evidenceId', 'evidence_id']),
-        label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
-        description: item['description'] as String?,
-        category: item['category'] as String?,
-      );
-    }).toList(growable: false),
+    matchingPairs: _jsonList(json['matchingPairs'])
+        .map((item) {
+          return MatchingPair(
+            leftId: _templateJsonText(item, ['leftId', 'left_id']),
+            leftLabel: _templateJsonText(item, [
+              'leftLabel',
+              'left_label',
+              'label',
+            ]),
+            rightId: _templateJsonText(item, ['rightId', 'right_id']),
+            rightLabel: _templateJsonText(item, [
+              'rightLabel',
+              'right_label',
+              'answer',
+            ]),
+          );
+        })
+        .toList(growable: false),
+    orderingItems: _jsonList(json['orderingItems'])
+        .map((item) {
+          final id = _templateJsonText(item, ['id', 'itemId', 'item_id']);
+          return OrderingItem(
+            id: id,
+            label: _templateJsonText(item, [
+              'label',
+              'text',
+              'title',
+              'name',
+              'description',
+            ], fallback: id),
+          );
+        })
+        .toList(growable: false),
+    hotspotAreas: _jsonList(json['hotspotAreas'])
+        .map((item) {
+          return HotspotArea(
+            id: _templateJsonText(item, ['id', 'hotspotId', 'hotspot_id']),
+            label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
+            x: (item['x'] as num).toDouble(),
+            y: (item['y'] as num).toDouble(),
+            radius: ((item['radius'] as num?) ?? 0.08).toDouble(),
+          );
+        })
+        .toList(growable: false),
+    timelineItems: _jsonList(json['timelineItems'])
+        .map((item) {
+          return TimelineItem(
+            id: _templateJsonText(item, ['id', 'itemId', 'item_id']),
+            label: _templateJsonText(item, [
+              'label',
+              'text',
+              'title',
+              'name',
+              'description',
+            ]),
+            timeLabel: item['timeLabel'] as String?,
+            description: item['description'] as String?,
+          );
+        })
+        .toList(growable: false),
+    evidenceItems: _jsonList(json['evidenceItems'])
+        .map((item) {
+          return EvidenceItem(
+            id: _templateJsonText(item, ['id', 'evidenceId', 'evidence_id']),
+            label: _templateJsonText(item, ['label', 'text', 'title', 'name']),
+            description: item['description'] as String?,
+            category: item['category'] as String?,
+          );
+        })
+        .toList(growable: false),
     codeConfig: json['codeConfig'] is Map<String, dynamic>
         ? _codeConfigFromJson(json['codeConfig'] as Map<String, dynamic>)
         : null,
@@ -1538,7 +1478,9 @@ class _MascotStage extends StatelessWidget {
     return SizedBox(
       width: size + (compact ? 28 : 62),
       height: size * 1.36,
-      child: Center(child: BeloMascot(pose: pose, size: size, animate: false)),
+      child: Center(
+        child: BeloMascot(pose: pose, size: size, animate: false),
+      ),
     );
   }
 }
@@ -1590,10 +1532,10 @@ class _LearningGoalStep extends StatelessWidget {
           'Tujuan belajarmu?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -1719,10 +1661,10 @@ class _LearningWorldStep extends StatelessWidget {
           'Pilih dunia belajar',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -1854,10 +1796,10 @@ class _GradeStep extends StatelessWidget {
           'Kamu kelas berapa?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -1970,10 +1912,10 @@ class _SelfReportedLevelStep extends StatelessWidget {
           'Sudah sejauh apa?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -2086,10 +2028,10 @@ class _LearningFormatStep extends StatelessWidget {
           'Suka belajar gimana?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -2206,10 +2148,10 @@ class _DailyDurationStep extends StatelessWidget {
           'Belajar berapa menit?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -2322,10 +2264,10 @@ class _StudyTimeStep extends StatelessWidget {
           'Waktu belajar terbaik?',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: compact ? 23 : 30,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: compact ? 23 : 30,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         SizedBox(height: compact ? 4 : 8),
         Text(
@@ -2413,10 +2355,10 @@ class _RecommendationSplash extends StatelessWidget {
           'Menyiapkan Cek Awal',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFF3B2318),
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-              ),
+            color: const Color(0xFF3B2318),
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 8),
         Text(
@@ -2467,7 +2409,8 @@ class _PlacementTestFlow extends StatelessWidget {
     TemplateQuestion question,
     Object? answer, {
     required bool skipped,
-  }) onQuestionCompleted;
+  })
+  onQuestionCompleted;
   // Backend gagal memuat soal - tampilkan error/retry, JANGAN diam-diam
   // pakai soal dummy (dulu ada fallback `_placementQuestionsFor`, sudah
   // dihapus).
@@ -2483,18 +2426,14 @@ class _PlacementTestFlow extends StatelessWidget {
       }
       return const ColoredBox(
         color: Color(0xFFFFF3C6),
-        child: Center(
-          child: CircularProgressIndicator(color: _authPrimary),
-        ),
+        child: Center(child: CircularProgressIndicator(color: _authPrimary)),
       );
     }
     if (currentIndex >= questions.length) {
       WidgetsBinding.instance.addPostFrameCallback((_) => onShowAnalysis());
       return const ColoredBox(
         color: Color(0xFFFFF3C6),
-        child: Center(
-          child: CircularProgressIndicator(color: _authPrimary),
-        ),
+        child: Center(child: CircularProgressIndicator(color: _authPrimary)),
       );
     }
     final index = currentIndex.clamp(0, questions.length - 1);
@@ -2541,142 +2480,142 @@ class _PlacementTestFlow extends StatelessWidget {
       // sama sekali karena switch(index) cuma sampai 12.
       child: switch (question.questionType) {
         QuestionType.singleChoice => SingleChoiceTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.multipleSelect => MultipleSelectTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.binaryChoice => BinaryChoiceTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.shortText => ShortTextTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.matching => MatchingTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.ordering => OrderingTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.imageChoice => ImageChoiceTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.audioChoice => AudioChoiceTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onPlay: () {},
-            onPause: () {},
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onPlay: () {},
+          onPause: () {},
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.longText => LongTextTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onSubmitAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onSubmitAnswer: answerCurrent,
+        ),
         QuestionType.codeInput => CodeInputTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onBookmark: () {},
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onBookmark: () {},
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.imageHotspot => ImageHotspotTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.voiceResponse => VoiceResponseTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onStartRecording: () {},
-            onStopRecording: () {},
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onSubmitAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onStartRecording: () {},
+          onStopRecording: () {},
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onSubmitAnswer: answerCurrent,
+        ),
         QuestionType.timelineBuilder => TimelineBuilderTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            skipLabel: isLastQuestion ? 'Lanjut ke Analisis Hasil' : 'Lewati',
-            onBack: onBack,
-            onSkip: isLastQuestion
-                ? () {
-                    onQuestionCompleted(question, null, skipped: true);
-                    onShowAnalysis();
-                  }
-                : skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          skipLabel: isLastQuestion ? 'Lanjut ke Analisis Hasil' : 'Lewati',
+          onBack: onBack,
+          onSkip: isLastQuestion
+              ? () {
+                  onQuestionCompleted(question, null, skipped: true);
+                  onShowAnalysis();
+                }
+              : skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
         QuestionType.evidenceBoard => EvidenceBoardTemplate(
-            key: ValueKey(question.id),
-            question: question,
-            currentQuestion: currentQuestion,
-            totalQuestions: totalQuestions,
-            onBack: onBack,
-            onSkip: skipCurrent,
-            onCheckAnswer: answerCurrent,
-          ),
+          key: ValueKey(question.id),
+          question: question,
+          currentQuestion: currentQuestion,
+          totalQuestions: totalQuestions,
+          onBack: onBack,
+          onSkip: skipCurrent,
+          onCheckAnswer: answerCurrent,
+        ),
       },
     );
   }
@@ -2751,10 +2690,13 @@ class _SevenStepProgress extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final dotGap = constraints.maxWidth / (_totalSteps - 1);
-          final progress =
-              _totalSteps == 1 ? 0.0 : (step - 1) / (_totalSteps - 1);
-          final markerLeft = ((constraints.maxWidth - 30) * progress)
-              .clamp(0.0, constraints.maxWidth - 30);
+          final progress = _totalSteps == 1
+              ? 0.0
+              : (step - 1) / (_totalSteps - 1);
+          final markerLeft = ((constraints.maxWidth - 30) * progress).clamp(
+            0.0,
+            constraints.maxWidth - 30,
+          );
           return Stack(
             alignment: Alignment.centerLeft,
             children: [
@@ -2778,8 +2720,10 @@ class _SevenStepProgress extends StatelessWidget {
               ),
               for (var index = 1; index <= _totalSteps; index++)
                 Positioned(
-                  left: (dotGap * (index - 1) - 6)
-                      .clamp(0, constraints.maxWidth - 12),
+                  left: (dotGap * (index - 1) - 6).clamp(
+                    0,
+                    constraints.maxWidth - 12,
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeOutCubic,
@@ -2860,10 +2804,7 @@ class _IntroMascotBubble extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           flex: 11,
-          child: _SpeechBubble(
-            compact: compact,
-            text: text,
-          ),
+          child: _SpeechBubble(compact: compact, text: text),
         ),
       ],
     );
@@ -3055,24 +2996,24 @@ class _LearningGoalCard extends StatelessWidget {
   }
 
   Color _goalColor(LearningGoal goal) => switch (goal) {
-        LearningGoal.understandSubject => const Color(0xFF2D8CFF),
-        LearningGoal.examPreparation => const Color(0xFF4CAF50),
-        LearningGoal.improveGrade => const Color(0xFFFF6B6B),
-        LearningGoal.learnNewSkill => const Color(0xFFF4B400),
-        LearningGoal.buildThinkingSkill => const Color(0xFF7C5CFF),
-        LearningGoal.exploreCareer => const Color(0xFF0E3A5F),
-        LearningGoal.needRecommendation => const Color(0xFFFFA629),
-      };
+    LearningGoal.understandSubject => const Color(0xFF2D8CFF),
+    LearningGoal.examPreparation => const Color(0xFF4CAF50),
+    LearningGoal.improveGrade => const Color(0xFFFF6B6B),
+    LearningGoal.learnNewSkill => const Color(0xFFF4B400),
+    LearningGoal.buildThinkingSkill => const Color(0xFF7C5CFF),
+    LearningGoal.exploreCareer => const Color(0xFF0E3A5F),
+    LearningGoal.needRecommendation => const Color(0xFFFFA629),
+  };
 
   String _shortGoalLabel(LearningGoal goal) => switch (goal) {
-        LearningGoal.understandSubject => 'Paham pelajaran',
-        LearningGoal.examPreparation => 'Siap ujian',
-        LearningGoal.improveGrade => 'Nilai naik',
-        LearningGoal.learnNewSkill => 'Skill baru',
-        LearningGoal.buildThinkingSkill => 'Latih logika',
-        LearningGoal.exploreCareer => 'Cari cita-cita',
-        LearningGoal.needRecommendation => 'Bantu pilih',
-      };
+    LearningGoal.understandSubject => 'Paham pelajaran',
+    LearningGoal.examPreparation => 'Siap ujian',
+    LearningGoal.improveGrade => 'Nilai naik',
+    LearningGoal.learnNewSkill => 'Skill baru',
+    LearningGoal.buildThinkingSkill => 'Latih logika',
+    LearningGoal.exploreCareer => 'Cari cita-cita',
+    LearningGoal.needRecommendation => 'Bantu pilih',
+  };
 }
 
 class _LearningWorldCard extends StatelessWidget {
@@ -3176,31 +3117,31 @@ class _LearningWorldCard extends StatelessWidget {
   }
 
   Color _worldColor(LearningWorld world) => switch (world) {
-        LearningWorld.numeria => const Color(0xFF2D8CFF),
-        LearningWorld.kodex => const Color(0xFF4CAF50),
-        LearningWorld.detectivia => const Color(0xFF7C5CFF),
-        LearningWorld.bahasa => const Color(0xFFFF6B6B),
-        LearningWorld.sains => const Color(0xFF0E3A5F),
-        LearningWorld.tryAll => const Color(0xFFF4B400),
-      };
+    LearningWorld.numeria => const Color(0xFF2D8CFF),
+    LearningWorld.kodex => const Color(0xFF4CAF50),
+    LearningWorld.detectivia => const Color(0xFF7C5CFF),
+    LearningWorld.bahasa => const Color(0xFFFF6B6B),
+    LearningWorld.sains => const Color(0xFF0E3A5F),
+    LearningWorld.tryAll => const Color(0xFFF4B400),
+  };
 
   String _shortWorldLabel(LearningWorld world) => switch (world) {
-        LearningWorld.numeria => 'Numeria',
-        LearningWorld.kodex => 'KodeX',
-        LearningWorld.detectivia => 'Detectivia',
-        LearningWorld.bahasa => 'Bahasa',
-        LearningWorld.sains => 'Sains',
-        LearningWorld.tryAll => 'Coba semua',
-      };
+    LearningWorld.numeria => 'Numeria',
+    LearningWorld.kodex => 'KodeX',
+    LearningWorld.detectivia => 'Detectivia',
+    LearningWorld.bahasa => 'Bahasa',
+    LearningWorld.sains => 'Sains',
+    LearningWorld.tryAll => 'Coba semua',
+  };
 
   String _worldSubject(LearningWorld world) => switch (world) {
-        LearningWorld.numeria => 'Matematika',
-        LearningWorld.kodex => 'Informatika',
-        LearningWorld.detectivia => 'Logika',
-        LearningWorld.bahasa => 'Bahasa',
-        LearningWorld.sains => 'Sains',
-        LearningWorld.tryAll => 'Semua dunia',
-      };
+    LearningWorld.numeria => 'Matematika',
+    LearningWorld.kodex => 'Informatika',
+    LearningWorld.detectivia => 'Logika',
+    LearningWorld.bahasa => 'Bahasa',
+    LearningWorld.sains => 'Sains',
+    LearningWorld.tryAll => 'Semua dunia',
+  };
 }
 
 class _GradeCard extends StatelessWidget {
@@ -3304,52 +3245,48 @@ class _GradeCard extends StatelessWidget {
   }
 
   String _gradeTitle(GradeChoice grade) => switch (grade) {
-        GradeChoice.junior7 ||
-        GradeChoice.junior8 ||
-        GradeChoice.junior9 =>
-          'SMP kelas 7-9',
-        GradeChoice.senior10 => 'SMA/SMK kelas 10',
-        GradeChoice.senior11 => 'SMA/SMK kelas 11',
-        GradeChoice.senior12 => 'SMA/SMK kelas 12',
-        GradeChoice.graduated => 'Sudah lulus / umum',
-        GradeChoice.customLevel => 'Pilih level sendiri',
-      };
+    GradeChoice.junior7 ||
+    GradeChoice.junior8 ||
+    GradeChoice.junior9 => 'SMP kelas 7-9',
+    GradeChoice.senior10 => 'SMA/SMK kelas 10',
+    GradeChoice.senior11 => 'SMA/SMK kelas 11',
+    GradeChoice.senior12 => 'SMA/SMK kelas 12',
+    GradeChoice.graduated => 'Sudah lulus / umum',
+    GradeChoice.customLevel => 'Pilih level sendiri',
+  };
 
   String _gradeSubtitle(GradeChoice grade) => switch (grade) {
-        GradeChoice.junior7 ||
-        GradeChoice.junior8 ||
-        GradeChoice.junior9 =>
-          'Belajar tingkat SMP',
-        GradeChoice.senior10 => 'Mulai tingkat menengah atas',
-        GradeChoice.senior11 => 'Lanjut tingkat menengah atas',
-        GradeChoice.senior12 => 'Fokus persiapan akhir',
-        GradeChoice.graduated => 'Belajar fleksibel sesuai tujuan',
-        GradeChoice.customLevel => 'Atur tingkat belajar manual',
-      };
+    GradeChoice.junior7 ||
+    GradeChoice.junior8 ||
+    GradeChoice.junior9 => 'Belajar tingkat SMP',
+    GradeChoice.senior10 => 'Mulai tingkat menengah atas',
+    GradeChoice.senior11 => 'Lanjut tingkat menengah atas',
+    GradeChoice.senior12 => 'Fokus persiapan akhir',
+    GradeChoice.graduated => 'Belajar fleksibel sesuai tujuan',
+    GradeChoice.customLevel => 'Atur tingkat belajar manual',
+  };
 
   IconData _gradeIcon(GradeChoice grade) => switch (grade) {
-        GradeChoice.junior7 ||
-        GradeChoice.junior8 ||
-        GradeChoice.junior9 =>
-          Icons.backpack_rounded,
-        GradeChoice.senior10 => Icons.school_rounded,
-        GradeChoice.senior11 => Icons.menu_book_rounded,
-        GradeChoice.senior12 => Icons.ads_click_rounded,
-        GradeChoice.graduated => Icons.public_rounded,
-        GradeChoice.customLevel => Icons.tune_rounded,
-      };
+    GradeChoice.junior7 ||
+    GradeChoice.junior8 ||
+    GradeChoice.junior9 => Icons.backpack_rounded,
+    GradeChoice.senior10 => Icons.school_rounded,
+    GradeChoice.senior11 => Icons.menu_book_rounded,
+    GradeChoice.senior12 => Icons.ads_click_rounded,
+    GradeChoice.graduated => Icons.public_rounded,
+    GradeChoice.customLevel => Icons.tune_rounded,
+  };
 
   Color _gradeColor(GradeChoice grade) => switch (grade) {
-        GradeChoice.junior7 ||
-        GradeChoice.junior8 ||
-        GradeChoice.junior9 =>
-          const Color(0xFF4CAF50),
-        GradeChoice.senior10 => const Color(0xFF2D8CFF),
-        GradeChoice.senior11 => const Color(0xFF7C5CFF),
-        GradeChoice.senior12 => const Color(0xFFFF6B6B),
-        GradeChoice.graduated => const Color(0xFF0E3A5F),
-        GradeChoice.customLevel => const Color(0xFFF4B400),
-      };
+    GradeChoice.junior7 ||
+    GradeChoice.junior8 ||
+    GradeChoice.junior9 => const Color(0xFF4CAF50),
+    GradeChoice.senior10 => const Color(0xFF2D8CFF),
+    GradeChoice.senior11 => const Color(0xFF7C5CFF),
+    GradeChoice.senior12 => const Color(0xFFFF6B6B),
+    GradeChoice.graduated => const Color(0xFF0E3A5F),
+    GradeChoice.customLevel => const Color(0xFFF4B400),
+  };
 }
 
 class _SelfReportedLevelCard extends StatelessWidget {
@@ -3453,31 +3390,31 @@ class _SelfReportedLevelCard extends StatelessWidget {
   }
 
   String _levelTitle(SelfReportedLevel level) => switch (level) {
-        SelfReportedLevel.beginner => 'Baru mulai',
-        SelfReportedLevel.basic => 'Tahu sedikit',
-        SelfReportedLevel.foundationReady => 'Paham dasar',
-        SelfReportedLevel.intermediate => 'Soal menengah',
-        SelfReportedLevel.advanced => 'Siap tantangan',
-        SelfReportedLevel.unsure => 'Belum yakin',
-      };
+    SelfReportedLevel.beginner => 'Baru mulai',
+    SelfReportedLevel.basic => 'Tahu sedikit',
+    SelfReportedLevel.foundationReady => 'Paham dasar',
+    SelfReportedLevel.intermediate => 'Soal menengah',
+    SelfReportedLevel.advanced => 'Siap tantangan',
+    SelfReportedLevel.unsure => 'Belum yakin',
+  };
 
   String _levelSubtitle(SelfReportedLevel level) => switch (level) {
-        SelfReportedLevel.beginner => 'Aku masih sangat baru',
-        SelfReportedLevel.basic => 'Sudah pernah lihat dasarnya',
-        SelfReportedLevel.foundationReady => 'Aku mengerti dasar-dasarnya',
-        SelfReportedLevel.intermediate => 'Cukup nyaman belajar mandiri',
-        SelfReportedLevel.advanced => 'Aku ingin materi menantang',
-        SelfReportedLevel.unsure => 'Bantu aku menentukannya',
-      };
+    SelfReportedLevel.beginner => 'Aku masih sangat baru',
+    SelfReportedLevel.basic => 'Sudah pernah lihat dasarnya',
+    SelfReportedLevel.foundationReady => 'Aku mengerti dasar-dasarnya',
+    SelfReportedLevel.intermediate => 'Cukup nyaman belajar mandiri',
+    SelfReportedLevel.advanced => 'Aku ingin materi menantang',
+    SelfReportedLevel.unsure => 'Bantu aku menentukannya',
+  };
 
   Color _levelColor(SelfReportedLevel level) => switch (level) {
-        SelfReportedLevel.beginner => const Color(0xFF4CAF50),
-        SelfReportedLevel.basic => const Color(0xFFF4B400),
-        SelfReportedLevel.foundationReady => const Color(0xFF2D8CFF),
-        SelfReportedLevel.intermediate => const Color(0xFF7C5CFF),
-        SelfReportedLevel.advanced => const Color(0xFFFFA629),
-        SelfReportedLevel.unsure => const Color(0xFFFF6B6B),
-      };
+    SelfReportedLevel.beginner => const Color(0xFF4CAF50),
+    SelfReportedLevel.basic => const Color(0xFFF4B400),
+    SelfReportedLevel.foundationReady => const Color(0xFF2D8CFF),
+    SelfReportedLevel.intermediate => const Color(0xFF7C5CFF),
+    SelfReportedLevel.advanced => const Color(0xFFFFA629),
+    SelfReportedLevel.unsure => const Color(0xFFFF6B6B),
+  };
 }
 
 class _LearningFormatCard extends StatelessWidget {
@@ -3581,34 +3518,34 @@ class _LearningFormatCard extends StatelessWidget {
   }
 
   String _formatTitle(LearningFormat format) => switch (format) {
-        LearningFormat.visual => 'Gambar & contoh',
-        LearningFormat.practiceFirst => 'Langsung mencoba',
-        LearningFormat.audio => 'Mendengar',
-        LearningFormat.story => 'Lewat cerita',
-        LearningFormat.challenge => 'Tantangan',
-        LearningFormat.teachBack => 'Jelaskan sendiri',
-        LearningFormat.social => 'Bareng mentor/teman',
-      };
+    LearningFormat.visual => 'Gambar & contoh',
+    LearningFormat.practiceFirst => 'Langsung mencoba',
+    LearningFormat.audio => 'Mendengar',
+    LearningFormat.story => 'Lewat cerita',
+    LearningFormat.challenge => 'Tantangan',
+    LearningFormat.teachBack => 'Jelaskan sendiri',
+    LearningFormat.social => 'Bareng mentor/teman',
+  };
 
   String _formatSubtitle(LearningFormat format) => switch (format) {
-        LearningFormat.visual => 'Lebih cepat paham lewat visual',
-        LearningFormat.practiceFirst => 'Suka belajar sambil praktik',
-        LearningFormat.audio => 'Nyaman dengan penjelasan',
-        LearningFormat.story => 'Suka penjelasan yang hidup',
-        LearningFormat.challenge => 'Suka target yang seru',
-        LearningFormat.teachBack => 'Biar benar-benar paham',
-        LearningFormat.social => 'Suka diskusi atau pendamping',
-      };
+    LearningFormat.visual => 'Lebih cepat paham lewat visual',
+    LearningFormat.practiceFirst => 'Suka belajar sambil praktik',
+    LearningFormat.audio => 'Nyaman dengan penjelasan',
+    LearningFormat.story => 'Suka penjelasan yang hidup',
+    LearningFormat.challenge => 'Suka target yang seru',
+    LearningFormat.teachBack => 'Biar benar-benar paham',
+    LearningFormat.social => 'Suka diskusi atau pendamping',
+  };
 
   Color _formatColor(LearningFormat format) => switch (format) {
-        LearningFormat.visual => const Color(0xFF2D8CFF),
-        LearningFormat.practiceFirst => const Color(0xFF4CAF50),
-        LearningFormat.audio => const Color(0xFF0E3A5F),
-        LearningFormat.story => const Color(0xFF7C5CFF),
-        LearningFormat.challenge => const Color(0xFFFF6B6B),
-        LearningFormat.teachBack => const Color(0xFFF4B400),
-        LearningFormat.social => const Color(0xFFFFA629),
-      };
+    LearningFormat.visual => const Color(0xFF2D8CFF),
+    LearningFormat.practiceFirst => const Color(0xFF4CAF50),
+    LearningFormat.audio => const Color(0xFF0E3A5F),
+    LearningFormat.story => const Color(0xFF7C5CFF),
+    LearningFormat.challenge => const Color(0xFFFF6B6B),
+    LearningFormat.teachBack => const Color(0xFFF4B400),
+    LearningFormat.social => const Color(0xFFFFA629),
+  };
 }
 
 class _DailyDurationCard extends StatelessWidget {
@@ -3712,31 +3649,31 @@ class _DailyDurationCard extends StatelessWidget {
   }
 
   String _durationTitle(DailyDuration duration) => switch (duration) {
-        DailyDuration.five => '5 menit',
-        DailyDuration.ten => '10 menit',
-        DailyDuration.fifteen => '15 menit',
-        DailyDuration.twenty => '20 menit',
-        DailyDuration.thirty => '30 menit',
-        DailyDuration.adaptive => 'Otomatis',
-      };
+    DailyDuration.five => '5 menit',
+    DailyDuration.ten => '10 menit',
+    DailyDuration.fifteen => '15 menit',
+    DailyDuration.twenty => '20 menit',
+    DailyDuration.thirty => '30 menit',
+    DailyDuration.adaptive => 'Otomatis',
+  };
 
   String _durationSubtitle(DailyDuration duration) => switch (duration) {
-        DailyDuration.five => 'Santai, cocok buat mulai',
-        DailyDuration.ten => 'Ringan untuk setiap hari',
-        DailyDuration.fifteen => 'Pas untuk misi harian',
-        DailyDuration.twenty => 'Lebih fokus dan menantang',
-        DailyDuration.thirty => 'Untuk belajar lebih serius',
-        DailyDuration.adaptive => 'Bale menyesuaikan progresmu',
-      };
+    DailyDuration.five => 'Santai, cocok buat mulai',
+    DailyDuration.ten => 'Ringan untuk setiap hari',
+    DailyDuration.fifteen => 'Pas untuk misi harian',
+    DailyDuration.twenty => 'Lebih fokus dan menantang',
+    DailyDuration.thirty => 'Untuk belajar lebih serius',
+    DailyDuration.adaptive => 'Bale menyesuaikan progresmu',
+  };
 
   Color _durationColor(DailyDuration duration) => switch (duration) {
-        DailyDuration.five => const Color(0xFF2D8CFF),
-        DailyDuration.ten => const Color(0xFFF4B400),
-        DailyDuration.fifteen => const Color(0xFFFF6B6B),
-        DailyDuration.twenty => const Color(0xFF7C5CFF),
-        DailyDuration.thirty => const Color(0xFFFFA629),
-        DailyDuration.adaptive => const Color(0xFF4CAF50),
-      };
+    DailyDuration.five => const Color(0xFF2D8CFF),
+    DailyDuration.ten => const Color(0xFFF4B400),
+    DailyDuration.fifteen => const Color(0xFFFF6B6B),
+    DailyDuration.twenty => const Color(0xFF7C5CFF),
+    DailyDuration.thirty => const Color(0xFFFFA629),
+    DailyDuration.adaptive => const Color(0xFF4CAF50),
+  };
 }
 
 class _StudyTimeCard extends StatelessWidget {
@@ -3840,41 +3777,41 @@ class _StudyTimeCard extends StatelessWidget {
   }
 
   String _timeTitle(StudyTime time) => switch (time) {
-        StudyTime.beforeSchool => 'Sebelum sekolah',
-        StudyTime.afternoon => 'Siang',
-        StudyTime.evening => 'Sore',
-        StudyTime.night => 'Malam',
-        StudyTime.differentDaily => 'Jadwal berbeda',
-        StudyTime.skipForNow => 'Nanti saja',
-      };
+    StudyTime.beforeSchool => 'Sebelum sekolah',
+    StudyTime.afternoon => 'Siang',
+    StudyTime.evening => 'Sore',
+    StudyTime.night => 'Malam',
+    StudyTime.differentDaily => 'Jadwal berbeda',
+    StudyTime.skipForNow => 'Nanti saja',
+  };
 
   String _timeSubtitle(StudyTime time) => switch (time) {
-        StudyTime.beforeSchool => 'Mulai lebih pagi',
-        StudyTime.afternoon => 'Saat istirahat atau setelah pagi',
-        StudyTime.evening => 'Santai setelah sekolah',
-        StudyTime.night => 'Fokus di malam hari',
-        StudyTime.differentDaily => 'Bale akan menyesuaikan',
-        StudyTime.skipForNow => 'Bisa diatur nanti',
-      };
+    StudyTime.beforeSchool => 'Mulai lebih pagi',
+    StudyTime.afternoon => 'Saat istirahat atau setelah pagi',
+    StudyTime.evening => 'Santai setelah sekolah',
+    StudyTime.night => 'Fokus di malam hari',
+    StudyTime.differentDaily => 'Bale akan menyesuaikan',
+    StudyTime.skipForNow => 'Bisa diatur nanti',
+  };
 
   Color _timeColor(StudyTime time) => switch (time) {
-        StudyTime.beforeSchool => const Color(0xFFF4B400),
-        StudyTime.afternoon => const Color(0xFFFFA629),
-        StudyTime.evening => const Color(0xFFFF6B6B),
-        StudyTime.night => const Color(0xFF0E3A5F),
-        StudyTime.differentDaily => const Color(0xFF4CAF50),
-        StudyTime.skipForNow => const Color(0xFF7C5CFF),
-      };
+    StudyTime.beforeSchool => const Color(0xFFF4B400),
+    StudyTime.afternoon => const Color(0xFFFFA629),
+    StudyTime.evening => const Color(0xFFFF6B6B),
+    StudyTime.night => const Color(0xFF0E3A5F),
+    StudyTime.differentDaily => const Color(0xFF4CAF50),
+    StudyTime.skipForNow => const Color(0xFF7C5CFF),
+  };
 }
 
 String _worldName(LearningWorld? world) => switch (world) {
-      LearningWorld.numeria => 'Numeria',
-      LearningWorld.kodex => 'KodeX',
-      LearningWorld.detectivia => 'Detectivia',
-      LearningWorld.bahasa => 'Bahasa',
-      LearningWorld.sains => 'Sains',
-      LearningWorld.tryAll || null => 'BaleBelajar',
-    };
+  LearningWorld.numeria => 'Numeria',
+  LearningWorld.kodex => 'KodeX',
+  LearningWorld.detectivia => 'Detectivia',
+  LearningWorld.bahasa => 'Bahasa',
+  LearningWorld.sains => 'Sains',
+  LearningWorld.tryAll || null => 'BaleBelajar',
+};
 
 class _LoginWelcomeStep extends StatelessWidget {
   const _LoginWelcomeStep({
@@ -3916,10 +3853,10 @@ class _LoginWelcomeStep extends StatelessWidget {
               'Selamat datang kembali!',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontSize: 28,
-                    color: BaleColors.ink,
-                    fontWeight: FontWeight.w900,
-                  ),
+                fontSize: 28,
+                color: BaleColors.ink,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             const SizedBox(height: 12),
             const Center(
@@ -3953,8 +3890,9 @@ class _LoginWelcomeStep extends StatelessWidget {
               obscureText: !showPassword,
               validator: (_) => null,
               suffixIcon: IconButton(
-                tooltip:
-                    showPassword ? 'Sembunyikan password' : 'Lihat password',
+                tooltip: showPassword
+                    ? 'Sembunyikan password'
+                    : 'Lihat password',
                 onPressed: onTogglePassword,
                 icon: Icon(
                   showPassword
@@ -3986,8 +3924,9 @@ class _LoginWelcomeStep extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed:
-                      controller.isBusy || googleBusy ? null : onRegister,
+                  onPressed: controller.isBusy || googleBusy
+                      ? null
+                      : onRegister,
                   child: const Text('DAFTAR'),
                 ),
               ],
@@ -4107,10 +4046,7 @@ class _AuthStep extends StatelessWidget {
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 20),
-        BaleCard(
-          padding: const EdgeInsets.all(20),
-          child: child,
-        ),
+        BaleCard(padding: const EdgeInsets.all(20), child: child),
       ],
     );
   }
@@ -4149,8 +4085,9 @@ class _FiveStepProgress extends StatelessWidget {
                           color: index <= step ? _authPrimary : Colors.white,
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(
-                            color:
-                                index <= step ? _authPrimary : BaleColors.line,
+                            color: index <= step
+                                ? _authPrimary
+                                : BaleColors.line,
                             width: 2,
                           ),
                         ),
@@ -4312,10 +4249,7 @@ class _PrimaryAction extends StatelessWidget {
 }
 
 class _OutlineAction extends StatelessWidget {
-  const _OutlineAction({
-    required this.label,
-    required this.onPressed,
-  });
+  const _OutlineAction({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback onPressed;
@@ -4337,10 +4271,7 @@ class _OutlineAction extends StatelessWidget {
 }
 
 class _SecondaryAction extends StatelessWidget {
-  const _SecondaryAction({
-    required this.label,
-    required this.onPressed,
-  });
+  const _SecondaryAction({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback? onPressed;
@@ -4349,10 +4280,7 @@ class _SecondaryAction extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: onPressed,
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.w900),
-      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w900)),
     );
   }
 }

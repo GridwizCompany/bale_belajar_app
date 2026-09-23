@@ -43,7 +43,7 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   final _code = TextEditingController();
   late int _grade;
   bool _showPassword = false;
-  bool _googleBusy = false;
+  final bool _googleBusy = false;
   bool _appleBusy = false;
 
   @override
@@ -83,8 +83,9 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final compact = screenHeight < 740;
     final isLogin = _mode == AuthAccountMode.login;
-    final mascotSize =
-        isLogin ? (compact ? 128.0 : 158.0) : (compact ? 92.0 : 118.0);
+    final mascotSize = isLogin
+        ? (compact ? 128.0 : 158.0)
+        : (compact ? 92.0 : 118.0);
     final subtitle = _subtitle;
     final showApple = defaultTargetPlatform != TargetPlatform.android;
 
@@ -122,18 +123,18 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
                     Text(
                       _title,
                       textAlign: TextAlign.center,
-                      style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                fontSize: isLogin
-                                    ? (compact ? 25 : 29)
-                                    : (compact ? 22 : 26),
-                                color: BaleColors.ink,
-                                fontWeight: FontWeight.w900,
-                              ),
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontSize: isLogin
+                                ? (compact ? 25 : 29)
+                                : (compact ? 22 : 26),
+                            color: BaleColors.ink,
+                            fontWeight: FontWeight.w900,
+                          ),
                     ),
                     SizedBox(
-                        height:
-                            isLogin ? (compact ? 8 : 12) : (compact ? 4 : 8)),
+                      height: isLogin ? (compact ? 8 : 12) : (compact ? 4 : 8),
+                    ),
                     _LoginMascot(size: mascotSize),
                     if (subtitle.isNotEmpty) ...[
                       const SizedBox(height: 8),
@@ -277,41 +278,41 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
   bool get _busy => widget.controller.isBusy || _googleBusy || _appleBusy;
 
   String get _title => switch (_mode) {
-        AuthAccountMode.login => 'Selamat datang kembali!',
-        AuthAccountMode.register => 'Buat akun BaleBelajar',
-        AuthAccountMode.code => 'Masuk dengan kode siswa',
-      };
+    AuthAccountMode.login => 'Selamat datang kembali!',
+    AuthAccountMode.register => 'Buat akun BaleBelajar',
+    AuthAccountMode.code => 'Masuk dengan kode siswa',
+  };
 
   String get _subtitle => switch (_mode) {
-        AuthAccountMode.login => '',
-        AuthAccountMode.register =>
-          'Simpan hasil cek awal dan mulai dari level yang pas.',
-        AuthAccountMode.code => 'Masukkan kode dari sekolah atau mentor.',
-      };
+    AuthAccountMode.login => '',
+    AuthAccountMode.register =>
+      'Simpan hasil cek awal dan mulai dari level yang pas.',
+    AuthAccountMode.code => 'Masukkan kode dari sekolah atau mentor.',
+  };
 
   IconData get _primaryIcon => switch (_mode) {
-        AuthAccountMode.login => Icons.login_rounded,
-        AuthAccountMode.register => Icons.person_add_alt_1_rounded,
-        AuthAccountMode.code => Icons.qr_code_2_rounded,
-      };
+    AuthAccountMode.login => Icons.login_rounded,
+    AuthAccountMode.register => Icons.person_add_alt_1_rounded,
+    AuthAccountMode.code => Icons.qr_code_2_rounded,
+  };
 
   String get _primaryLabel => switch (_mode) {
-        AuthAccountMode.login => 'MASUK',
-        AuthAccountMode.register => 'DAFTAR',
-        AuthAccountMode.code => 'MASUK DENGAN KODE',
-      };
+    AuthAccountMode.login => 'MASUK',
+    AuthAccountMode.register => 'DAFTAR',
+    AuthAccountMode.code => 'MASUK DENGAN KODE',
+  };
 
   String get _switchPrefix => switch (_mode) {
-        AuthAccountMode.login => 'Belum punya akun? ',
-        AuthAccountMode.register => 'Sudah punya akun? ',
-        AuthAccountMode.code => 'Belum punya akun? ',
-      };
+    AuthAccountMode.login => 'Belum punya akun? ',
+    AuthAccountMode.register => 'Sudah punya akun? ',
+    AuthAccountMode.code => 'Belum punya akun? ',
+  };
 
   String get _switchAction => switch (_mode) {
-        AuthAccountMode.login => 'DAFTAR',
-        AuthAccountMode.register => 'MASUK',
-        AuthAccountMode.code => 'DAFTAR',
-      };
+    AuthAccountMode.login => 'DAFTAR',
+    AuthAccountMode.register => 'MASUK',
+    AuthAccountMode.code => 'DAFTAR',
+  };
 
   void _switchMode() {
     setState(() {
@@ -367,9 +368,7 @@ class _AuthAccountPageState extends State<AuthAccountPage> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           backgroundColor: Colors.white,
           contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
           content: Column(

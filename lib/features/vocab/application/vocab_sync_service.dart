@@ -44,6 +44,12 @@ class VocabSyncService {
 
   bool _notificationsInitialized = false;
 
+  /// Widget home-screen dan wallpaper lock-screen hanya diimplementasikan di
+  /// sisi Android (VocabWidgetProvider + MainActivity). Di iOS keduanya
+  /// dilewati supaya tidak melempar PlatformException/MissingPluginException.
+  bool get _supportsAndroidSurfaces =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   Future<void> _ensureNotificationsReady() async {
     if (_notificationsInitialized) return;
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -161,6 +167,7 @@ class VocabSyncService {
     DailyVocab daily, {
     required String wordsJson,
   }) async {
+    if (!_supportsAndroidSurfaces) return;
     final setting = daily.setting;
     final hasWords = _hasEncodedWords(wordsJson);
     await HomeWidget.saveWidgetData<bool>(
@@ -201,8 +208,22 @@ class VocabSyncService {
       words: words,
     );
     final wordsJson = _encodeWords(scopedDaily);
-    await _updateWidget(scopedDaily, wordsJson: wordsJson);
-    await _updateLockWallpaper(scopedDaily, wordsJson: wordsJson);
+    // Best-effort, sama seperti syncToday: kegagalan widget/wallpaper tidak
+    // boleh membuat layar pengaturan gagal memuat data.
+    try {
+      await _updateWidget(scopedDaily, wordsJson: wordsJson);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('VocabSyncService._updateWidget gagal: $error');
+      }
+    }
+    try {
+      await _updateLockWallpaper(scopedDaily, wordsJson: wordsJson);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('VocabSyncService._updateLockWallpaper gagal: $error');
+      }
+    }
     await _cancelNotifications();
   }
 
@@ -210,6 +231,7 @@ class VocabSyncService {
     DailyVocab daily, {
     required String wordsJson,
   }) async {
+    if (!_supportsAndroidSurfaces) return;
     if (daily.words.isEmpty || !_hasEncodedWords(wordsJson)) {
       await _wallpaperChannel.invokeMethod<bool>('cancelHourly');
       return;

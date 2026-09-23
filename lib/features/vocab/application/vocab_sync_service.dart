@@ -98,16 +98,11 @@ class VocabSyncService {
   Future<DailyVocab?> syncToday({bool force = false}) async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().substring(0, 10);
-    if (!force && prefs.getString(_prefsDateKey) == today) {
-      try {
-        await _wallpaperChannel.invokeMethod<bool>('setCurrent');
-      } catch (error) {
-        if (kDebugMode) {
-          debugPrint('VocabSyncService.restoreWallpaper gagal: $error');
-        }
-      }
-      return null;
-    }
+    // Sudah sync hari ini: jangan pasang ulang wallpaper tiap resume -
+    // setBitmap memicu relayout/recreate activity (layar putih setelah
+    // balik dari dialog "Tambahkan widget"). Pergantian kata tetap jalan
+    // lewat alarm VocabWallpaperAlarmReceiver.
+    if (!force && prefs.getString(_prefsDateKey) == today) return null;
 
     DailyVocab daily;
     try {

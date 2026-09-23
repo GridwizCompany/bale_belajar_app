@@ -25,6 +25,7 @@ object VocabLockScreenWallpaper {
   private const val PREFERENCES_NAME = "HomeWidgetPreferences"
   private const val KEY_WORDS_JSON = "vocab_words_json"
   private const val KEY_LOCK_INDEX = "vocab_lock_wallpaper_index"
+  private const val KEY_DISPLAY_LANGUAGE = "vocab_display_language"
   private const val WALLPAPER_INTERVAL_MS = 30L * 60L * 1000L
 
   fun saveWords(context: Context, wordsJson: String) {
@@ -40,7 +41,8 @@ object VocabLockScreenWallpaper {
     val prefs = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
     val words = parseWords(prefs.getString(KEY_WORDS_JSON, null))
     val selected = word ?: words.firstOrNull() ?: return false
-    val bitmap = drawWallpaper(context, selected)
+    val displayLanguage = prefs.getString(KEY_DISPLAY_LANGUAGE, "BOTH") ?: "BOTH"
+    val bitmap = drawWallpaper(context, selected, displayLanguage)
     val wallpaperManager = WallpaperManager.getInstance(context)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
       wallpaperManager.setBitmap(bitmap, null, true, WallpaperManager.FLAG_LOCK)
@@ -88,7 +90,11 @@ object VocabLockScreenWallpaper {
     return PendingIntent.getBroadcast(context, 7001, intent, flags)
   }
 
-  private fun drawWallpaper(context: Context, word: VocabWallpaperWord): Bitmap {
+  private fun drawWallpaper(
+      context: Context,
+      word: VocabWallpaperWord,
+      displayLanguage: String,
+  ): Bitmap {
     val metrics = context.resources.displayMetrics
     val width = max(metrics.widthPixels, 1080)
     val height = max(metrics.heightPixels, 1920)
@@ -124,12 +130,29 @@ object VocabLockScreenWallpaper {
     drawMountains(canvas, width, height)
     drawCity(canvas, width, height)
     drawWater(canvas, width, height)
-    drawVocabulary(canvas, width, height, word)
+    drawVocabulary(canvas, width, height, linesFor(displayLanguage, word))
 
     return bitmap
   }
 
-  private fun drawVocabulary(canvas: Canvas, width: Int, height: Int, word: VocabWallpaperWord) {
+  private fun linesFor(displayLanguage: String, word: VocabWallpaperWord): WallpaperLines {
+    val koreanWithRomanized =
+        if (word.romanized.isNotBlank()) "${word.korean} (${word.romanized})" else word.korean
+    return when (displayLanguage) {
+      "EN_TO_KO" -> WallpaperLines(big = word.english, romanized = "", secondary = koreanWithRomanized)
+      "KO_TO_EN" -> WallpaperLines(big = word.korean, romanized = word.romanized, secondary = word.english)
+      "KO_TO_ID" -> WallpaperLines(big = word.korean, romanized = word.romanized, secondary = word.indonesian)
+      "EN_TO_ID" -> WallpaperLines(big = word.english, romanized = "", secondary = word.indonesian)
+      else -> WallpaperLines(
+          big = word.korean,
+          romanized = word.romanized,
+          secondary = word.english,
+          tertiary = word.indonesian,
+      )
+    }
+  }
+
+  private fun drawVocabulary(canvas: Canvas, width: Int, height: Int, lines: WallpaperLines) {
     val cardLeft = width * 0.60f
     val cardRight = width * 0.96f
     val cardTop = height * 0.215f
@@ -155,11 +178,11 @@ object VocabLockScreenWallpaper {
     }
     val hangul = Paint(shadow).apply {
       color = Color.WHITE
-      textSize = fitTextSize(word.korean, this, right - left, width * 0.060f, width * 0.036f)
+      textSize = fitTextSize(lines.big, this, right - left, width * 0.060f, width * 0.036f)
     }
     shadow.textSize = hangul.textSize
-    drawEllipsized(canvas, word.korean, left + 3f, top + 5f, shadow, right - left)
-    drawEllipsized(canvas, word.korean, left, top, hangul, right - left)
+    drawEllipsized(canvas, lines.big, left + 3f, top + 5f, shadow, right - left)
+    drawEllipsized(canvas, lines.big, left, top, hangul, right - left)
 
     val body = Paint(Paint.ANTI_ALIAS_FLAG).apply {
       color = 0xEEFFFFFF.toInt()
@@ -174,11 +197,16 @@ object VocabLockScreenWallpaper {
     }
 
     var cursor = top + hangul.textSize * 0.70f
-    if (word.romanized.isNotBlank()) {
-      drawEllipsized(canvas, word.romanized, left, cursor, small, right - left)
+    if (lines.romanized.isNotBlank()) {
+      drawEllipsized(canvas, lines.romanized, left, cursor, small, right - left)
       cursor += small.textSize * 1.20f
     }
-    drawEllipsized(canvas, word.indonesian, left, cursor, body, right - left)
+    drawEllipsized(canvas, lines.secondary, left, cursor, body, right - left)
+    val tertiary = lines.tertiary
+    if (!tertiary.isNullOrBlank()) {
+      cursor += body.textSize * 1.20f
+      drawEllipsized(canvas, tertiary, left, cursor, small, right - left)
+    }
   }
 
   private fun fitTextSize(
@@ -289,4 +317,11 @@ data class VocabWallpaperWord(
     val romanized: String,
     val english: String,
     val indonesian: String,
+)
+
+private data class WallpaperLines(
+    val big: String,
+    val romanized: String,
+    val secondary: String,
+    val tertiary: String? = null,
 )

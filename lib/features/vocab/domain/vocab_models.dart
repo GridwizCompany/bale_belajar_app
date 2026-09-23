@@ -20,24 +20,30 @@ extension VocabLevelJson on VocabLevel {
       };
 }
 
-enum VocabDisplayLanguage { enToKo, koToEn, both }
+enum VocabDisplayLanguage { enToKo, koToEn, koToId, enToId, both }
 
 extension VocabDisplayLanguageJson on VocabDisplayLanguage {
   String get apiValue => switch (this) {
         VocabDisplayLanguage.enToKo => 'EN_TO_KO',
         VocabDisplayLanguage.koToEn => 'KO_TO_EN',
+        VocabDisplayLanguage.koToId => 'KO_TO_ID',
+        VocabDisplayLanguage.enToId => 'EN_TO_ID',
         VocabDisplayLanguage.both => 'BOTH',
       };
 
   String get label => switch (this) {
         VocabDisplayLanguage.enToKo => 'Inggris → Korea',
         VocabDisplayLanguage.koToEn => 'Korea → Inggris',
+        VocabDisplayLanguage.koToId => 'Korea → Indonesia',
+        VocabDisplayLanguage.enToId => 'Inggris → Indonesia',
         VocabDisplayLanguage.both => 'Keduanya',
       };
 
   static VocabDisplayLanguage fromApi(String value) => switch (value) {
         'EN_TO_KO' => VocabDisplayLanguage.enToKo,
         'KO_TO_EN' => VocabDisplayLanguage.koToEn,
+        'KO_TO_ID' => VocabDisplayLanguage.koToId,
+        'EN_TO_ID' => VocabDisplayLanguage.enToId,
         _ => VocabDisplayLanguage.both,
       };
 }

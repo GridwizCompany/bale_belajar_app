@@ -332,6 +332,34 @@ class _VocabSettingsScreenState extends State<VocabSettingsScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Row(
+                children: [
+                  Icon(Icons.translate_rounded, color: BaleColors.warning),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Arah bahasa wallpaper & widget',
+                      style: TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _DisplayLanguageDropdown(
+                value: setting.displayLanguage,
+                onChanged: _saving
+                    ? null
+                    : (value) =>
+                        _persist(setting.copyWith(displayLanguage: value)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        BaleCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Row(
                 children: [
                   const Icon(Icons.tune_rounded, color: BaleColors.warning),
@@ -717,6 +745,36 @@ class _HourDropdown extends StatelessWidget {
           ? null
           : (hour) {
               if (hour != null) onChanged!(hour);
+            },
+    );
+  }
+}
+
+class _DisplayLanguageDropdown extends StatelessWidget {
+  const _DisplayLanguageDropdown({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final VocabDisplayLanguage value;
+  final ValueChanged<VocabDisplayLanguage>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<VocabDisplayLanguage>(
+      initialValue: value,
+      isExpanded: true,
+      decoration: InputDecoration(
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+      items: [
+        for (final option in VocabDisplayLanguage.values)
+          DropdownMenuItem(value: option, child: Text(option.label)),
+      ],
+      onChanged: onChanged == null
+          ? null
+          : (option) {
+              if (option != null) onChanged!(option);
             },
     );
   }

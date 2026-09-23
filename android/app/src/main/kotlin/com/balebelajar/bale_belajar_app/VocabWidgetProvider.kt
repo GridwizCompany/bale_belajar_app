@@ -81,6 +81,14 @@ class VocabWidgetProvider : HomeWidgetProvider() {
         views.setTextViewText(R.id.vocab_widget_english, koreanText)
         views.setTextViewText(R.id.vocab_widget_korean, word.english)
       }
+      "KO_TO_ID" -> {
+        views.setTextViewText(R.id.vocab_widget_english, koreanText)
+        views.setTextViewText(R.id.vocab_widget_korean, word.indonesian)
+      }
+      "EN_TO_ID" -> {
+        views.setTextViewText(R.id.vocab_widget_english, word.english)
+        views.setTextViewText(R.id.vocab_widget_korean, word.indonesian)
+      }
       else -> {
         views.setTextViewText(R.id.vocab_widget_english, word.english)
         views.setTextViewText(R.id.vocab_widget_korean, koreanText)

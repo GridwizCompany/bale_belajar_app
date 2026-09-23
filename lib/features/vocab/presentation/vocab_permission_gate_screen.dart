@@ -187,95 +187,111 @@ class _VocabPermissionGateScreenState extends State<VocabPermissionGateScreen>
                       constraints: BoxConstraints(
                         minHeight: constraints.maxHeight - 44,
                       ),
-                      child: IntrinsicHeight(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Icon(Icons.notifications_active_rounded,
-                                size: 56, color: BaleColors.warning),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Aktifkan Pengingat Kosakata Korea',
-                              style: Theme.of(context).textTheme.headlineMedium,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Supaya kosakata Inggris-Korea harianmu muncul lewat '
-                              'notifikasi dan widget di home screen, izinkan dua hal '
-                              'berikut ini.',
-                            ),
-                            const SizedBox(height: 20),
-                            if (widget.needsNotification)
-                              _GateItem(
-                                icon: Icons.notifications_rounded,
-                                title: 'Izin Notifikasi',
-                                satisfied: notifSatisfied,
-                                actionLabel:
-                                    (notifStatus?.isPermanentlyDenied ?? false)
-                                        ? 'Buka Pengaturan'
-                                        : 'Izinkan',
-                                onAction: _handleEnableNotifications,
+                      // Jangan pakai IntrinsicHeight + Spacer di sini:
+                      // _GateItem memakai LayoutBuilder yang tidak mendukung
+                      // intrinsic dimensions -> layout gagal, layar putih.
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Icon(Icons.notifications_active_rounded,
+                                  size: 56, color: BaleColors.warning),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Aktifkan Pengingat Kosakata Korea',
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium,
                               ),
-                            if (widget.needsNotification && widget.needsWidget)
-                              const SizedBox(height: 10),
-                            if (widget.needsWidget)
-                              _GateItem(
-                                icon: Icons.add_to_home_screen_rounded,
-                                title: _widgetPinSupported
-                                    ? 'Widget di Home Screen'
-                                    : 'Widget bisa ditambah manual',
-                                satisfied: widgetSatisfied,
-                                actionLabel: 'Tambahkan',
-                                onAction: _handleAddWidget,
-                              ),
-                            if (widget.needsWidget && !_widgetPinSupported) ...[
                               const SizedBox(height: 8),
                               const Text(
-                                'Launcher HP ini tidak menerima permintaan tambah widget otomatis. '
-                                'Tambah manual lewat layar utama > Widget > Bale Belajar.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
+                                'Supaya kosakata Inggris-Korea harianmu muncul lewat '
+                                'notifikasi dan widget di home screen, izinkan dua hal '
+                                'berikut ini.',
+                              ),
+                              const SizedBox(height: 20),
+                              if (widget.needsNotification)
+                                _GateItem(
+                                  icon: Icons.notifications_rounded,
+                                  title: 'Izin Notifikasi',
+                                  satisfied: notifSatisfied,
+                                  actionLabel:
+                                      (notifStatus?.isPermanentlyDenied ??
+                                              false)
+                                          ? 'Buka Pengaturan'
+                                          : 'Izinkan',
+                                  onAction: _handleEnableNotifications,
+                                ),
+                              if (widget.needsNotification &&
+                                  widget.needsWidget)
+                                const SizedBox(height: 10),
+                              if (widget.needsWidget)
+                                _GateItem(
+                                  icon: Icons.add_to_home_screen_rounded,
+                                  title: _widgetPinSupported
+                                      ? 'Widget di Home Screen'
+                                      : 'Widget bisa ditambah manual',
+                                  satisfied: widgetSatisfied,
+                                  actionLabel: 'Tambahkan',
+                                  onAction: _handleAddWidget,
+                                ),
+                              if (widget.needsWidget &&
+                                  !_widgetPinSupported) ...[
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Launcher HP ini tidak menerima permintaan tambah widget otomatis. '
+                                  'Tambah manual lewat layar utama > Widget > Bale Belajar.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 20),
+                              FilledButton(
+                                onPressed: () => _handleContinuePressed(
+                                  skipping:
+                                      !(notifSatisfied && widgetSatisfied),
+                                ),
+                                child: Text(
+                                  !notifSatisfied
+                                      ? ((notifStatus?.isPermanentlyDenied ??
+                                              false)
+                                          ? 'Buka Pengaturan Notifikasi'
+                                          : 'Aktifkan Notifikasi')
+                                      : (widgetSatisfied
+                                          ? 'Lanjutkan'
+                                          : 'Lewati Widget'),
                                 ),
                               ),
+                              if (!notifSatisfied) ...[
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Notifikasi wajib aktif supaya kosakata bisa tampil di lock screen.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.black54),
+                                ),
+                              ] else if (!widgetSatisfied) ...[
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Kamu tetap bisa mengaktifkannya nanti lewat Profil > Kosakata Korea.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      fontSize: 12, color: Colors.black54),
+                                ),
+                              ],
                             ],
-                            const Spacer(),
-                            const SizedBox(height: 20),
-                            FilledButton(
-                              onPressed: () => _handleContinuePressed(
-                                skipping: !(notifSatisfied && widgetSatisfied),
-                              ),
-                              child: Text(
-                                !notifSatisfied
-                                    ? ((notifStatus?.isPermanentlyDenied ??
-                                            false)
-                                        ? 'Buka Pengaturan Notifikasi'
-                                        : 'Aktifkan Notifikasi')
-                                    : (widgetSatisfied
-                                        ? 'Lanjutkan'
-                                        : 'Lewati Widget'),
-                              ),
-                            ),
-                            if (!notifSatisfied) ...[
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Notifikasi wajib aktif supaya kosakata bisa tampil di lock screen.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.black54),
-                              ),
-                            ] else if (!widgetSatisfied) ...[
-                              const SizedBox(height: 6),
-                              const Text(
-                                'Kamu tetap bisa mengaktifkannya nanti lewat Profil > Kosakata Korea.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                    fontSize: 12, color: Colors.black54),
-                              ),
-                            ],
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   );
